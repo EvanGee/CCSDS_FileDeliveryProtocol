@@ -37,7 +37,7 @@ Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
     snprintf(port, 20, "%u", server_entity->UT_port);
 
     Protocol_state *p_state = ssp_alloc(sizeof(Protocol_state), 1);
-    p_state->packet_size = PACKET_LEN;
+    p_state->packet_len = PACKET_LEN;
     p_state->my_cfdp_id = my_cfdp_address;
     p_state->mib = mib;
 

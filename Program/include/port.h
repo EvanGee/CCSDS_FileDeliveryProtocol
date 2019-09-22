@@ -3,8 +3,8 @@
 #define PORT_H
 
 #define STACK_ALLOCATION 16384
-#define POSIX_PORT 1
-#define FREE_RTOS_PORT 1
+#define POSIX_PORT
+//#define FREE_RTOS_PORT
 
 
 #define MAX_PATH 255

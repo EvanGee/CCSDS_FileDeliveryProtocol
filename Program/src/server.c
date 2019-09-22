@@ -333,8 +333,7 @@ void connectionless_server(char* port, int initial_buff_size,
 
         if (ssp_fd_is_set(sfd, read_socket_set)) {
             int count = ssp_recvfrom(sfd, buff, *buff_size, 0, addr, size_of_addr);
-            ssp_printf("read in this amount %d\n", count);
-
+           
             if (count == -1)
                 continue;
 

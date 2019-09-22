@@ -147,7 +147,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     //server side, receiving requests (this should be its own function)
     if (found_req == NULL && is_server) 
     {
-        found_req = init_request(p_state->packet_size);
+        found_req = init_request(p_state->packet_len);
         ssp_printf("incoming new request\n");
         //Make new request and add it
         found_req->transmission_mode = header->transmission_mode;
@@ -158,7 +158,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         found_req->procedure = sending_put_metadata;
         found_req->res.addr = ssp_alloc(1, res.size_of_addr);
         memcpy(found_req->res.addr, res.addr, res.size_of_addr);
-        found_req->res.packet_len = p_state->packet_size;
+        found_req->res.packet_len = p_state->packet_len;
         found_req->res.sfd = res.sfd;
         request_list->push(request_list, found_req, transaction_sequence_number);
     } 
