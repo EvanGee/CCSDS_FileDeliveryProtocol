@@ -40,7 +40,7 @@ Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
     p_state->packet_len = PACKET_LEN;
     p_state->my_cfdp_id = my_cfdp_address;
     p_state->mib = mib;
-
+    p_state->close = 0;
 
     p_state->server_port = ssp_alloc(sizeof(char), 10);
     checkAlloc(p_state->server_port, 1);
@@ -55,11 +55,11 @@ Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
 
 
 void ssp_connectionless_server(Protocol_state *p_state) {
-    p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, p_state);
+    p_state->server_handle = ssp_thread_create(16384, ssp_connectionless_server_task, p_state);
 }
 
 void ssp_connection_server(Protocol_state *p_state) {
-    p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, p_state);
+    p_state->server_handle = ssp_thread_create(16384, ssp_connection_server_task, p_state);
 }
 
 

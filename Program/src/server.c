@@ -301,7 +301,6 @@ void connectionless_server(char* port, int initial_buff_size,
 
     for (;;)
     {
-
         memcpy(read_socket_set, socket_set, size_of_socket_struct);
 
         int nrdy = ssp_select(sfd + 1, read_socket_set, NULL,  NULL, 100e3);
@@ -386,7 +385,6 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
     void *addr = ssp_init_sockaddr_struct(&size_of_addr);
 
     for (;;) {
-
         if (exit_now || checkExit(checkExitParams))
              break;
         

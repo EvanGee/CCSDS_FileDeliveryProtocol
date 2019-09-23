@@ -1,7 +1,8 @@
 
+
+#ifndef MY_LIST_H
+#define MY_LIST_H
 #include <stdint.h>
-#ifndef LIST_H
-#define LIST_H
 /*------------------------------------------------------------------------------
     Purpose: This is a node for the link list bellow
 ------------------------------------------------------------------------------*/

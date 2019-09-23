@@ -2,19 +2,19 @@
 PROJDIR = $(CURDIR)/..
 INCLUDE += -I$(PROJDIR)/include
 
+
+
 #---------------------------FOR FREE RTOS INTEGRATION---------------------------
 #path to source includes
-#INCLUDE += -I$(PROJDIR)/FreeRTOSv10.2.1/FreeRTOS-plus/Source/include
-#INCLUDE += -I$(PROJDIR)/FreeRTOSv10.2.1/FreeRTOS/Source/include
+INCLUDE += -I$(PROJDIR)/../../../../Source/include
 
-#path to compiler includes
-#INCLUDE += -I$(PROJDIR)/FreeRTOSv10.2.1/FreeRTOS/Source/portable/GCC/ARM7_AT91FR40008
+#path to compiler includes (portmacro.h)
+INCLUDE += -I$(PROJDIR)/../../../../Source/portable/GCC/POSIX/
 
 #path to FreeRTOSconfig
-#INCLUDE += -I$(PROJDIR)/FreeRTOSv10.2.1/FreeRTOS/Demo/ARM7_STR75x_GCC
+INCLUDE += -I$(PROJDIR)/../../../../Project/
 
 #-------------------------------------------------------------------------------
-
 
 CC = gcc 
 
@@ -78,12 +78,16 @@ CFLAGS += $(INCLUDE) $(CWARNS)
 #---------------------------Build---------------------------
 OBJS_FILES = $(patsubst %.c, %.o, $(CFILES))
 
-all: $(MAIN) 
-	ar -rsc file_delivery_app.a $(OBJS_FILES)
 
-.PHONY: clean 
+
+all: $(MAIN) 
+
+.PHONY: clean lib
 
 $(MAIN): $(OBJS_FILES)
+
+lib:  $(OBJS_FILES)
+	ar -rsc file_delivery_app.a $(OBJS_FILES)
 
 clean: 
 	rm -f *.o $(MAIN)
