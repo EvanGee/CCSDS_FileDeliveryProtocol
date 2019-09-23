@@ -13,3 +13,5 @@ email me at evangiese77@gmail.com
 Compilation Notes:
     for compiling with free rtos, first we need to specifiy the locatifon of the free RTOS header files that we need within
     our makefile. Then we can compile our .a file. To use this file, just staticly link to the file_delivery_app.a.
+
+

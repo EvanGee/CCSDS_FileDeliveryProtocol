@@ -288,13 +288,14 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     
     /* Create the task, storing the handle. */
     xReturned = xTaskCreate(
-                    thread_func,       /* Function that implements the task. */
+                    *((TaskFunction_t*) thread_func),       /* Function that implements the task. */
                     "FTP",          /* Text name for the task. */
                     stack_size,      /* Stack size in words, not bytes. */
                     params,    /* Parameter passed into the task. */
                     tskIDLE_PRIORITY,/* Priority at which the task is created. */
                     xHandle );      /* Used to pass out the created task's handle. */
-
+    if (xReturned == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY)
+        ssp_error("Not enough memory to start task\n");
 
     return xHandle;
     #endif
