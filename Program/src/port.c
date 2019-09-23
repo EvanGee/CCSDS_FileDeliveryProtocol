@@ -202,8 +202,6 @@ void *ssp_init_sockaddr_struct(size_t *size_of_addr) {
 
 void *ssp_alloc(uint32_t n_memb, size_t size) {
     
-    //return calloc(n_memb, size);
-    
     #ifdef POSIX_PORT
         return calloc(n_memb, size);
     #endif
@@ -215,8 +213,7 @@ void *ssp_alloc(uint32_t n_memb, size_t size) {
 }
 
 void ssp_free(void *pointer) {
-    //free(pointer);
-    
+
     #ifdef POSIX_PORT
         free(pointer);
     #endif
@@ -288,7 +285,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     
     /* Create the task, storing the handle. */
     xReturned = xTaskCreate(
-                    *((TaskFunction_t*) thread_func),       /* Function that implements the task. */
+                    thread_func,       /* Function that implements the task. */
                     "FTP",          /* Text name for the task. */
                     stack_size,      /* Stack size in words, not bytes. */
                     params,    /* Parameter passed into the task. */
