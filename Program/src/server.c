@@ -197,14 +197,15 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
 
     for (;;)
     {
-        memcpy(read_socket_set, socket_set, size_of_socket_struct);
-        int nrdy = ssp_select(connection_limit + 1, read_socket_set, NULL,  NULL, 100e3);
         
         if (exit_now || checkExit(other)){
             ssp_printf("exiting server thread\n");
             break;
         }
     
+        memcpy(read_socket_set, socket_set, size_of_socket_struct);
+        int nrdy = ssp_select(connection_limit + 1, read_socket_set, NULL,  NULL, 100e3);
+
         if(!resizeBuff(&buff, buff_size, &prev_buff_size)){
             ssp_printf("packet too large, cannot resize buffer\n");
         }
@@ -309,15 +310,14 @@ void connectionless_server(char* port, int initial_buff_size,
 
     for (;;)
     {
-        memcpy(read_socket_set, socket_set, size_of_socket_struct);
-
-        int nrdy = ssp_select(sfd + 1, read_socket_set, NULL,  NULL, 100e3);
-
         if (exit_now || checkExit(other)){
             ssp_printf("exiting server thread\n");
             break;
         }
     
+        memcpy(read_socket_set, socket_set, size_of_socket_struct);
+        int nrdy = ssp_select(sfd + 1, read_socket_set, NULL,  NULL, 100e3);
+
         if(!resizeBuff(&buff, buff_size, &prev_buff_size)){
             ssp_printf("packet too large, cannot resize buffer\n");
         }
@@ -477,7 +477,6 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
             ssp_error("recv failed\n");
             exit_now = 1;
         }
-        
         
     }
     free(addr);
