@@ -99,7 +99,7 @@ static int find_request(void *element, void *args) {
 
 /*creates a request struct if there is none for the incomming request based on transaction sequence number or
 finds the correct request struct and replaces req with the new pointer. Returns the possition in the packet 
-where the data portion is, returns 0 on fail*/
+where the data portion is, returns -1 on fail*/
 int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **req, List *request_list, Protocol_state *p_state) {
 
     uint8_t packet_index = PACKET_STATIC_HEADER_LEN;
@@ -120,7 +120,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
 
     if (p_state->my_cfdp_id != dest_id){
         ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", p_state->my_cfdp_id, dest_id);
-        return 0;
+        return -1;
     }
 
     uint16_t len = get_data_length(packet);

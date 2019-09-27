@@ -28,10 +28,10 @@ static int on_recv_server(int sfd, char *packet,  uint32_t packet_len, uint32_t 
 
     Request **request_container = &p_state->current_request;
 
-    uint32_t packet_index = process_pdu_header(packet, 1, res, request_container, p_state->request_list, p_state);
+    int packet_index = process_pdu_header(packet, 1, res, request_container, p_state->request_list, p_state);
     p_state->current_request = (*request_container);
 
-    if (packet_index == 0)
+    if (packet_index < 0)
         return -1;
     
     parse_packet_server(packet, packet_index, res, (*request_container), p_state);
@@ -54,8 +54,8 @@ static int on_recv_client(int sfd, char *packet, uint32_t packet_len, uint32_t *
 
     Request **request_container = &client->current_request;
 
-    uint32_t packet_index = process_pdu_header(packet, 0, res, request_container, client->request_list, client->p_state);
-    if (packet_index == -1) {
+    int packet_index = process_pdu_header(packet, 0, res, request_container, client->request_list, client->p_state);
+    if (packet_index < 0) {
         ssp_printf("error parsing header\n");
         return -1;
     }

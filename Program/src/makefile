@@ -6,16 +6,21 @@ INCLUDE += -I$(PROJDIR)/include
 
 #---------------------------FOR FREE RTOS INTEGRATION---------------------------
 #path to source includes
-INCLUDE += -I$(PROJDIR)/../../../../Source/include
+#INCLUDE += -I$(PROJDIR)/../../../../Source/include
 
 #path to compiler includes (portmacro.h)
-INCLUDE += -I$(PROJDIR)/../../../../Source/portable/GCC/POSIX/
+#INCLUDE += -I$(PROJDIR)/../../../../Source/portable/GCC/POSIX/
 
 #path to FreeRTOSconfig
-INCLUDE += -I$(PROJDIR)/../../../../Project/
+#INCLUDE += -I$(PROJDIR)/../../../../Project/
 
 #-------------------------------------------------------------------------------
-
+#---------------------------FOR CSP INTEGRATION---------------------------------
+#path to source includes
+INCLUDE += -I$(PROJDIR)/libcsp/include/csp
+INCLUDE += -I$(PROJDIR)/libcsp/include
+INCLUDE += -I$(PROJDIR)/libcsp/build/include
+#-------------------------------------------------------------------------------
 CC = gcc 
 
 #---------------------------File Names---------------------------
@@ -61,11 +66,13 @@ CWARNS += -Wmissing-prototypes
 #---------------------------Libs---------------------------
 LINKFLAGS = 
 LIBS = -pthread
+STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
 
 #---------------------------Compiler flags---------------------------
 
 #32 bit machines, leave this out if your machine is 64 bit
 CFLAGS += -m32
+#CFLAGS += -m64
 CFLAGS += -g -UUSE_STDIO -D__GCC_POSIX__=1
 CFLAGS += -pthread
 CFLAGS += -DDEBUG=1
@@ -78,13 +85,11 @@ CFLAGS += $(INCLUDE) $(CWARNS)
 #---------------------------Build---------------------------
 OBJS_FILES = $(patsubst %.c, %.o, $(CFILES))
 
-
-
 all: $(MAIN) 
 
 .PHONY: clean lib
 
-$(MAIN): $(OBJS_FILES)
+$(MAIN): $(OBJS_FILES) $(STATIC_FILES)
 
 lib:  $(OBJS_FILES)
 	ar -rsc file_delivery_app.a $(OBJS_FILES)

@@ -248,8 +248,11 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
                 }
 
                 else {
-                    if (onRecv(i, buff, count, buff_size, addr, size_of_addr, other) == -1)
-                        ssp_printf("recv failed\n");
+                    if (onRecv(i, buff, count, buff_size, addr, size_of_addr, other) == -1) {
+                        ssp_printf("recv failed, closing socket\n");
+                        ssp_fd_clr(i, socket_set);
+                        ssp_close(i);
+                    }
                 }
             }
         }
@@ -467,13 +470,14 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
 
         count = ssp_recvfrom(sfd, buff, packet_len, MSG_DONTWAIT, NULL, &size_of_addr);
        
-        if (count == -1)
+        if (count < 0)
             continue;
 
-        else{
-            if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, onRecvParams) == -1)
-                ssp_error("recv failed\n");
+        if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, onRecvParams) == -1) {
+            ssp_error("recv failed\n");
+            exit_now = 1;
         }
+        
         
     }
     free(addr);
