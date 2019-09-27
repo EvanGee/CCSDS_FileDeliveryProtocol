@@ -22,10 +22,10 @@ Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
     inet_pton(AF_INET, host_name, addr);
     
     //adding new cfdp entities to management information base
-    add_new_cfdp_entity(mib, 1, *addr, 1111);
-    add_new_cfdp_entity(mib, 2, *addr, 1112);   
-    add_new_cfdp_entity(mib, 3, *addr, 1113);   
-    add_new_cfdp_entity(mib, 4, *addr, 1114);   
+    add_new_cfdp_entity(mib, 1, *addr, 1111, posix);
+    add_new_cfdp_entity(mib, 2, *addr, 1112, posix);   
+    add_new_cfdp_entity(mib, 3, *addr, 1113, posix);   
+    add_new_cfdp_entity(mib, 4, *addr, 1114, posix);   
 
     //find server client in mib
     Remote_entity* server_entity = mib->remote_entities->find(mib->remote_entities, my_cfdp_address, NULL, NULL);

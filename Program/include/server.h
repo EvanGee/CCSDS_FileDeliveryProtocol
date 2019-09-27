@@ -11,15 +11,6 @@ This file is the header file for server.c
 //figure out what to inlcude for types ask nick
 #include <netinet/in.h>
 
-/*------------------------------------------------------------------------------
-    Purpose: This function creates a host server on the specified port
-             on localhost
-    Perameters: char *port is the port number you want to run the host on, conn_type
-                is either 0 for udp, or 1 for tcp
-    Return: It returns a socket descriptor to a UDP ready port
-------------------------------------------------------------------------------*/
-int prepareHost(char *host_name, char *port, int conn_type, int bind_to_host);
-
 
 /*------------------------------------------------------------------------------
     Purpose:    This function creates a udp select server on the socket sfd.
@@ -61,7 +52,7 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
     void *other);
 
 void connection_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, void *onSendParams),
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
     void (*onExit)(void *params));
@@ -78,9 +69,25 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
 int *prepareSignalHandler(void);
 
 void connectionless_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
+    int (*checkExit)(void *checkExitParams),
+    void (*onExit)(void *params));
+
+#ifdef CSP_NETWORK
+void csp_connectionless_client(uint8_t my_id, uint8_t my_port, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
     int (*onSend)(int sfd, void *addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
     void (*onExit)(void *params));
+
+void csp_connectionless_server(uint8_t MY_ID, uint8_t MY_PORT,
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
+    int (*onTimeOut)(void *other),
+    int (*onStdIn)(void *other),
+    int (*checkExit)(void *other),
+    void (*onExit)(void *other),
+    void *other);
+#endif
 
 #endif //SERVER_H

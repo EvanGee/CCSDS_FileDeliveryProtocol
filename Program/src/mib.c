@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include "string.h"
 #include "list.h"
+#include "types.h"
 
 MIB *init_mib() {
     MIB *mib = ssp_alloc(1, sizeof(MIB));
@@ -25,10 +26,11 @@ void free_mib(MIB *mib){
 }
 
 //these configure peers for their specific transmission configuration, should be read in on a config file
-int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_t port){
+int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_t port, Network_type type){
 
     Remote_entity *remote = ssp_alloc(1, sizeof(Remote_entity));
-
+    remote->type_of_network = type;
+    
     remote->CRC_required = 0;
     //these will be custom set by a config file
 
@@ -40,6 +42,8 @@ int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_
     remote->UT_address = UT_address;
     remote->cfdp_id = cfdp_id;
     remote->UT_port = port;
+
+
 
     return mib->remote_entities->insert(mib->remote_entities, remote, cfdp_id);
 }

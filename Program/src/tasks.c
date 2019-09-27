@@ -49,6 +49,7 @@ static int on_recv_client(int sfd, char *packet, uint32_t packet_len, uint32_t *
     res.addr = addr;
     res.sfd = sfd;
     res.packet_len = client->packet_len;
+    res.type_of_network = client->remote_entity->type_of_network;
     res.size_of_addr = size_of_addr;
 
     Request **request_container = &client->current_request;
@@ -102,7 +103,7 @@ static void user_request_check(void *request, void *args) {
     remove_request_check(request, params->client->request_list);
 }
 
-static int on_send_client(int sfd, void *addr, void *other) {
+static int on_send_client(int sfd, void *addr, size_t size_of_addr, void *other) {
 
 
     Response res;    
@@ -114,14 +115,15 @@ static int on_send_client(int sfd, void *addr, void *other) {
     res.sfd = sfd;
     res.packet_len = client->packet_len;
     res.addr = addr;
-    
+    res.size_of_addr = size_of_addr;
+    res.type_of_network = client->remote_entity->type_of_network;
+
     struct user_request_check_params params = {
         res,
         client
     };
 
     client->request_list->iterate(client->request_list, user_request_check, &params);
-    
     
     return 0;
 }
@@ -219,8 +221,10 @@ void *ssp_connectionless_server_task(void *params) {
     
     Protocol_state* p_state = (Protocol_state*) params;
     p_state->transaction_sequence_number = 1;
+    
     connectionless_server(p_state->server_port, p_state->packet_len, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
-
+    //csp_connectionless_server(1, 1, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
+    
     return NULL;
 }
 

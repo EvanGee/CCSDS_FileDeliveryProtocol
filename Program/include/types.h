@@ -413,11 +413,23 @@ typedef struct local_entity {
 } Local_entity;
 
 
+
+typedef enum Network_type {
+    csp,
+    free_rtos,
+    posix,
+
+} Network_type;
+
 typedef struct remote_entity {
 
     //TODO probably add new UT layer specific stuff
     uint32_t UT_address;
     uint16_t UT_port;
+
+    //csp, ip, rtos/ip
+    Network_type type_of_network;
+
     uint32_t cfdp_id;
 
     unsigned int one_way_light_time;
@@ -472,6 +484,8 @@ typedef struct response {
     char *msg;
     //this is type (struct sockaddr_in) in posix
     void *addr;
+    
+    enum Network_type type_of_network;
     
     //getting rid of this soon in favour of client based packet sizes
     size_t size_of_addr;
@@ -586,7 +600,6 @@ typedef struct client {
 
     //bool for exiting the client thread
     uint8_t close;
-
 
 } Client;
 

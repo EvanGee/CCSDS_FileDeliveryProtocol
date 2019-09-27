@@ -7,12 +7,11 @@
 
 
 
-//#define POSIX_PORT
+#define POSIX_PORT
 #define POSIX_FILESYSTEM
 #define POSIX_NETWORK
-
-#define FREE_RTOS_PORT
-
+//#define CSP_NETWORK
+//#define FREE_RTOS_PORT
 
 
 

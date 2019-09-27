@@ -54,7 +54,6 @@ static void process_pdu_eof(char *packet, Request *req, Response res) {
     
 }
 
-//TODO This needs more work, file handling when files already exist ect
 int process_file_request_metadata(Request *req) {
 
     char temp[75];
@@ -69,7 +68,6 @@ int process_file_request_metadata(Request *req) {
         return 1;
     }
     
-    ssp_printf("mode acknowledged, building offset map\n");
     Offset *offset = ssp_alloc(1, sizeof(Offset));
     offset->end = req->file_size;
     offset->start = 0;
@@ -265,8 +263,8 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
             offset_end = ntohl(offset_end);
             packet_index += 4;
             build_nak_response(req->buff, outgoing_packet_index, offset_start, req, client);
-            ssp_write(res.sfd, req->buff, res.packet_len);
-            //ssp_sendto(res);
+            //ssp_write(res.sfd, req->buff, res.packet_len);
+            ssp_sendto(res);
         }
         
         return packet_index;
@@ -346,8 +344,8 @@ void user_request_handler(Response res, Request *req, Client* client) {
             req->procedure = none;
             build_eof_packet(req->buff, start, req);
             req->local_entity->EOF_sent_indication = 1;
-            ssp_write(res.sfd, req->buff, res.packet_len);
-            //ssp_sendto(res);
+            //ssp_write(res.sfd, req->buff, res.packet_len);
+            ssp_sendto(res);
             break;
 
         case sending_data: 
@@ -358,23 +356,23 @@ void user_request_handler(Response res, Request *req, Client* client) {
                 req->procedure = sending_eof;
                 ssp_printf("sending data blast transaction: %d\n", req->transaction_sequence_number);
             }
-            ssp_write(res.sfd, req->buff, res.packet_len);
-            //ssp_sendto(res);
+            //ssp_write(res.sfd, req->buff, res.packet_len);
+            ssp_sendto(res);
             break;
 
         case sending_put_metadata:
             ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
             start = build_put_packet_metadata(res, start, req);
-            ssp_write(res.sfd, req->buff, res.packet_len);
-            //ssp_sendto(res);
+            //ssp_write(res.sfd, req->buff, res.packet_len);
+            ssp_sendto(res);
             req->procedure = sending_data;
             break;
 
         case sending_finished:
             ssp_printf("sending finished packet transaction: %d\n", req->transaction_sequence_number);
             build_ack(req->buff, start, FINISHED_PDU);
-            ssp_write(res.sfd, req->buff, res.packet_len);
-            //ssp_sendto(res);
+            //ssp_write(res.sfd, req->buff, res.packet_len);
+            ssp_sendto(res);
             req->resent_finished++;
             break;
 
@@ -393,7 +391,7 @@ static int reset_timeout(Request *req) {
 
     if (req->timeout++ >= TIMEOUT_BEFORE_CANCEL_REQUEST) {
         ssp_printf("time to live ended, closing up request transaction: %d\n", req->transaction_sequence_number);
-        if (req->procedure != none)
+        if (req->procedure != none) 
             ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);
         else {
             ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
@@ -420,7 +418,7 @@ void on_server_time_out(Response res, Request *req) {
 
     if (req->procedure == none)
         return;
-    
+
     if (req->transmission_mode == 1)
         return; 
 

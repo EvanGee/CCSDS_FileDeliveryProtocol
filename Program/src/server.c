@@ -34,11 +34,15 @@ This is my file for server.c. It develops a udp server for select.
 #include <time.h>
 #include "port.h"
 
+#ifdef CSP_NETWORK
+    #include "csp.h"
+#endif
+
 static int exit_now;
  
  
 //if conn_typ == 1, tcp/ bind_to_host == 1 for binding local, 2 for connect
-int prepareHost(char *host_name, char *port, int conn_type, int bind_to_host)
+static int prepareHost(char *host_name, void *addr, size_t *size_of_addr, char *port, int conn_type, int bind_to_host)
 {
 
     struct addrinfo hints, *res;
@@ -90,6 +94,9 @@ int prepareHost(char *host_name, char *port, int conn_type, int bind_to_host)
                 continue;
             }
         }
+
+
+        
 
         freeaddrinfo(cur);
         break;
@@ -158,20 +165,17 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
     void (*onExit)(void *other),
     void *other)
 {
+    uint32_t size_of_addr = 0;
+    void *addr = ssp_init_sockaddr_struct((size_t*)&size_of_addr);
 
-    int sfd = prepareHost(NULL, port, SOCK_STREAM, 1);
+    int sfd = prepareHost(NULL, addr, &size_of_addr, port, SOCK_STREAM, 1);
     if (sfd < 0)
-        return;
+        exit_now = 1;
 
     int err = listen(sfd, connection_limit);
 
     if (err == -1)
         ssp_error("listen failed\n");
-
-
-    size_t size_of_addr[1];
-    *size_of_addr = 0;
-    void *addr = ssp_init_sockaddr_struct(size_of_addr);
 
     size_t size_of_socket_struct = 0;
 
@@ -244,7 +248,7 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
                 }
 
                 else {
-                    if (onRecv(i, buff, count, buff_size, addr, *size_of_addr, other) == -1)
+                    if (onRecv(i, buff, count, buff_size, addr, size_of_addr, other) == -1)
                         ssp_printf("recv failed\n");
                 }
             }
@@ -272,9 +276,12 @@ void connectionless_server(char* port, int initial_buff_size,
     void *other)
 {
 
-    int sfd = prepareHost(NULL, port, SOCK_DGRAM, 1);
+    uint32_t size_of_addr = 0;
+    void *addr = ssp_init_sockaddr_struct((size_t*)&size_of_addr);
+
+    int sfd = prepareHost(NULL, addr, &size_of_addr, port, SOCK_DGRAM, 1);
     if (sfd < 0)
-        return;
+        exit_now = 1;
 
     size_t size_of_socket_struct = 0;
 
@@ -295,9 +302,7 @@ void connectionless_server(char* port, int initial_buff_size,
     char *buff = ssp_alloc(sizeof(char), *buff_size);
     checkAlloc(buff, 1);
 
-    size_t size_of_addr[1];
-    *size_of_addr = 0;
-    void *addr = ssp_init_sockaddr_struct(size_of_addr);
+
 
     for (;;)
     {
@@ -331,7 +336,7 @@ void connectionless_server(char* port, int initial_buff_size,
         }
 
         if (ssp_fd_is_set(sfd, read_socket_set)) {
-            int count = ssp_recvfrom(sfd, buff, *buff_size, 0, addr, size_of_addr);
+            int count = ssp_recvfrom(sfd, buff, *buff_size, 0, addr, &size_of_addr);
            
             if (count == -1)
                 continue;
@@ -340,7 +345,7 @@ void connectionless_server(char* port, int initial_buff_size,
                 ssp_printf("packet too large\n");
             }
             else {
-                if (onRecv(sfd, buff, count, buff_size, addr, *size_of_addr, other) == -1)
+                if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, other) == -1)
                     ssp_printf("recv failed\n");
             }
         }
@@ -360,16 +365,20 @@ void connectionless_server(char* port, int initial_buff_size,
 
 //https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
 void connectionless_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, void *onSendParams),
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
     void (*onExit)(void *params))
 {
 
     int sfd, count;
-    sfd = prepareHost(hostname, port, SOCK_DGRAM, 0);
+
+    uint32_t size_of_addr = 0;
+    void *addr = ssp_init_sockaddr_struct((size_t*)&size_of_addr);
+
+    sfd = prepareHost(hostname, addr, &size_of_addr, port, SOCK_DGRAM, 0);
     if (sfd < 0)
-        return;
+        exit_now = 1;
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
     checkAlloc(buff_size, 1);
@@ -381,8 +390,6 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
     char *buff = ssp_alloc(sizeof(char), prev_buff_size);
     checkAlloc(buff, 1);
 
-    size_t size_of_addr = 0;
-    void *addr = ssp_init_sockaddr_struct(&size_of_addr);
 
     for (;;) {
         if (exit_now || checkExit(checkExitParams))
@@ -392,7 +399,7 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
             ssp_error("packet too large, cannot resize buffer\n");
         }
 
-        if (onSend(sfd, addr, onSendParams)) 
+        if (onSend(sfd, addr, size_of_addr, onSendParams)) 
             ssp_error("send failed\n");
 
         count = ssp_recvfrom(sfd, buff, packet_len, MSG_DONTWAIT, addr, &size_of_addr);
@@ -421,7 +428,7 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
 
 //https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
 void connection_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, void *onSendParams),
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
     void (*onExit)(void *params))
@@ -429,7 +436,10 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
 
     int sfd, count;
 
-    sfd = prepareHost(hostname, port, SOCK_STREAM, 0);
+    uint32_t size_of_addr = 0;
+    void *addr = ssp_init_sockaddr_struct((size_t*)&size_of_addr);
+
+    sfd = prepareHost(hostname, addr, &size_of_addr, port, SOCK_STREAM, 0);
     if (sfd < 0)
         exit_now = 1;
 
@@ -442,10 +452,6 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
     char *buff = ssp_alloc(prev_buff_size, sizeof(char));
     checkAlloc(buff, 1);
 
-    size_t size_of_addr[1];
-    *size_of_addr = 0;
-    void *addr = ssp_init_sockaddr_struct(size_of_addr);
-
 
     for (;;) {
         
@@ -456,16 +462,16 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
             ssp_printf("packet too large, cannot resize buffer\n");
         }
 
-        if (onSend(sfd, addr, onSendParams)) 
+        if (onSend(sfd, addr, size_of_addr, onSendParams)) 
             ssp_error("send failed here\n");
 
-        count = ssp_recvfrom(sfd, buff, packet_len, MSG_DONTWAIT, NULL, size_of_addr);
+        count = ssp_recvfrom(sfd, buff, packet_len, MSG_DONTWAIT, NULL, &size_of_addr);
        
         if (count == -1)
             continue;
 
         else{
-            if (onRecv(sfd, buff, count, buff_size, addr, *size_of_addr, onRecvParams) == -1)
+            if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, onRecvParams) == -1)
                 ssp_error("recv failed\n");
         }
         
@@ -476,3 +482,61 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
     ssp_close(sfd);
     onExit(onExitParams);
 }
+
+/*------------------------------------------------------------------------------
+                                    
+                                    CSP STUFF!
+
+------------------------------------------------------------------------------*/
+
+#ifdef CSP_NETWORK
+
+//https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
+void csp_connectionless_client(uint8_t my_id, uint8_t my_port, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
+    int (*onSend)(int sfd, void *addr, void *onSendParams),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
+    int (*checkExit)(void *checkExitParams),
+    void (*onExit)(void *params)) 
+{
+
+}
+
+
+void csp_connectionless_server(uint8_t my_id, uint8_t my_port,
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
+    int (*onTimeOut)(void *other),
+    int (*onStdIn)(void *other),
+    int (*checkExit)(void *other),
+    void (*onExit)(void *other),
+    void *other)
+{
+    int err = csp_init(my_id);
+    if (err < 0) {
+        ssp_error("ERROR: couldn't init csp\n");
+        return; 
+    }
+    //csp_socket_t *socket = csp_socket(CSP_SO_XTEAREQ | CSP_SO_HMACREQ | CSP_SO_CRC32REQ);
+    csp_socket_t *socket = csp_socket(0);
+    
+    err = csp_bind(socket, my_port);
+    if (err < 0) {
+        ssp_error("ERROR: couldn't bind csp\n");
+        return; 
+    }
+
+    for (;;) {
+        csp_packet_t *packet = csp_recvfrom(socket, 10);
+        
+        //timout
+        if (packet == NULL) {
+
+        }
+        else {
+            //do stuff
+            ssp_printf("%s\n", packet->data);
+            csp_buffer_free(packet);
+        }
+        
+    }
+}
+#endif
