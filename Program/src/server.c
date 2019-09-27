@@ -231,7 +231,7 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
                 }
 
                 if (i == sfd) {
-                    int new_socket = accept(i, (struct sockaddr*) addr, (socklen_t *)size_of_addr);
+                    int new_socket = accept(i, (struct sockaddr*) addr, &size_of_addr);
                     if (new_socket < 0)
                         ssp_error ("accept failed");
                     
