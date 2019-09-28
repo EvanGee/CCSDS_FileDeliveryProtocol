@@ -1,3 +1,5 @@
 *.o
 *.a
 TODO
+FreeRTOSv10.2.1
+libcsp

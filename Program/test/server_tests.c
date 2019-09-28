@@ -14,6 +14,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include "csp.h"
 
 #define BUF_SIZE 500
 static int clin(char *host, char*port)
@@ -328,14 +329,32 @@ static void onExitClient(void *params) {
 int server_tests(int client){
 
     int buffsize = 10000;
-
     char buff[buffsize];
     
+    /* Init buffer system with 10 packets of maximum 300 bytes each */
+    printf("Initialising CSP\r\n");
+    csp_buffer_init(5, 300);
+
+	/* Init CSP with address MY_ADDRESS */
+	csp_init(1);
+
+	/* Start router task with 500 word stack, OS task priority 1 */
+	csp_route_start_task(500, 1);
+
+
+
+    void *handle = ssp_thread_create(20000, csp_connectionless_client_task, NULL);
+    void *handle2 = ssp_thread_create(20000, csp_connectionless_server_task, NULL);
+
+    ssp_thread_join(handle);
+    ssp_thread_join(handle2);
+
     if (client) {
         printf("I'm a client!\n");
         //connection_client("127.0.0.1", "1111", buffsize, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
         //connectionless_client("localhost", "1111", buffsize, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
-        csp_connectionless_client(1, 1, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
+        //csp_connectionless_client(1, 1, 2, 2, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
+        //csp_connection_client();
         //clin("127.0.0.1", "1111");
     }
     else {
@@ -343,7 +362,8 @@ int server_tests(int client){
         //connectionless_server("1111", buffsize, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
         
         //servCon ("1111");
-        csp_connectionless_server(1, 1, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
+        //csp_connectionless_server(1, 1, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
+        //csp_connection_server();
     }
         
     return 0;

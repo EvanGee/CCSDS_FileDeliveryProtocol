@@ -221,9 +221,13 @@ void *ssp_connectionless_server_task(void *params) {
     
     Protocol_state* p_state = (Protocol_state*) params;
     p_state->transaction_sequence_number = 1;
+
+    char port[10];
+    snprintf(port, 10, "%d",p_state->remote_entity->UT_port);
+
+    ssp_printf("%s\n", port);
     
-    connectionless_server(p_state->server_port, p_state->packet_len, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
-    //csp_connectionless_server(1, 1, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
+    connectionless_server(port, p_state->packet_len, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
     
     return NULL;
 }
@@ -250,8 +254,12 @@ void *ssp_connectionless_client_task(void* params){
 void *ssp_connection_server_task(void *params) {
     Protocol_state* p_state = (Protocol_state*) params;
     p_state->transaction_sequence_number = 1;
+
+    char port[20];
+    snprintf(port, 20, "%u",p_state->remote_entity->UT_port);
+
     //1024 is the connection max limit
-    connection_server(p_state->server_port, p_state->packet_len, 10, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
+    connection_server(port, p_state->packet_len, 10, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
     return NULL;
 }
 
@@ -273,7 +281,40 @@ void *ssp_connection_client_task(void *params) {
     return NULL;
 }
 
+void *ssp_csp_connectionless_server_task(void *params) {
+    printf("starting csp connectionless server\n");
+    Protocol_state *p_state = (Protocol_state *) params;
+    csp_connectionless_server(p_state->remote_entity->UT_address, 
+    p_state->remote_entity->UT_port, 
+    on_recv_server, 
+    on_time_out_posix, 
+    on_stdin, 
+    check_exit_server, 
+    on_exit_server, 
+    p_state);
 
+    return NULL;
+}
+
+void *ssp_csp_connectionless_client_task(void *params) {
+    printf("starting csp connectionless client\n");
+    Client *client = (Client *) params;
+    csp_connectionless_client(client->remote_entity->UT_address, 
+    client->remote_entity->UT_port, 
+    client->p_state->remote_entity->UT_address, 
+    client->p_state->remote_entity->UT_port, client, client, client, client, on_send_client, on_recv_client, check_exit_client, on_exit_client);
+    return NULL;
+}
+
+void *ssp_csp_connection_client_task(void *params) {
+
+    return NULL;
+} 
+
+void *ssp_csp_connection_server_task(void *params) {
+
+    return NULL;
+}
 /*------------------------------------------------------------------------------
     
     free functions
@@ -284,7 +325,6 @@ void *ssp_connection_client_task(void *params) {
 void ssp_cleanup_p_state(Protocol_state *p_state) {
     p_state->request_list->free(p_state->request_list, ssp_cleanup_req);
     free_mib(p_state->mib);
-    ssp_free(p_state->server_port);
     ssp_free(p_state);
 }
 

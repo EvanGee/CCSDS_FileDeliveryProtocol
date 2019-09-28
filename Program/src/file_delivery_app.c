@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include "utils.h"
 
+
 Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
 
     //Memory information base
@@ -33,19 +34,12 @@ Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
         ssp_printf("couldn't find your id in the information base\n");
     }
     
-    char port[20];
-    snprintf(port, 20, "%u", server_entity->UT_port);
-
     Protocol_state *p_state = ssp_alloc(sizeof(Protocol_state), 1);
     p_state->packet_len = PACKET_LEN;
     p_state->my_cfdp_id = my_cfdp_address;
     p_state->mib = mib;
     p_state->close = 0;
-
-    p_state->server_port = ssp_alloc(sizeof(char), 10);
-    checkAlloc(p_state->server_port, 1);
-
-    strncpy ((char*)p_state->server_port, port, 10);
+    p_state->remote_entity = server_entity;
 
     p_state->request_list = linked_list();
     p_state->current_request = NULL;
@@ -54,16 +48,24 @@ Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
 
 
 
-void ssp_connectionless_server(Protocol_state *p_state) {
-    p_state->server_handle = ssp_thread_create(16384, ssp_connectionless_server_task, p_state);
+void ssp_server(Protocol_state *p_state) {
+
+    if (p_state->remote_entity->type_of_network == posix && p_state->remote_entity->default_transmission_mode == 1) {
+        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, p_state);
+
+    } else if(p_state->remote_entity->type_of_network == posix && p_state->remote_entity->default_transmission_mode == 0) {
+        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, p_state);
+
+    } else if (p_state->remote_entity->type_of_network == csp && p_state->remote_entity->default_transmission_mode == 1) {
+        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, p_state);
+
+    } else if (p_state->remote_entity->type_of_network == csp && p_state->remote_entity->default_transmission_mode == 0) {
+        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, p_state);
+    }
 }
 
-void ssp_connection_server(Protocol_state *p_state) {
-    p_state->server_handle = ssp_thread_create(16384, ssp_connection_server_task, p_state);
-}
+Client *ssp_client(uint32_t cfdp_id, Protocol_state *p_state) {
 
-
-Client *ssp_connection_client(uint32_t cfdp_id, Protocol_state *p_state) {
     Client *client = ssp_alloc(sizeof(Client), 1);
     checkAlloc(client, 1);
 
@@ -81,30 +83,19 @@ Client *ssp_connection_client(uint32_t cfdp_id, Protocol_state *p_state) {
     client->pdu_header = get_header_from_mib(p_state->mib, cfdp_id, p_state->my_cfdp_id);
     client->p_state = p_state;
 
-    client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
-    return client;
-}
+    if (remote->type_of_network == posix && remote->default_transmission_mode == 1) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
 
-Client *ssp_connectionless_client(uint32_t cfdp_id, Protocol_state *p_state) {
+    } else if(remote->type_of_network == posix && remote->default_transmission_mode == 0) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
+
+    } else if (remote->type_of_network == csp && remote->default_transmission_mode == 1) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
+
+    } else if (remote->type_of_network == csp && remote->default_transmission_mode == 0) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
+    }
 
 
-    Client *client = ssp_alloc(sizeof(Client), 1);
-    checkAlloc(client, 1);
-
-    client->current_request = NULL;
-    client->request_list = linked_list();
-    client->packet_len = PACKET_LEN;
-
-    Remote_entity *remote = get_remote_entity(p_state->mib, cfdp_id);
-
-    if (remote == NULL)
-        ssp_printf("couldn't find entity in Remote_entity list\n");
-
-    //TODO clean this up, we don't need multiple instances of UT_ports etc
-    client->remote_entity = remote;
-    client->pdu_header = get_header_from_mib(p_state->mib, cfdp_id, p_state->my_cfdp_id);
-    client->p_state = p_state;
-
-    client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
     return client;
 }

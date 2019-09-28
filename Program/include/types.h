@@ -440,7 +440,7 @@ typedef struct remote_entity {
     unsigned int immediate_nak_mode_enabled : 1;
     unsigned int prompt_transmission_interval;
 
-    //acknowledged or unacknowledged
+    //0 acknowledged or 1 unacknowledged
     unsigned int default_transmission_mode: 1;
 
     //discard or retain (no idea what this is for yet)
@@ -559,7 +559,6 @@ typedef struct request {
 //add "client" in here to represent local entity
 typedef struct protocol_state {
     uint32_t packet_len;
-    char *server_port;
     void *server_handle;
     MIB *mib;
 
@@ -568,7 +567,10 @@ typedef struct protocol_state {
     List* request_list; 
 
     Request *current_request;
-   
+
+    //underlying connection information 
+    Remote_entity *remote_entity;
+
     //lock this
     uint32_t transaction_sequence_number;
     
