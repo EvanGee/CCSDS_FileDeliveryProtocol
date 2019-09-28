@@ -257,6 +257,10 @@ static int servCon (char *port)
 //--------------------------------------------------------------------
 
 static int onRecvServer(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other){
+    
+    printf("received: %s\n", packet);
+
+    /*
     Response res;
     res.addr = addr;
     res.msg = "hello back!!\n";
@@ -270,7 +274,9 @@ static int onRecvServer(int sfd, char *packet, uint32_t packet_len,  uint32_t *b
     if (n < 0) 
         ssp_error("ERROR in sendto");
     //ssp_sendto(res);
-    return 0;
+    */
+
+   return 0;
 }
 
 static int onTimeOut(void *other) {
@@ -327,8 +333,9 @@ int server_tests(int client){
     
     if (client) {
         printf("I'm a client!\n");
-        connection_client("127.0.0.1", "1111", buffsize, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
+        //connection_client("127.0.0.1", "1111", buffsize, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
         //connectionless_client("localhost", "1111", buffsize, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
+        csp_connectionless_client(1, 1, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
         //clin("127.0.0.1", "1111");
     }
     else {
@@ -336,9 +343,8 @@ int server_tests(int client){
         //connectionless_server("1111", buffsize, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
         
         //servCon ("1111");
-        connection_server("1111", buffsize, 10, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
+        csp_connectionless_server(1, 1, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
     }
         
     return 0;
 }
-

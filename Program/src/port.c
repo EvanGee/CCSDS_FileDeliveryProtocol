@@ -55,6 +55,12 @@
 #endif
 
 
+#ifdef CSP_NETWORK
+    #include "csp.h"
+
+#endif
+
+
 
 
 /*------------------------------------------------------------------------------
@@ -115,16 +121,14 @@ void ssp_sendto(Response res) {
         if (err < 0) {
             ssp_error("ERROR in ssp_sendto");
         }
+    }
+    else if (res.type_of_network == csp) {
 
-        /*
-        int n = sendto(res.sfd, res.msg, res.packet_len, 0, addr, res.size_of_addr);
-        if (n < 0) 
-            ssp_error("ERROR in ssp_sendto");
-        */
+
 
 
     }
-
+    
 }
 
 int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len) {

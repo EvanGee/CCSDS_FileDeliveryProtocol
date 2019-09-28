@@ -24,7 +24,7 @@ static int test_process_pdu_header() {
     int addr = 16;
     res.addr = &addr;
     res.sfd = 1;
-    res.packet_len = p_state->packet_size;
+    res.packet_len = p_state->packet_len;
     res.size_of_addr = 16;
 
     //test 1

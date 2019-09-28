@@ -3,6 +3,14 @@ PROJDIR = $(CURDIR)/..
 INCLUDE += -I$(PROJDIR)/include
 INCLUDE += -I$(PROJDIR)/test
 
+#---------------------------FOR CSP INTEGRATION---------------------------------
+#path to source includes
+INCLUDE += -I$(PROJDIR)/libcsp/include/csp
+INCLUDE += -I$(PROJDIR)/libcsp/include
+INCLUDE += -I$(PROJDIR)/libcsp/build/include
+#-------------------------------------------------------------------------------
+
+
 CC = gcc 
 
 #---------------------------File Names---------------------------
@@ -54,6 +62,7 @@ CWARNS += -Wmissing-prototypes
 #---------------------------Libs---------------------------
 LINKFLAGS = 
 LIBS = -pthread
+STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
 
 #---------------------------Compiler flags---------------------------
 
@@ -75,7 +84,7 @@ all: $(MAIN)
 
 .PHONY: clean 
 
-$(MAIN): $(OBJS_FILES)
+$(MAIN): $(OBJS_FILES) $(STATIC_FILES)
 
 clean: 
 	rm -f *.o $(MAIN)
