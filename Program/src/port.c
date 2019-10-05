@@ -124,8 +124,24 @@ void ssp_sendto(Response res) {
     }
     else if (res.type_of_network == csp) {
 
+        csp_packet_t *packet = (csp_packet_t *) res.addr;
+        csp_packet_t *packet_sending;
 
+        if (csp_buffer_remaining() != 0) {
+            packet_sending = csp_buffer_get(1);
 
+            memcpy(packet_sending->data, res.msg, res.packet_len);
+            int err = csp_sendto(0, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
+            
+            if (err < 0) {
+                ssp_error("ERROR in ssp_sento");
+                csp_buffer_free(packet);
+            }
+
+        }
+        else 
+            ssp_error("couldn't get new packet for sending!\n");
+        
 
     }
     

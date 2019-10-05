@@ -218,14 +218,12 @@ static int on_stdin(void *other) {
 
 ------------------------------------------------------------------------------*/
 void *ssp_connectionless_server_task(void *params) {
-    
+    printf("starting posix connectionless server task\n");
     Protocol_state* p_state = (Protocol_state*) params;
     p_state->transaction_sequence_number = 1;
 
     char port[10];
     snprintf(port, 10, "%d",p_state->remote_entity->UT_port);
-
-    ssp_printf("%s\n", port);
     
     connectionless_server(port, p_state->packet_len, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
     
@@ -234,7 +232,7 @@ void *ssp_connectionless_server_task(void *params) {
 
     
 void *ssp_connectionless_client_task(void* params){
-
+    printf("starting posix connectionless client task \n");
     Client *client = (Client *) params;
 
     char host_name[INET_ADDRSTRLEN];
@@ -252,19 +250,20 @@ void *ssp_connectionless_client_task(void* params){
 }
 
 void *ssp_connection_server_task(void *params) {
+    printf("starting posix connection server\n");
     Protocol_state* p_state = (Protocol_state*) params;
     p_state->transaction_sequence_number = 1;
 
-    char port[20];
-    snprintf(port, 20, "%u",p_state->remote_entity->UT_port);
+    char port[10];
+    snprintf(port, 10, "%u",p_state->remote_entity->UT_port);
 
     //1024 is the connection max limit
     connection_server(port, p_state->packet_len, 10, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
     return NULL;
 }
 
-
 void *ssp_connection_client_task(void *params) {
+    printf("starting posix connection client\n");
     Client *client = (Client *) params;
 
     char host_name[INET_ADDRSTRLEN];
@@ -300,9 +299,8 @@ void *ssp_csp_connectionless_client_task(void *params) {
     printf("starting csp connectionless client\n");
     Client *client = (Client *) params;
     csp_connectionless_client(client->remote_entity->UT_address, 
-    client->remote_entity->UT_port, 
-    client->p_state->remote_entity->UT_address, 
-    client->p_state->remote_entity->UT_port, client, client, client, client, on_send_client, on_recv_client, check_exit_client, on_exit_client);
+    client->remote_entity->UT_port,
+    client->p_state->remote_entity->UT_port, on_send_client, on_recv_client, check_exit_client, on_exit_client, client);
     return NULL;
 }
 

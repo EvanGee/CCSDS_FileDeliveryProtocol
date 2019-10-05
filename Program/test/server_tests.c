@@ -294,22 +294,27 @@ static void onExit(void *other) {
 }
 
 //client stuff
-static int onSend(int sfd, void *addr, void *onSendParams) {
+static int onSend(int sfd, void *addr, size_t size_of_addr, void *onSendParams) {
     Response res;
     res.addr = addr;
     res.msg = "hello server!!\n";
     res.packet_len = 12;
-    res.size_of_addr = sizeof(struct sockaddr);
     res.sfd = sfd;
+    res.type_of_network = csp;
+
+
+    //packet_t *buff = csp_buffer_get(1);
+    //csp_sendto(0, 1, 1, 2, 0, )
     //printf("sending message:%s", res.msg);
 
     //sendto(sfd, "Hello", 5, 0, (struct sockaddr*)addr, res.size_of_addr);
-    //ssp_sendto(res);
+    ssp_sendto(res);
 
-
+    /*
     int n = send(sfd, "HELLO", 5, 0);
     if (n < 0)
         fprintf(stderr, "partial/failed write\n");
+    */
         
     return 0;
 }
@@ -326,6 +331,34 @@ static void onExitClient(void *params) {
 
 }
 
+void *ssp_csp_connectionless_server_task_test(void *params) {
+    printf("starting csp connectionless server\n");
+
+    csp_connectionless_server(1, 
+    1, 
+    onRecvServer, 
+    onTimeOut, 
+    onStdIn, 
+    checkExit, 
+    onExit, 
+    NULL);
+
+    return NULL;
+}
+
+
+
+
+void *ssp_csp_connectionless_client_task_test(void *params) {
+    printf("starting csp connectionless client\n");
+    csp_connectionless_client(1, 
+    1, 
+    2, 
+    onSend, onRecvClient, checkExitClient, onExitClient, NULL);
+    return NULL;
+}
+
+
 int server_tests(int client){
 
     int buffsize = 10000;
@@ -333,7 +366,7 @@ int server_tests(int client){
     
     /* Init buffer system with 10 packets of maximum 300 bytes each */
     printf("Initialising CSP\r\n");
-    csp_buffer_init(5, 300);
+    csp_buffer_init(100, 300);
 
 	/* Init CSP with address MY_ADDRESS */
 	csp_init(1);
@@ -343,11 +376,19 @@ int server_tests(int client){
 
 
 
-    void *handle = ssp_thread_create(20000, csp_connectionless_client_task, NULL);
-    void *handle2 = ssp_thread_create(20000, csp_connectionless_server_task, NULL);
+    //void *handle = ssp_thread_create(20000, csp_connectionless_client_task, NULL);
+    //void *handle2 = ssp_thread_create(20000, csp_connectionless_server_task, NULL);
 
+
+
+
+    void *handle = ssp_thread_create(20000, ssp_csp_connectionless_server_task_test, NULL);
+    void *handle2 = ssp_thread_create(20000, ssp_csp_connectionless_client_task_test, NULL);
+    //test_csp_connectionless_server();
+    
     ssp_thread_join(handle);
     ssp_thread_join(handle2);
+
 
     if (client) {
         printf("I'm a client!\n");

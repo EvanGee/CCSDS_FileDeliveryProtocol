@@ -34,7 +34,7 @@ int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_
     remote->CRC_required = 0;
     //these will be custom set by a config file
 
-    remote->default_transmission_mode = 1;
+    remote->default_transmission_mode = 0;
 
     remote ->max_file_segment_len = 1200;
     checkAlloc(remote, 1);
