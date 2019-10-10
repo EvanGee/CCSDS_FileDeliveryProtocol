@@ -240,10 +240,10 @@ int packet_tests() {
     inet_pton(AF_INET, host_name, addr);
     
     //adding new cfdp entities to management information base
-    add_new_cfdp_entity(mib, 1, *addr, 1111, posix);
-    add_new_cfdp_entity(mib, 2, *addr, 1112, posix);   
-    add_new_cfdp_entity(mib, 3, *addr, 1113, posix);   
-    add_new_cfdp_entity(mib, 4, *addr, 1114, posix);   
+    add_new_cfdp_entity(mib, 1, *addr, 1111, posix, UN_ACKNOWLEDGED_MODE);
+    add_new_cfdp_entity(mib, 2, *addr, 1112, posix, UN_ACKNOWLEDGED_MODE);   
+    add_new_cfdp_entity(mib, 3, *addr, 1113, posix, ACKNOWLEDGED_MODE);   
+    add_new_cfdp_entity(mib, 4, *addr, 1114, posix, ACKNOWLEDGED_MODE);   
 
     Pdu_header *pdu_header = get_header_from_mib(mib, 1, 2);
 

@@ -153,11 +153,16 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         found_req->dest_cfdp_id = source_id;
         found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->pdu_header = get_header_from_mib(p_state->mib, source_id, p_state->my_cfdp_id);
+        found_req->remote_entity = get_remote_entity(p_state->mib, source_id);
+
         found_req->procedure = sending_put_metadata;
         found_req->res.addr = ssp_alloc(1, res.size_of_addr);
         memcpy(found_req->res.addr, res.addr, res.size_of_addr);
         found_req->res.packet_len = p_state->packet_len;
         found_req->res.sfd = res.sfd;
+        found_req->res.transmission_mode = p_state->remote_entity->default_transmission_mode;
+        found_req->res.type_of_network = p_state->remote_entity->type_of_network;
+        
         request_list->push(request_list, found_req, transaction_sequence_number);
     } 
 
@@ -263,7 +268,6 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
             offset_end = ntohl(offset_end);
             packet_index += 4;
             build_nak_response(req->buff, outgoing_packet_index, offset_start, req, client);
-            //ssp_write(res.sfd, req->buff, res.packet_len);
             ssp_sendto(res);
         }
         
@@ -344,7 +348,6 @@ void user_request_handler(Response res, Request *req, Client* client) {
             req->procedure = none;
             build_eof_packet(req->buff, start, req);
             req->local_entity->EOF_sent_indication = 1;
-            //ssp_write(res.sfd, req->buff, res.packet_len);
             ssp_sendto(res);
             break;
 
@@ -356,14 +359,12 @@ void user_request_handler(Response res, Request *req, Client* client) {
                 req->procedure = sending_eof;
                 ssp_printf("sending data blast transaction: %d\n", req->transaction_sequence_number);
             }
-            //ssp_write(res.sfd, req->buff, res.packet_len);
             ssp_sendto(res);
             break;
 
         case sending_put_metadata:
             ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
             start = build_put_packet_metadata(res, start, req);
-            //ssp_write(res.sfd, req->buff, res.packet_len);
             ssp_sendto(res);
             req->procedure = sending_data;
             break;
@@ -371,7 +372,6 @@ void user_request_handler(Response res, Request *req, Client* client) {
         case sending_finished:
             ssp_printf("sending finished packet transaction: %d\n", req->transaction_sequence_number);
             build_ack(req->buff, start, FINISHED_PDU);
-            //ssp_write(res.sfd, req->buff, res.packet_len);
             ssp_sendto(res);
             req->resent_finished++;
             break;

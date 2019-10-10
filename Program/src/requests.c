@@ -71,7 +71,7 @@ Request *put_request(char *source_file_name,
             uint8_t fault_handler_overides,
             uint8_t flow_lable,
             uint8_t transmission_mode,
-            char* messages_to_user,
+            int messages_to_user,
             char* filestore_requests,
             Client *client,
             Protocol_state *p_state
@@ -101,7 +101,11 @@ Request *put_request(char *source_file_name,
     req->fault_handler_overides = fault_handler_overides;
     req->flow_lable = flow_lable;
     req->transmission_mode = transmission_mode;
-    req->messages_to_user = messages_to_user;
+    
+    
+    if (messages_to_user & PROXY_MESSAGE_TO_USER)
+        ssp_printf("add message\n");
+    //req->messages_to_user = messages_to_user;
     req->filestore_requests = filestore_requests;
 
     req->res.addr = ssp_alloc(sizeof(uint64_t), 1);

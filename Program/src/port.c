@@ -114,36 +114,63 @@ int ssp_close(int fd) {
 ------------------------------------------------------------------------------*/
 
 void ssp_sendto(Response res) {
-    
-    if (res.type_of_network == posix) {
+
+    if (res.type_of_network == posix && res.transmission_mode == UN_ACKNOWLEDGED_MODE) {
         struct sockaddr* addr = (struct sockaddr*) res.addr;
-        int err = ssp_write(res.sfd, res.msg, res.packet_len);
+     
+        int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(*addr));
         if (err < 0) {
-            ssp_error("ERROR in ssp_sendto");
+            ssp_error("ERROR in sendto");
         }
     }
-    else if (res.type_of_network == csp) {
+    else if (res.type_of_network == posix && res.transmission_mode == ACKNOWLEDGED_MODE) {
+    
+        int err = ssp_write(res.sfd, res.msg, res.packet_len);
+        if (err < 0) {
+            ssp_error("ERROR in write");
+        }
+        
+    }
+    else if (res.type_of_network == csp /*&& res.transmission_mode == UN_ACKNOWLEDGED_MODE*/) {
 
         csp_packet_t *packet = (csp_packet_t *) res.addr;
         csp_packet_t *packet_sending;
 
         if (csp_buffer_remaining() != 0) {
             packet_sending = csp_buffer_get(1);
-
+            
             memcpy(packet_sending->data, res.msg, res.packet_len);
-            int err = csp_sendto(0, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
+            int err = csp_sendto(0, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 10);
             
             if (err < 0) {
                 ssp_error("ERROR in ssp_sento");
-                csp_buffer_free(packet);
+                csp_buffer_free(packet_sending);
             }
 
         }
         else 
             ssp_error("couldn't get new packet for sending!\n");
-        
+    /* This is commented out because frankly, the connection mode of csp is kind of shit       
+    } else if (res.type_of_network == csp && res.transmission_mode == ACKNOWLEDGED_MODE) {
 
+        csp_conn_t *conn = (csp_conn_t *) res.addr;
+        csp_packet_t *packet_sending;
+
+        if (csp_buffer_remaining() != 0) {
+            packet_sending = csp_buffer_get(1);
+
+            memcpy(packet_sending->data, res.msg, res.packet_len);
+            printf("calling csp_send\n");
+            int err = csp_send(conn, packet_sending, 10);
+            
+            if (err < 0) {
+                ssp_error("ERROR in ssp_send");
+                csp_buffer_free(packet_sending);
+            }
+        }
+        */
     }
+    
     
 }
 

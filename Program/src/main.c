@@ -49,8 +49,8 @@ int main(int argc, char** argv) {
         //ssp_printf("input a src file:\n");
         //Client *new_client = ssp_connectionless_client(conf->client_cfdp_id, p_state);
         Client *new_client = ssp_client(conf->client_cfdp_id, p_state);
-        put_request("pic.jpeg", "remote_pic1.jpeg", 0, 0, 0, 0, NULL, NULL, new_client, p_state);
-        
+        //put_request("pic.jpeg", "remote_pic1.jpeg", 0, 0, 0, ACKNOWLEDGED_MODE, PROXY_PUT_REQUEST, NULL, new_client, p_state);
+        put_request("pic.jpeg", "remote_pic2.jpeg", 0, 0, 0, ACKNOWLEDGED_MODE, 0, NULL, new_client, p_state);
         //send via acknoleged mode //0 acknowledged, 1 unacknowledged
 
         ssp_thread_join(new_client->client_handle);

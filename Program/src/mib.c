@@ -26,7 +26,7 @@ void free_mib(MIB *mib){
 }
 
 //these configure peers for their specific transmission configuration, should be read in on a config file
-int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_t port, Network_type type){
+int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_t port, Network_type type, int transmission_mode){
 
     Remote_entity *remote = ssp_alloc(1, sizeof(Remote_entity));
     remote->type_of_network = type;
@@ -34,7 +34,7 @@ int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_
     remote->CRC_required = 0;
     //these will be custom set by a config file
 
-    remote->default_transmission_mode = 0;
+    remote->default_transmission_mode = transmission_mode;
 
     remote ->max_file_segment_len = 1200;
     checkAlloc(remote, 1);

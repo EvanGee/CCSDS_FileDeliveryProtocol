@@ -16,7 +16,7 @@ Request *put_request(
             uint8_t fault_handler_overides,
             uint8_t flow_lable,
             uint8_t transmission_mode,
-            char* messages_to_user,
+            int messages_to_user,
             char* filestore_requests,
             Client *client,
             Protocol_state *p_state

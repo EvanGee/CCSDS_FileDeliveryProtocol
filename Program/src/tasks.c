@@ -16,7 +16,6 @@
     Callbacks for the tasks bellow
 
 ------------------------------------------------------------------------------*/
-//this function is a callback when using my posix port
 static int on_recv_server(int sfd, char *packet,  uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
 
     Protocol_state *p_state = (Protocol_state *) other;
@@ -31,10 +30,11 @@ static int on_recv_server(int sfd, char *packet,  uint32_t packet_len, uint32_t 
     int packet_index = process_pdu_header(packet, 1, res, request_container, p_state->request_list, p_state);
     p_state->current_request = (*request_container);
 
+
     if (packet_index < 0)
         return -1;
     
-    parse_packet_server(packet, packet_index, res, (*request_container), p_state);
+    parse_packet_server(packet, packet_index, p_state->current_request->res, (*request_container), p_state);
 
     memset(packet, 0, res.packet_len);
     return 0;
@@ -51,6 +51,7 @@ static int on_recv_client(int sfd, char *packet, uint32_t packet_len, uint32_t *
     res.packet_len = client->packet_len;
     res.type_of_network = client->remote_entity->type_of_network;
     res.size_of_addr = size_of_addr;
+    res.transmission_mode = client->remote_entity->default_transmission_mode;
 
     Request **request_container = &client->current_request;
 
@@ -117,6 +118,9 @@ static int on_send_client(int sfd, void *addr, size_t size_of_addr, void *other)
     res.addr = addr;
     res.size_of_addr = size_of_addr;
     res.type_of_network = client->remote_entity->type_of_network;
+    res.transmission_mode = client->remote_entity->default_transmission_mode;
+
+
 
     struct user_request_check_params params = {
         res,
@@ -283,8 +287,8 @@ void *ssp_connection_client_task(void *params) {
 void *ssp_csp_connectionless_server_task(void *params) {
     printf("starting csp connectionless server\n");
     Protocol_state *p_state = (Protocol_state *) params;
-    csp_connectionless_server(p_state->remote_entity->UT_address, 
-    p_state->remote_entity->UT_port, 
+    csp_connectionless_server(
+    p_state->remote_entity->UT_port,
     on_recv_server, 
     on_time_out_posix, 
     on_stdin, 
@@ -304,13 +308,31 @@ void *ssp_csp_connectionless_client_task(void *params) {
     return NULL;
 }
 
-void *ssp_csp_connection_client_task(void *params) {
+
+void *ssp_csp_connection_server_task(void *params) {
+    printf("starting csp connection server\n");
+    Protocol_state *p_state = (Protocol_state *) params;
+    csp_connection_server(p_state->remote_entity->UT_port,
+        on_recv_server,
+        on_time_out_posix,
+        on_stdin,
+        check_exit_server,
+        on_exit_server,
+        params);
 
     return NULL;
 } 
 
-void *ssp_csp_connection_server_task(void *params) {
+void *ssp_csp_connection_client_task(void *params) {
+    printf("starting csp connection client\n");
+    Client *client = (Client *) params;
 
+    csp_connection_client(client->remote_entity->UT_address, client->remote_entity->UT_port,
+        on_send_client,
+        on_recv_client,
+        check_exit_client,
+        on_exit_client,
+        params);
     return NULL;
 }
 /*------------------------------------------------------------------------------

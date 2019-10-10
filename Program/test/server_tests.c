@@ -261,21 +261,18 @@ static int onRecvServer(int sfd, char *packet, uint32_t packet_len,  uint32_t *b
     
     printf("received: %s\n", packet);
 
-    /*
+    
     Response res;
     res.addr = addr;
     res.msg = "hello back!!\n";
-    res.packet_len = *buff_size;
+    res.packet_len = 10;
     res.size_of_addr = size_of_addr;
     res.sfd = sfd;
-    ssp_printf("packet data: %s\n", packet);
-
-    int n = send(sfd, "hello back!", 12, 0);
-    //int n = sendto(sfd, "Hello back", 12, 0, (struct sockaddr*)addr, res.size_of_addr);
-    if (n < 0) 
-        ssp_error("ERROR in sendto");
-    //ssp_sendto(res);
-    */
+    res.type_of_network = csp;
+    res.transmission_mode = ACKNOWLEDGED_MODE;
+    
+    ssp_sendto(res);
+    
 
    return 0;
 }
@@ -301,21 +298,11 @@ static int onSend(int sfd, void *addr, size_t size_of_addr, void *onSendParams) 
     res.packet_len = 12;
     res.sfd = sfd;
     res.type_of_network = csp;
-
-
-    //packet_t *buff = csp_buffer_get(1);
-    //csp_sendto(0, 1, 1, 2, 0, )
-    //printf("sending message:%s", res.msg);
-
-    //sendto(sfd, "Hello", 5, 0, (struct sockaddr*)addr, res.size_of_addr);
+    res.transmission_mode = ACKNOWLEDGED_MODE;
+    printf("sending!!!\n");
+    
     ssp_sendto(res);
 
-    /*
-    int n = send(sfd, "HELLO", 5, 0);
-    if (n < 0)
-        fprintf(stderr, "partial/failed write\n");
-    */
-        
     return 0;
 }
 static int onRecvClient(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) {
@@ -334,19 +321,17 @@ static void onExitClient(void *params) {
 void *ssp_csp_connectionless_server_task_test(void *params) {
     printf("starting csp connectionless server\n");
 
-    csp_connectionless_server(1, 
+    csp_connectionless_server(
     1, 
     onRecvServer, 
     onTimeOut, 
     onStdIn, 
     checkExit, 
     onExit, 
-    NULL);
+    params);
 
     return NULL;
 }
-
-
 
 
 void *ssp_csp_connectionless_client_task_test(void *params) {
@@ -354,10 +339,41 @@ void *ssp_csp_connectionless_client_task_test(void *params) {
     csp_connectionless_client(1, 
     1, 
     2, 
-    onSend, onRecvClient, checkExitClient, onExitClient, NULL);
+    onSend, onRecvClient, checkExitClient, onExitClient, params);
     return NULL;
 }
 
+
+void *ssp_csp_connection_server_task_test(void *params) {
+    csp_connection_server(1,
+        onRecvServer,
+        onTimeOut,
+        onStdIn,
+        checkExit,
+        onExit,
+        params);
+}
+
+
+void *ssp_csp_connection_client_task_test(void *params) {
+
+    csp_connection_client(1, 1,
+        onSend,
+        onRecvClient,
+        checkExitClient,
+        onExitClient,
+        params);
+}
+/*
+void *ssp_csp_connectionless_client_task_test(void *params) {
+    csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port,
+    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
+    int (*checkExit)(void *checkExitParams),
+    void (*onExit)(void *params),
+    void *params);
+}
+*/
 
 int server_tests(int client){
 
@@ -375,15 +391,10 @@ int server_tests(int client){
 	csp_route_start_task(500, 1);
 
 
-
-    //void *handle = ssp_thread_create(20000, csp_connectionless_client_task, NULL);
-    //void *handle2 = ssp_thread_create(20000, csp_connectionless_server_task, NULL);
-
-
-
-
-    void *handle = ssp_thread_create(20000, ssp_csp_connectionless_server_task_test, NULL);
-    void *handle2 = ssp_thread_create(20000, ssp_csp_connectionless_client_task_test, NULL);
+//    void *handle = ssp_thread_create(20000, ssp_csp_connectionless_server_task_test, NULL);
+//    void *handle2 = ssp_thread_create(20000, ssp_csp_connectionless_client_task_test, NULL);
+    void *handle = ssp_thread_create(20000, ssp_csp_connection_server_task_test, NULL);    
+    void *handle2 = ssp_thread_create(20000, ssp_csp_connection_client_task_test, NULL);    
     //test_csp_connectionless_server();
     
     ssp_thread_join(handle);

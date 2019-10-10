@@ -12,7 +12,7 @@
 #include "utils.h"
 
 
-Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
+Protocol_state *init_ftp(uint32_t my_cfdp_address) {
 
     //Memory information base
     MIB *mib = init_mib();
@@ -23,37 +23,34 @@ Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
     inet_pton(AF_INET, host_name, addr);
     
     //adding new cfdp entities to management information base
-    add_new_cfdp_entity(mib, 1, *addr, 1111, posix);
-    add_new_cfdp_entity(mib, 2, *addr, 1112, posix); 
+    add_new_cfdp_entity(mib, 1, *addr, 1111, posix, UN_ACKNOWLEDGED_MODE);
+    add_new_cfdp_entity(mib, 2, *addr, 1112, posix, UN_ACKNOWLEDGED_MODE); 
 
+    add_new_cfdp_entity(mib, 3, 1, 1, csp, UN_ACKNOWLEDGED_MODE);   
+    add_new_cfdp_entity(mib, 4, 2, 2, csp, UN_ACKNOWLEDGED_MODE);   
 
+    add_new_cfdp_entity(mib, 5, 3, 3, csp, ACKNOWLEDGED_MODE);   
+    add_new_cfdp_entity(mib, 6, 4, 4, csp, ACKNOWLEDGED_MODE);   
 
-/*------------------------------------------------------------------------------
-                    you can init csp stuff here if need be
-------------------------------------------------------------------------------*/
-
-    /* Init buffer system with 10 packets of maximum 300 bytes each */
-    printf("Initialising CSP\r\n");
-    csp_buffer_init(100, 2000);
-
-	/* Init CSP with address MY_ADDRESS */
-	csp_init(1);
-
-	/* Start router task with 500 word stack, OS task priority 1 */
-	csp_route_start_task(500, 1);
-
-/*------------------------------------------------------------------------------
-                                    End
-------------------------------------------------------------------------------*/
-
-
-    add_new_cfdp_entity(mib, 3, 1, 1, csp);   
-    add_new_cfdp_entity(mib, 4, 1, 2, csp);   
 
     //find server client in mib
     Remote_entity* server_entity = mib->remote_entities->find(mib->remote_entities, my_cfdp_address, NULL, NULL);
     if (server_entity == NULL) {
         ssp_printf("couldn't find your id in the information base\n");
+    }
+
+    if (server_entity->type_of_network == csp) {
+        
+        printf("Initialising CSP\r\n");
+
+        /* Init CSP with address MY_ADDRESS */
+        csp_init(server_entity->UT_address);
+
+        /* Init buffer system with 10 packets of maximum PACKET_LEN bytes each */
+        csp_buffer_init(10, PACKET_LEN);
+
+        /* Start router task with 500 word stack, OS task priority 1 */
+        csp_route_start_task(500, 1);
     }
     
     Protocol_state *p_state = ssp_alloc(sizeof(Protocol_state), 1);
@@ -72,17 +69,17 @@ Protocol_state  *init_ftp(uint32_t my_cfdp_address) {
 
 void ssp_server(Protocol_state *p_state) {
 
-    if (p_state->remote_entity->type_of_network == posix && p_state->remote_entity->default_transmission_mode == 1) {
+    if (p_state->remote_entity->type_of_network == posix && p_state->remote_entity->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, p_state);
 
-    } else if(p_state->remote_entity->type_of_network == posix && p_state->remote_entity->default_transmission_mode == 0) {
+    } else if(p_state->remote_entity->type_of_network == posix && p_state->remote_entity->default_transmission_mode == ACKNOWLEDGED_MODE) {
         p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, p_state);
 
-    } else if (p_state->remote_entity->type_of_network == csp && p_state->remote_entity->default_transmission_mode == 1) {
+    } else if (p_state->remote_entity->type_of_network == csp && p_state->remote_entity->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, p_state);
 
-    } else if (p_state->remote_entity->type_of_network == csp && p_state->remote_entity->default_transmission_mode == 0) {
-        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, p_state);
+    } else if (p_state->remote_entity->type_of_network == csp && p_state->remote_entity->default_transmission_mode == ACKNOWLEDGED_MODE) {
+        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, p_state);
     }
 }
 
@@ -105,16 +102,16 @@ Client *ssp_client(uint32_t cfdp_id, Protocol_state *p_state) {
     client->pdu_header = get_header_from_mib(p_state->mib, cfdp_id, p_state->my_cfdp_id);
     client->p_state = p_state;
 
-    if (remote->type_of_network == posix && remote->default_transmission_mode == 1) {
+    if (remote->type_of_network == posix && remote->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
 
-    } else if(remote->type_of_network == posix && remote->default_transmission_mode == 0) {
+    } else if(remote->type_of_network == posix && remote->default_transmission_mode == ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
 
-    } else if (remote->type_of_network == csp && remote->default_transmission_mode == 1) {
+    } else if (remote->type_of_network == csp && remote->default_transmission_mode == ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
 
-    } else if (remote->type_of_network == csp && remote->default_transmission_mode == 0) {
+    } else if (remote->type_of_network == csp && remote->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
     }
 

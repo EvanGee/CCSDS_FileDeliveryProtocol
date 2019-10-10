@@ -7,6 +7,9 @@
 #include <stddef.h>
 
 
+
+#define ACKNOWLEDGED_MODE 0
+#define UN_ACKNOWLEDGED_MODE 1
 /*-----------------------------------------------------------------------------
 
                     Packet structs for building packets
@@ -99,6 +102,42 @@ typedef struct tlv {
     void *value;
 } TLV;
 
+//TLV Types
+#define MESSAGE_TO_USER 0x02
+#define FILESTORE_RESPONSE 0x01
+#define FILESTORE_REQUEST 0x00
+
+//-------------------------------Messages---------------------------------------
+// The type for this TVL is 0x02 hex
+
+//message types
+#define PROXY_PUT_REQUEST 00
+#define PROXY_MESSAGE_TO_USER 01
+#define PROXY_FILESTORE_REQUEST 02
+#define PROXY_FAULT_HANDLER_OVERRIDE 03
+#define PROXY_TRANSMISSION_MODE 04
+#define PROXY_FLOW_LABLE 05
+#define PROXY_SEGMENTATION_CONTROL 06
+#define PROXY_PUT_RESPONSE 07
+#define PROXY_FILESTORE_RESPONSE 08
+#define PROXY_PUT_CANCEL 09
+
+typedef struct message_to_user {
+
+    uint32_t message_id;
+    uint8_t message_type;
+
+} Message_to_user;
+
+
+//type PROXY_PUT_REQUEST
+struct message_proxy {
+    LV Destination_id;
+    LV source_file_name;
+    LV destination_file_name;
+};
+
+//------------------------------------------------------------------------------
 
 //---------------------------filestore_request----------------------------------
 //action codes
@@ -486,7 +525,8 @@ typedef struct response {
     void *addr;
     
     enum Network_type type_of_network;
-    
+    int transmission_mode;
+
     //getting rid of this soon in favour of client based packet sizes
     size_t size_of_addr;
 
@@ -540,7 +580,7 @@ typedef struct request {
     Remote_entity *remote_entity;
     Local_entity *local_entity;
 
-    char* messages_to_user;
+    TLV message_to_user;
     char* filestore_requests;
     
     //sets the buffer length, for making packets
