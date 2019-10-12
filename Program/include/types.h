@@ -124,7 +124,7 @@ typedef struct tlv {
 
 typedef struct message_to_user {
 
-    uint32_t message_id;
+    uint32_t message_id_cfdp;
     uint8_t message_type;
 
 } Message_to_user;
@@ -597,7 +597,7 @@ typedef struct request {
 } Request;
 
 //add "client" in here to represent local entity
-typedef struct protocol_state {
+typedef struct ftp {
     uint32_t packet_len;
     void *server_handle;
     MIB *mib;
@@ -611,6 +611,8 @@ typedef struct protocol_state {
     //underlying connection information 
     Remote_entity *remote_entity;
 
+    List *active_clients;
+
     //lock this
     uint32_t transaction_sequence_number;
     
@@ -619,7 +621,7 @@ typedef struct protocol_state {
     //bool for exiting the server thread
     uint8_t close;
 
-} Protocol_state;
+} FTP;
 
 
 //outgoing requests spin up client threads
@@ -638,7 +640,7 @@ typedef struct client {
     //packet header, useful for copying into outgoing packets
     Pdu_header *pdu_header;
     
-    Protocol_state *p_state;    
+    FTP *app;    
 
     //bool for exiting the client thread
     uint8_t close;

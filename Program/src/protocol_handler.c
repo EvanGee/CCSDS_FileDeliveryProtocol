@@ -100,7 +100,7 @@ static int find_request(void *element, void *args) {
 /*creates a request struct if there is none for the incomming request based on transaction sequence number or
 finds the correct request struct and replaces req with the new pointer. Returns the possition in the packet 
 where the data portion is, returns -1 on fail*/
-int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **req, List *request_list, Protocol_state *p_state) {
+int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **req, List *request_list, FTP *app) {
 
     uint8_t packet_index = PACKET_STATIC_HEADER_LEN;
     Pdu_header *header = (Pdu_header *) packet;
@@ -118,8 +118,8 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     memcpy(&dest_id, &packet[packet_index], header->length_of_entity_IDs);
     packet_index += header->length_of_entity_IDs;
 
-    if (p_state->my_cfdp_id != dest_id){
-        ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", p_state->my_cfdp_id, dest_id);
+    if (app->my_cfdp_id != dest_id){
+        ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", app->my_cfdp_id, dest_id);
         return -1;
     }
 
@@ -145,23 +145,23 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     //server side, receiving requests (this should be its own function)
     if (found_req == NULL && is_server) 
     {
-        found_req = init_request(p_state->packet_len);
+        found_req = init_request(app->packet_len);
         ssp_printf("incoming new request\n");
         //Make new request and add it
         found_req->transmission_mode = header->transmission_mode;
         found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->dest_cfdp_id = source_id;
         found_req->transaction_sequence_number = transaction_sequence_number;
-        found_req->pdu_header = get_header_from_mib(p_state->mib, source_id, p_state->my_cfdp_id);
-        found_req->remote_entity = get_remote_entity(p_state->mib, source_id);
+        found_req->pdu_header = get_header_from_mib(app->mib, source_id, app->my_cfdp_id);
+        found_req->remote_entity = get_remote_entity(app->mib, source_id);
 
         found_req->procedure = sending_put_metadata;
         found_req->res.addr = ssp_alloc(1, res.size_of_addr);
         memcpy(found_req->res.addr, res.addr, res.size_of_addr);
-        found_req->res.packet_len = p_state->packet_len;
+        found_req->res.packet_len = app->packet_len;
         found_req->res.sfd = res.sfd;
-        found_req->res.transmission_mode = p_state->remote_entity->default_transmission_mode;
-        found_req->res.type_of_network = p_state->remote_entity->type_of_network;
+        found_req->res.transmission_mode = app->remote_entity->default_transmission_mode;
+        found_req->res.type_of_network = app->remote_entity->type_of_network;
         
         request_list->push(request_list, found_req, transaction_sequence_number);
     } 
@@ -475,7 +475,7 @@ void on_server_time_out(Response res, Request *req) {
 }
 
 //fills the current_request struct for the server, incomming requests
-void parse_packet_server(char *packet, uint32_t packet_index, Response res, Request *req, Protocol_state *p_state) {
+void parse_packet_server(char *packet, uint32_t packet_index, Response res, Request *req, FTP *app) {
 
     if (packet_index == 0)
         return;

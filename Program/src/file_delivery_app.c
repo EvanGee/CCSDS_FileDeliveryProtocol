@@ -12,7 +12,7 @@
 #include "utils.h"
 
 
-Protocol_state *init_ftp(uint32_t my_cfdp_address) {
+FTP *init_ftp(uint32_t my_cfdp_address) {
 
     //Memory information base
     MIB *mib = init_mib();
@@ -53,37 +53,40 @@ Protocol_state *init_ftp(uint32_t my_cfdp_address) {
         csp_route_start_task(500, 1);
     }
     
-    Protocol_state *p_state = ssp_alloc(sizeof(Protocol_state), 1);
-    p_state->packet_len = PACKET_LEN;
-    p_state->my_cfdp_id = my_cfdp_address;
-    p_state->mib = mib;
-    p_state->close = 0;
-    p_state->remote_entity = server_entity;
+    FTP *app = ssp_alloc(sizeof(FTP), 1);
+    app->packet_len = PACKET_LEN;
+    app->my_cfdp_id = my_cfdp_address;
+    app->mib = mib;
+    app->close = 0;
+    app->remote_entity = server_entity;
+    app->active_clients = linked_list();
+    app->request_list = linked_list();
+    app->current_request = NULL;
 
-    p_state->request_list = linked_list();
-    p_state->current_request = NULL;
-    return p_state;
+    ssp_server(app);
+
+    return app;
 }
 
 
 
-void ssp_server(Protocol_state *p_state) {
+void ssp_server(FTP *app) {
 
-    if (p_state->remote_entity->type_of_network == posix && p_state->remote_entity->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
-        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, p_state);
+    if (app->remote_entity->type_of_network == posix && app->remote_entity->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, app);
 
-    } else if(p_state->remote_entity->type_of_network == posix && p_state->remote_entity->default_transmission_mode == ACKNOWLEDGED_MODE) {
-        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, p_state);
+    } else if(app->remote_entity->type_of_network == posix && app->remote_entity->default_transmission_mode == ACKNOWLEDGED_MODE) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
 
-    } else if (p_state->remote_entity->type_of_network == csp && p_state->remote_entity->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
-        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, p_state);
+    } else if (app->remote_entity->type_of_network == csp && app->remote_entity->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
 
-    } else if (p_state->remote_entity->type_of_network == csp && p_state->remote_entity->default_transmission_mode == ACKNOWLEDGED_MODE) {
-        p_state->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, p_state);
+    } else if (app->remote_entity->type_of_network == csp && app->remote_entity->default_transmission_mode == ACKNOWLEDGED_MODE) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
     }
 }
 
-Client *ssp_client(uint32_t cfdp_id, Protocol_state *p_state) {
+Client *ssp_client(uint32_t cfdp_id, FTP *app) {
 
     Client *client = ssp_alloc(sizeof(Client), 1);
     checkAlloc(client, 1);
@@ -92,15 +95,15 @@ Client *ssp_client(uint32_t cfdp_id, Protocol_state *p_state) {
     client->request_list = linked_list();
     client->packet_len = PACKET_LEN;
 
-    Remote_entity *remote = get_remote_entity(p_state->mib, cfdp_id);
+    Remote_entity *remote = get_remote_entity(app->mib, cfdp_id);
     
     if (remote == NULL)
         ssp_printf("couldn't find entity in Remote_entity list\n");
 
     //TODO clean this up, we don't need multiple instances of UT_ports etc
     client->remote_entity = remote;
-    client->pdu_header = get_header_from_mib(p_state->mib, cfdp_id, p_state->my_cfdp_id);
-    client->p_state = p_state;
+    client->pdu_header = get_header_from_mib(app->mib, cfdp_id, app->my_cfdp_id);
+    client->app = app;
 
     if (remote->type_of_network == posix && remote->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
