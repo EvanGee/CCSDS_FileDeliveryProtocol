@@ -52,8 +52,7 @@ int main(int argc, char** argv) {
         //Client *new_client = ssp_connectionless_client(conf->client_cfdp_id, p_state);
         //Client *new_client = ssp_client(conf->client_cfdp_id, app);
 
-        Request *req = put_request(1, "pic.jpeg", "remote_pic1.jpeg", ACKNOWLEDGED_MODE, app);
-
+        Request *req = put_request(conf->client_cfdp_id, "pic.jpeg", "remote_pic1.jpeg", ACKNOWLEDGED_MODE, app);
 
         //send_request(new_client, req);
 

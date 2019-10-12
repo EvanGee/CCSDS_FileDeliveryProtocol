@@ -660,6 +660,7 @@ void csp_connection_server(uint8_t my_port,
         }
 
         csp_close(conn);
+        onExit(other);
 
 	}
 
@@ -715,7 +716,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port,
         
 		/* Close connection */
 		csp_close(conn);
-
+        onExit(params);
 	}
 }
 
