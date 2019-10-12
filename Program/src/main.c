@@ -22,6 +22,7 @@
 #include "server.h"
 //for ssp_thread_join, can use p_thread join on linux
 #include "port.h"
+#include "tasks.h"
 
 //exit handler variable for the main thread
 static int *exit_now;
@@ -49,19 +50,25 @@ int main(int argc, char** argv) {
 
         //ssp_printf("input a src file:\n");
         //Client *new_client = ssp_connectionless_client(conf->client_cfdp_id, p_state);
-        Client *new_client = ssp_client(conf->client_cfdp_id, app);
+        //Client *new_client = ssp_client(conf->client_cfdp_id, app);
 
-        Request *req = put_request("pic.jpeg", "remote_pic1.jpeg", ACKNOWLEDGED_MODE, new_client, app);
-        send_request(new_client, req);
+        Request *req = put_request(1, "pic.jpeg", "remote_pic1.jpeg", ACKNOWLEDGED_MODE, app);
+
+
+        //send_request(new_client, req);
 
         //put_request("pic.jpeg", "remote_pic2.jpeg", 0, 0, 0, ACKNOWLEDGED_MODE, 0, NULL, new_client, app);
         //send via acknoleged mode //0 acknowledged, 1 unacknowledged
 
-        ssp_thread_join(new_client->client_handle);
+
         printf("client disconnected\n");
     }
 
+    //ssp_thread_join(app->server_handle);
+    ssp_join_clients(app->active_clients);
     ssp_thread_join(app->server_handle);
+
+
     free(conf); 
 
     

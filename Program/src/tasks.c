@@ -174,8 +174,6 @@ static void on_exit_server (void *params) {
 }
 
 
-
-
 //this function is just for posix fun
 static int on_stdin(void *other) {
 
@@ -341,11 +339,28 @@ void *ssp_csp_connection_client_task(void *params) {
 
 ------------------------------------------------------------------------------*/
 
+static void ssp_client_join(void *element, void*args) {
+    Client *client = (Client *) element;
+    ssp_thread_join(client->client_handle);    
+}
+
+void ssp_join_clients(List *clients) {
+    clients->iterate(clients, ssp_client_join, NULL);
+}
+
+static void exit_client(void *element, void *args) {
+    Client *client = (Client *) element;
+    client->close = true;
+}
 
 void ssp_cleanup_ftp(FTP *app) {
     app->request_list->free(app->request_list, ssp_cleanup_req);
-    app->active_clients->free(app->active_clients, ssp_cleanup_client);
+
+    if (app->close == true)
+        app->active_clients->iterate(app->active_clients, exit_client, NULL);
+
     free_mib(app->mib);
+    app->active_clients->freeOnlyList(app->active_clients);
     ssp_free(app);
 }
 

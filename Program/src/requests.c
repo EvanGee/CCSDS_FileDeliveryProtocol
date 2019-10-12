@@ -15,6 +15,8 @@
 #include "types.h"
 #include "filesystem_funcs.h"
 #include "mib.h"
+#include <stdbool.h>
+#include "file_delivery_app.h"
 
 void ssp_cleanup_req(void *request) {
 
@@ -65,17 +67,25 @@ Request *init_request(uint32_t buff_len) {
 
 //Omission of source and destination filenames shall indicate that only Meta
 //data will be delivered
-Request *put_request(char *source_file_name,
+Request *put_request(
+            uint32_t dest_id,
+            char *source_file_name,
             char *destination_file_name,
             uint8_t transmission_mode,
-            Client *client,
             FTP *app
             ) {
 
     uint32_t file_size = get_file_size(source_file_name);
-    
+    Client *client;
+
     if (file_size == -1)
         return NULL;
+
+    client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
+    if (client == NULL) {
+        client = ssp_client(dest_id, app);
+        app->active_clients->insert(app->active_clients, client, dest_id);
+    }
 
     //give the client a new request to perform
     Request *req = init_request(client->packet_len);
@@ -86,6 +96,7 @@ Request *put_request(char *source_file_name,
 
     //enumeration
     req->procedure = sending_put_metadata;
+    req->paused = true;
     req->dest_cfdp_id = client->remote_entity->cfdp_id;
     req->file_size = file_size;
     
@@ -95,13 +106,12 @@ Request *put_request(char *source_file_name,
     req->transmission_mode = transmission_mode;
     req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
 
+    client->request_list->insert(client->request_list, req, 0);
+    
     return req;
 }
 
 
-int send_request(Client *client, Request *req) {
-    client->request_list->insert(client->request_list, req, 0);
-}
 /*
 //Omission of source and destination filenames shall indicate that only Meta
 //data will be delivered

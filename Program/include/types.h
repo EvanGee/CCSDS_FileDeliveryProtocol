@@ -4,6 +4,7 @@
 #include "stdint.h"
 #include "list.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 
 
@@ -568,6 +569,7 @@ typedef struct request {
     uint8_t fault_handler_overides;
     uint8_t flow_lable;
     uint8_t transmission_mode;
+    bool paused;
 
     //counter for resending eof packets == 3
     uint8_t resent_eof;
@@ -643,7 +645,7 @@ typedef struct client {
     FTP *app;    
 
     //bool for exiting the client thread
-    uint8_t close;
+    bool close;
 
 } Client;
 
