@@ -15,6 +15,8 @@
 #include "types.h"
 #include "filesystem_funcs.h"
 #include "mib.h"
+#include <stdbool.h>
+#include "file_delivery_app.h"
 
 void ssp_cleanup_req(void *request) {
 
@@ -65,48 +67,57 @@ Request *init_request(uint32_t buff_len) {
 
 //Omission of source and destination filenames shall indicate that only Meta
 //data will be delivered
-Request *put_request(char *source_file_name,
+Request *put_request(
+            uint32_t dest_id,
+            char *source_file_name,
             char *destination_file_name,
-            uint8_t segmentation_control,
-            uint8_t fault_handler_overides,
-            uint8_t flow_lable,
             uint8_t transmission_mode,
-            char* messages_to_user,
-            char* filestore_requests,
-            Client *client,
-            Protocol_state *p_state
+            FTP *app
             ) {
 
     uint32_t file_size = get_file_size(source_file_name);
-    
+    Client *client;
+
     if (file_size == -1)
         return NULL;
+
+    client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
+    if (client == NULL) {
+        client = ssp_client(dest_id, app);
+        app->active_clients->insert(app->active_clients, client, dest_id);
+    }
 
     //give the client a new request to perform
     Request *req = init_request(client->packet_len);
     req->file = create_file(source_file_name, 0);
 
     //build a request 
-    req->transaction_sequence_number = p_state->transaction_sequence_number++;
+    req->transaction_sequence_number = app->transaction_sequence_number++;
 
     //enumeration
     req->procedure = sending_put_metadata;
+    req->paused = true;
     req->dest_cfdp_id = client->remote_entity->cfdp_id;
     req->file_size = file_size;
     
     memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
     memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
 
-    req->segmentation_control = segmentation_control;
-    req->fault_handler_overides = fault_handler_overides;
-    req->flow_lable = flow_lable;
     req->transmission_mode = transmission_mode;
-    req->messages_to_user = messages_to_user;
-    req->filestore_requests = filestore_requests;
-
     req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
 
     client->request_list->insert(client->request_list, req, 0);
-
+    
     return req;
 }
+
+
+/*
+//Omission of source and destination filenames shall indicate that only Meta
+//data will be delivered
+
+
+int add_proxy_to_request(uint32_t beneficial_cfid,  Request *req) {
+
+}
+*/

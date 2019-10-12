@@ -4,9 +4,13 @@
 #include "stdint.h"
 #include "list.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 
 
+
+#define ACKNOWLEDGED_MODE 0
+#define UN_ACKNOWLEDGED_MODE 1
 /*-----------------------------------------------------------------------------
 
                     Packet structs for building packets
@@ -99,6 +103,42 @@ typedef struct tlv {
     void *value;
 } TLV;
 
+//TLV Types
+#define MESSAGE_TO_USER 0x02
+#define FILESTORE_RESPONSE 0x01
+#define FILESTORE_REQUEST 0x00
+
+//-------------------------------Messages---------------------------------------
+// The type for this TVL is 0x02 hex
+
+//message types
+#define PROXY_PUT_REQUEST 00
+#define PROXY_MESSAGE_TO_USER 01
+#define PROXY_FILESTORE_REQUEST 02
+#define PROXY_FAULT_HANDLER_OVERRIDE 03
+#define PROXY_TRANSMISSION_MODE 04
+#define PROXY_FLOW_LABLE 05
+#define PROXY_SEGMENTATION_CONTROL 06
+#define PROXY_PUT_RESPONSE 07
+#define PROXY_FILESTORE_RESPONSE 08
+#define PROXY_PUT_CANCEL 09
+
+typedef struct message_to_user {
+
+    uint32_t message_id_cfdp;
+    uint8_t message_type;
+
+} Message_to_user;
+
+
+//type PROXY_PUT_REQUEST
+struct message_proxy {
+    LV Destination_id;
+    LV source_file_name;
+    LV destination_file_name;
+};
+
+//------------------------------------------------------------------------------
 
 //---------------------------filestore_request----------------------------------
 //action codes
@@ -440,7 +480,7 @@ typedef struct remote_entity {
     unsigned int immediate_nak_mode_enabled : 1;
     unsigned int prompt_transmission_interval;
 
-    //acknowledged or unacknowledged
+    //0 acknowledged or 1 unacknowledged
     unsigned int default_transmission_mode: 1;
 
     //discard or retain (no idea what this is for yet)
@@ -486,7 +526,8 @@ typedef struct response {
     void *addr;
     
     enum Network_type type_of_network;
-    
+    int transmission_mode;
+
     //getting rid of this soon in favour of client based packet sizes
     size_t size_of_addr;
 
@@ -528,6 +569,7 @@ typedef struct request {
     uint8_t fault_handler_overides;
     uint8_t flow_lable;
     uint8_t transmission_mode;
+    bool paused;
 
     //counter for resending eof packets == 3
     uint8_t resent_eof;
@@ -540,7 +582,7 @@ typedef struct request {
     Remote_entity *remote_entity;
     Local_entity *local_entity;
 
-    char* messages_to_user;
+    TLV message_to_user;
     char* filestore_requests;
     
     //sets the buffer length, for making packets
@@ -557,9 +599,8 @@ typedef struct request {
 } Request;
 
 //add "client" in here to represent local entity
-typedef struct protocol_state {
+typedef struct ftp {
     uint32_t packet_len;
-    char *server_port;
     void *server_handle;
     MIB *mib;
 
@@ -568,7 +609,12 @@ typedef struct protocol_state {
     List* request_list; 
 
     Request *current_request;
-   
+
+    //underlying connection information 
+    Remote_entity *remote_entity;
+
+    List *active_clients;
+
     //lock this
     uint32_t transaction_sequence_number;
     
@@ -577,7 +623,7 @@ typedef struct protocol_state {
     //bool for exiting the server thread
     uint8_t close;
 
-} Protocol_state;
+} FTP;
 
 
 //outgoing requests spin up client threads
@@ -596,12 +642,13 @@ typedef struct client {
     //packet header, useful for copying into outgoing packets
     Pdu_header *pdu_header;
     
-    Protocol_state *p_state;    
+    FTP *app;    
 
     //bool for exiting the client thread
-    uint8_t close;
+    bool close;
 
 } Client;
+
 
 
 

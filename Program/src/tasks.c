@@ -16,25 +16,25 @@
     Callbacks for the tasks bellow
 
 ------------------------------------------------------------------------------*/
-//this function is a callback when using my posix port
 static int on_recv_server(int sfd, char *packet,  uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
 
-    Protocol_state *p_state = (Protocol_state *) other;
+    FTP *app = (FTP *) other;
     Response res;
     res.addr = addr;
     res.sfd = sfd;
-    res.packet_len = p_state->packet_len;
+    res.packet_len = app->packet_len;
     res.size_of_addr = size_of_addr;
 
-    Request **request_container = &p_state->current_request;
+    Request **request_container = &app->current_request;
 
-    int packet_index = process_pdu_header(packet, 1, res, request_container, p_state->request_list, p_state);
-    p_state->current_request = (*request_container);
+    int packet_index = process_pdu_header(packet, 1, res, request_container, app->request_list, app);
+    app->current_request = (*request_container);
+
 
     if (packet_index < 0)
         return -1;
     
-    parse_packet_server(packet, packet_index, res, (*request_container), p_state);
+    parse_packet_server(packet, packet_index, app->current_request->res, (*request_container), app);
 
     memset(packet, 0, res.packet_len);
     return 0;
@@ -51,10 +51,11 @@ static int on_recv_client(int sfd, char *packet, uint32_t packet_len, uint32_t *
     res.packet_len = client->packet_len;
     res.type_of_network = client->remote_entity->type_of_network;
     res.size_of_addr = size_of_addr;
+    res.transmission_mode = client->remote_entity->default_transmission_mode;
 
     Request **request_container = &client->current_request;
 
-    int packet_index = process_pdu_header(packet, 0, res, request_container, client->request_list, client->p_state);
+    int packet_index = process_pdu_header(packet, 0, res, request_container, client->request_list, client->app);
     if (packet_index < 0) {
         ssp_printf("error parsing header\n");
         return -1;
@@ -117,6 +118,9 @@ static int on_send_client(int sfd, void *addr, size_t size_of_addr, void *other)
     res.addr = addr;
     res.size_of_addr = size_of_addr;
     res.type_of_network = client->remote_entity->type_of_network;
+    res.transmission_mode = client->remote_entity->default_transmission_mode;
+
+
 
     struct user_request_check_params params = {
         res,
@@ -136,18 +140,18 @@ static void timeout_check(void *request, void *args) {
 //this function is a callback when using  my posix ports
 static int on_time_out_posix(void *other) {
 
-    Protocol_state *p_state = (Protocol_state*) other;
-    if(p_state->current_request == NULL)
+    FTP *app = (FTP*) other;
+    if(app->current_request == NULL)
         return 0;
 
-    p_state->request_list->iterate(p_state->request_list, timeout_check, p_state->request_list);
+    app->request_list->iterate(app->request_list, timeout_check, app->request_list);
     
     return 0;
 }
 
 static int check_exit_server(void *params) {
-    Protocol_state *p_state = (Protocol_state*) params;
-    if (p_state->close)
+    FTP *app = (FTP*) params;
+    if (app->close)
         return 1;
     return 0;
 }
@@ -165,19 +169,17 @@ static void on_exit_client (void *params) {
 }
 
 static void on_exit_server (void *params) {
-    Protocol_state *p_state = (Protocol_state*) params;
-    ssp_cleanup_p_state(p_state);
+    FTP *app = (FTP*) params;
+    ssp_cleanup_ftp(app);
 }
-
-
 
 
 //this function is just for posix fun
 static int on_stdin(void *other) {
 
     /*
-    Protocol_state *p_state = (Protocol_state *) other;
-    Request *req = p_state->newClient->req;
+    FTP *app = (FTP *) other;
+    Request *req = app->newClient->req;
 
     char input[MAX_PATH];
     fgets(input, MAX_PATH, stdin);
@@ -189,21 +191,21 @@ static int on_stdin(void *other) {
                 ssp_printf("file: %s, we had trouble opening this file, please enter a new file\n", input);
                 return 0;
             }
-            memcpy(p_state->newClient->req->source_file_name, input, MAX_PATH);
+            memcpy(app->newClient->req->source_file_name, input, MAX_PATH);
             ssp_printf("Enter a destination file name:\n");
         }
         else if (strnlen(req->destination_file_name, MAX_PATH) == 0){
-            memcpy(p_state->newClient->req->destination_file_name, input, MAX_PATH);
-            ssp_printf("sending file: %s As file named: %s To cfid enditity %d\n", p_state->newClient->req->source_file_name, p_state->newClient->req->destination_file_name, p_state->newClient->cfdp_id);
+            memcpy(app->newClient->req->destination_file_name, input, MAX_PATH);
+            ssp_printf("sending file: %s As file named: %s To cfid enditity %d\n", app->newClient->req->source_file_name, app->newClient->req->destination_file_name, app->newClient->cfdp_id);
             ssp_printf("cancel connection mode (yes):\n");
         } 
         else if (strncmp(input, "yes", 3) == 0){
             ssp_printf("sending file connectionless\n");
-            put_request(p_state->newClient->req->source_file_name, p_state->newClient->req->destination_file_name, 0, 0, 0, 1, NULL, NULL, p_state->newClient, p_state);
+            put_request(app->newClient->req->source_file_name, app->newClient->req->destination_file_name, 0, 0, 0, 1, NULL, NULL, app->newClient, app);
         } 
         else {
             ssp_printf("sending file connected\n");
-            put_request(p_state->newClient->req->source_file_name, p_state->newClient->req->destination_file_name, 0, 0, 0, 0, NULL, NULL, p_state->newClient, p_state); 
+            put_request(app->newClient->req->source_file_name, app->newClient->req->destination_file_name, 0, 0, 0, 0, NULL, NULL, app->newClient, app); 
         }
    }
    */
@@ -218,19 +220,21 @@ static int on_stdin(void *other) {
 
 ------------------------------------------------------------------------------*/
 void *ssp_connectionless_server_task(void *params) {
+    printf("starting posix connectionless server task\n");
+    FTP* app = (FTP*) params;
+    app->transaction_sequence_number = 1;
+
+    char port[10];
+    snprintf(port, 10, "%d",app->remote_entity->UT_port);
     
-    Protocol_state* p_state = (Protocol_state*) params;
-    p_state->transaction_sequence_number = 1;
-    
-    connectionless_server(p_state->server_port, p_state->packet_len, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
-    //csp_connectionless_server(1, 1, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
+    connectionless_server(port, app->packet_len, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, app);
     
     return NULL;
 }
 
     
 void *ssp_connectionless_client_task(void* params){
-
+    printf("starting posix connectionless client task \n");
     Client *client = (Client *) params;
 
     char host_name[INET_ADDRSTRLEN];
@@ -248,15 +252,20 @@ void *ssp_connectionless_client_task(void* params){
 }
 
 void *ssp_connection_server_task(void *params) {
-    Protocol_state* p_state = (Protocol_state*) params;
-    p_state->transaction_sequence_number = 1;
+    printf("starting posix connection server\n");
+    FTP* app = (FTP*) params;
+    app->transaction_sequence_number = 1;
+
+    char port[10];
+    snprintf(port, 10, "%u",app->remote_entity->UT_port);
+
     //1024 is the connection max limit
-    connection_server(p_state->server_port, p_state->packet_len, 10, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, p_state);
+    connection_server(port, app->packet_len, 10, on_recv_server, on_time_out_posix, on_stdin, check_exit_server, on_exit_server, app);
     return NULL;
 }
 
-
 void *ssp_connection_client_task(void *params) {
+    printf("starting posix connection client\n");
     Client *client = (Client *) params;
 
     char host_name[INET_ADDRSTRLEN];
@@ -273,19 +282,86 @@ void *ssp_connection_client_task(void *params) {
     return NULL;
 }
 
+void *ssp_csp_connectionless_server_task(void *params) {
+    printf("starting csp connectionless server\n");
+    FTP *app = (FTP *) params;
+    csp_connectionless_server(
+    app->remote_entity->UT_port,
+    on_recv_server, 
+    on_time_out_posix, 
+    on_stdin, 
+    check_exit_server, 
+    on_exit_server, 
+    app);
 
+    return NULL;
+}
+
+void *ssp_csp_connectionless_client_task(void *params) {
+    printf("starting csp connectionless client\n");
+    Client *client = (Client *) params;
+    csp_connectionless_client(client->remote_entity->UT_address, 
+    client->remote_entity->UT_port,
+    client->app->remote_entity->UT_port, on_send_client, on_recv_client, check_exit_client, on_exit_client, client);
+    return NULL;
+}
+
+
+void *ssp_csp_connection_server_task(void *params) {
+    printf("starting csp connection server\n");
+    FTP *app = (FTP *) params;
+    csp_connection_server(app->remote_entity->UT_port,
+        on_recv_server,
+        on_time_out_posix,
+        on_stdin,
+        check_exit_server,
+        on_exit_server,
+        params);
+
+    return NULL;
+} 
+
+void *ssp_csp_connection_client_task(void *params) {
+    printf("starting csp connection client\n");
+    Client *client = (Client *) params;
+
+    csp_connection_client(client->remote_entity->UT_address, client->remote_entity->UT_port,
+        on_send_client,
+        on_recv_client,
+        check_exit_client,
+        on_exit_client,
+        params);
+    return NULL;
+}
 /*------------------------------------------------------------------------------
     
     free functions
 
 ------------------------------------------------------------------------------*/
 
+static void ssp_client_join(void *element, void*args) {
+    Client *client = (Client *) element;
+    ssp_thread_join(client->client_handle);    
+}
 
-void ssp_cleanup_p_state(Protocol_state *p_state) {
-    p_state->request_list->free(p_state->request_list, ssp_cleanup_req);
-    free_mib(p_state->mib);
-    ssp_free(p_state->server_port);
-    ssp_free(p_state);
+void ssp_join_clients(List *clients) {
+    clients->iterate(clients, ssp_client_join, NULL);
+}
+
+static void exit_client(void *element, void *args) {
+    Client *client = (Client *) element;
+    client->close = true;
+}
+
+void ssp_cleanup_ftp(FTP *app) {
+    app->request_list->free(app->request_list, ssp_cleanup_req);
+
+    if (app->close == true)
+        app->active_clients->iterate(app->active_clients, exit_client, NULL);
+
+    free_mib(app->mib);
+    app->active_clients->freeOnlyList(app->active_clients);
+    ssp_free(app);
 }
 
 void ssp_cleanup_client(Client *client) {

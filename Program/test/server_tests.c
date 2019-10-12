@@ -14,6 +14,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include "csp.h"
 
 #define BUF_SIZE 500
 static int clin(char *host, char*port)
@@ -260,21 +261,18 @@ static int onRecvServer(int sfd, char *packet, uint32_t packet_len,  uint32_t *b
     
     printf("received: %s\n", packet);
 
-    /*
+    
     Response res;
     res.addr = addr;
     res.msg = "hello back!!\n";
-    res.packet_len = *buff_size;
+    res.packet_len = 10;
     res.size_of_addr = size_of_addr;
     res.sfd = sfd;
-    ssp_printf("packet data: %s\n", packet);
-
-    int n = send(sfd, "hello back!", 12, 0);
-    //int n = sendto(sfd, "Hello back", 12, 0, (struct sockaddr*)addr, res.size_of_addr);
-    if (n < 0) 
-        ssp_error("ERROR in sendto");
-    //ssp_sendto(res);
-    */
+    res.type_of_network = csp;
+    res.transmission_mode = ACKNOWLEDGED_MODE;
+    
+    ssp_sendto(res);
+    
 
    return 0;
 }
@@ -293,23 +291,18 @@ static void onExit(void *other) {
 }
 
 //client stuff
-static int onSend(int sfd, void *addr, void *onSendParams) {
+static int onSend(int sfd, void *addr, size_t size_of_addr, void *onSendParams) {
     Response res;
     res.addr = addr;
     res.msg = "hello server!!\n";
     res.packet_len = 12;
-    res.size_of_addr = sizeof(struct sockaddr);
     res.sfd = sfd;
-    //printf("sending message:%s", res.msg);
+    res.type_of_network = csp;
+    res.transmission_mode = ACKNOWLEDGED_MODE;
+    printf("sending!!!\n");
+    
+    ssp_sendto(res);
 
-    //sendto(sfd, "Hello", 5, 0, (struct sockaddr*)addr, res.size_of_addr);
-    //ssp_sendto(res);
-
-
-    int n = send(sfd, "HELLO", 5, 0);
-    if (n < 0)
-        fprintf(stderr, "partial/failed write\n");
-        
     return 0;
 }
 static int onRecvClient(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) {
@@ -325,17 +318,95 @@ static void onExitClient(void *params) {
 
 }
 
+void *ssp_csp_connectionless_server_task_test(void *params) {
+    printf("starting csp connectionless server\n");
+
+    csp_connectionless_server(
+    1, 
+    onRecvServer, 
+    onTimeOut, 
+    onStdIn, 
+    checkExit, 
+    onExit, 
+    params);
+
+    return NULL;
+}
+
+
+void *ssp_csp_connectionless_client_task_test(void *params) {
+    printf("starting csp connectionless client\n");
+    csp_connectionless_client(1, 
+    1, 
+    2, 
+    onSend, onRecvClient, checkExitClient, onExitClient, params);
+    return NULL;
+}
+
+
+void *ssp_csp_connection_server_task_test(void *params) {
+    csp_connection_server(1,
+        onRecvServer,
+        onTimeOut,
+        onStdIn,
+        checkExit,
+        onExit,
+        params);
+}
+
+
+void *ssp_csp_connection_client_task_test(void *params) {
+
+    csp_connection_client(1, 1,
+        onSend,
+        onRecvClient,
+        checkExitClient,
+        onExitClient,
+        params);
+}
+/*
+void *ssp_csp_connectionless_client_task_test(void *params) {
+    csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port,
+    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
+    int (*checkExit)(void *checkExitParams),
+    void (*onExit)(void *params),
+    void *params);
+}
+*/
+
 int server_tests(int client){
 
     int buffsize = 10000;
-
     char buff[buffsize];
     
+    /* Init buffer system with 10 packets of maximum 300 bytes each */
+    printf("Initialising CSP\r\n");
+    csp_buffer_init(100, 300);
+
+	/* Init CSP with address MY_ADDRESS */
+	csp_init(1);
+
+	/* Start router task with 500 word stack, OS task priority 1 */
+	csp_route_start_task(500, 1);
+
+
+//    void *handle = ssp_thread_create(20000, ssp_csp_connectionless_server_task_test, NULL);
+//    void *handle2 = ssp_thread_create(20000, ssp_csp_connectionless_client_task_test, NULL);
+    void *handle = ssp_thread_create(20000, ssp_csp_connection_server_task_test, NULL);    
+    void *handle2 = ssp_thread_create(20000, ssp_csp_connection_client_task_test, NULL);    
+    //test_csp_connectionless_server();
+    
+    ssp_thread_join(handle);
+    ssp_thread_join(handle2);
+
+
     if (client) {
         printf("I'm a client!\n");
         //connection_client("127.0.0.1", "1111", buffsize, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
         //connectionless_client("localhost", "1111", buffsize, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
-        csp_connectionless_client(1, 1, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
+        //csp_connectionless_client(1, 1, 2, 2, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
+        //csp_connection_client();
         //clin("127.0.0.1", "1111");
     }
     else {
@@ -343,7 +414,8 @@ int server_tests(int client){
         //connectionless_server("1111", buffsize, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
         
         //servCon ("1111");
-        csp_connectionless_server(1, 1, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
+        //csp_connectionless_server(1, 1, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
+        //csp_connection_server();
     }
         
     return 0;

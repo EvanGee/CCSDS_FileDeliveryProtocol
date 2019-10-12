@@ -22,6 +22,7 @@
 #include "server.h"
 //for ssp_thread_join, can use p_thread join on linux
 #include "port.h"
+#include "tasks.h"
 
 //exit handler variable for the main thread
 static int *exit_now;
@@ -38,30 +39,22 @@ int main(int argc, char** argv) {
         printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
         return 1;
     }
-    Protocol_state *p_state = init_ftp(conf->my_cfdp_id);
-    
-    //ssp_connectionless_server(p_state);
-    ssp_connection_server(p_state);
 
+    FTP *app = init_ftp(conf->my_cfdp_id);
+    
     //create a client
     if (conf->client_cfdp_id != 0){
 
-        //ssp_printf("input a src file:\n");
-        //Client *new_client = ssp_connectionless_client(conf->client_cfdp_id, p_state);
-        Client *new_client = ssp_connection_client(conf->client_cfdp_id, p_state);
+        Request *req = put_request(conf->client_cfdp_id, "pic.jpeg", "remote_pic1.jpeg", ACKNOWLEDGED_MODE, app);
+        //send_request(new_client, req);
 
-        //send via acknoleged mode //0 acknowledged, 1 unacknowledged
-        if (conf->my_cfdp_id == 2) {
-            put_request("pic.jpeg", "remote_pic1.jpeg", 0, 0, 0, 0, NULL, NULL, new_client, p_state);
-        }
-        if (conf->my_cfdp_id == 3)
-            put_request("pic.jpeg", "remote_pic3.jpeg", 0, 0, 0, 1, NULL, NULL, new_client, p_state);
-
-        ssp_thread_join(new_client->client_handle);
-        printf("client disconnected\n");
     }
 
-    ssp_thread_join(p_state->server_handle);
+    //ssp_thread_join(app->server_handle);
+    ssp_join_clients(app->active_clients);
+    ssp_thread_join(app->server_handle);
+
+
     free(conf); 
 
     

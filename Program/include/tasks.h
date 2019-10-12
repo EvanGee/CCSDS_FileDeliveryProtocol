@@ -3,14 +3,20 @@
 #define SSP_TASKS_H
 
 #include "types.h"
+#include "list.h"
 
 void ssp_cleanup_client(Client *client);
 void ssp_cleanup_req(void *request);
-void ssp_cleanup_p_state(Protocol_state *p_state);
+void ssp_cleanup_ftp(FTP *app);
 void *ssp_connectionless_server_task(void *params);
 void *ssp_connectionless_client_task(void* params);
 
 void *ssp_connection_client_task(void *params);
 void *ssp_connection_server_task(void *params);
+void *ssp_csp_connectionless_client_task(void *params);
+void *ssp_csp_connectionless_server_task(void *params);
+void *ssp_csp_connection_client_task(void *params);
+void *ssp_csp_connection_server_task(void *params);
+void ssp_join_clients(List *clients);
 
 #endif

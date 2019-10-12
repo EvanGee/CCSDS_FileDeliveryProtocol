@@ -10,12 +10,27 @@
 #define POSIX_PORT
 #define POSIX_FILESYSTEM
 #define POSIX_NETWORK
+
 #define CSP_NETWORK
 //#define FREE_RTOS_PORT
 
 
 #define MAX_PATH 255
 #include "types.h"
+
+
+
+#ifdef CSP_NETWORK
+    #include "csp.h"
+    typedef struct csp_packet_wrapper {
+        uint8_t dest_id;
+        uint8_t dest_port;
+        uint8_t src_id;
+        uint8_t src_port;
+        csp_packet_t *packet;
+
+    } csp_packet_wrapper;
+#endif
 
 
 void ssp_error( char *msg);

@@ -182,6 +182,23 @@ static void freeList(List *list, void (*f)(void *element))
     free(list);
 }
 
+
+static void freeNodes(List *list) {
+
+    NODE *cur = list->head->next;
+
+    while (cur->next != NULL)
+    {
+        NODE *n = cur;
+        cur = cur->next;
+        freeNode(n);
+    }
+    free(list->head);
+    free(list->tail);
+    free(list);
+
+}
+
 /*------------------------------------------------------------------------------
     This function finds an element, returns and element on success and NULL on
     failure. The return value should be cast to the element type. can search with
@@ -292,6 +309,7 @@ List *linked_list()
     newList->insertAt = insertAt;
     newList->findNode = findNode;
     newList->freeNode = freeNode;
+    newList->freeOnlyList = freeNodes;
 
     return newList;
 }

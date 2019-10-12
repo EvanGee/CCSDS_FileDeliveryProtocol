@@ -75,19 +75,37 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
     void (*onExit)(void *params));
 
 //#ifdef CSP_NETWORK
-void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, void *onSendParams),
+void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port,
+    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
-    void (*onExit)(void *params));
+    void (*onExit)(void *params),
+    void *params);
 
-void csp_connectionless_server(uint8_t my_id, uint8_t my_port,
+void csp_connectionless_server(uint8_t my_port,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
     int (*onStdIn)(void *other),
     int (*checkExit)(void *other),
     void (*onExit)(void *other),
     void *other);
+
+void csp_connection_server(uint8_t my_port,
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
+    int (*onTimeOut)(void *other),
+    int (*onStdIn)(void *other),
+    int (*checkExit)(void *other),
+    void (*onExit)(void *other),
+    void *other);
+
+void csp_connection_client(uint8_t dest_id, uint8_t dest_port,
+    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
+    int (*checkExit)(void *checkExitParams),
+    void (*onExit)(void *params),
+    void *params);
+
+
 //#endif
 
 
