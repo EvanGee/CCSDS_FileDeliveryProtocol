@@ -331,10 +331,13 @@ static void check_req_status(Request *req, Client *client) {
     }
 }
 
-//current user request, to send to remote
+//current user request, to send to server
 void user_request_handler(Response res, Request *req, Client* client) {
 
     if (req == NULL)
+        return;
+
+    if (req->paused)
         return;
 
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, client->pdu_header);
@@ -412,6 +415,9 @@ static void print_offsets(void *element, void *args) {
 
 void on_server_time_out(Response res, Request *req) {
     
+
+    if (req->paused)
+        return;
     
     if (reset_timeout(req))
         return;
@@ -419,7 +425,7 @@ void on_server_time_out(Response res, Request *req) {
     if (req->procedure == none)
         return;
 
-    if (req->transmission_mode == 1)
+    if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
         return; 
 
     uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
@@ -482,6 +488,7 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         
     Pdu_header *header = (Pdu_header *) packet;
 
+    //set timeout to 0, because received data
     req->timeout = 0;
 
     //process file data

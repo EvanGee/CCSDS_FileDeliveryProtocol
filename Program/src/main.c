@@ -42,25 +42,12 @@ int main(int argc, char** argv) {
 
     FTP *app = init_ftp(conf->my_cfdp_id);
     
-    //ssp_connectionless_server(app);
-    //ssp_server(app);
-
     //create a client
     if (conf->client_cfdp_id != 0){
 
-        //ssp_printf("input a src file:\n");
-        //Client *new_client = ssp_connectionless_client(conf->client_cfdp_id, p_state);
-        //Client *new_client = ssp_client(conf->client_cfdp_id, app);
-
         Request *req = put_request(conf->client_cfdp_id, "pic.jpeg", "remote_pic1.jpeg", ACKNOWLEDGED_MODE, app);
-
         //send_request(new_client, req);
 
-        //put_request("pic.jpeg", "remote_pic2.jpeg", 0, 0, 0, ACKNOWLEDGED_MODE, 0, NULL, new_client, app);
-        //send via acknoleged mode //0 acknowledged, 1 unacknowledged
-
-
-        printf("client disconnected\n");
     }
 
     //ssp_thread_join(app->server_handle);

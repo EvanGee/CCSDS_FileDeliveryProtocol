@@ -606,7 +606,7 @@ void csp_connectionless_server(uint8_t my_port,
     }
 }
 
-//This doesn't realy work
+//This doesn't work because it can't have multiple connections, maybe revisit?
 void csp_connection_server(uint8_t my_port,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
@@ -667,6 +667,7 @@ void csp_connection_server(uint8_t my_port,
     /* Close current connection, and handle next */
 	csp_close(conn);
 }
+
 
 void csp_connection_client(uint8_t dest_id, uint8_t dest_port,
     int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
