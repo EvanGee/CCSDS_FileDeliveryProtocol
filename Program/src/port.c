@@ -150,28 +150,9 @@ void ssp_sendto(Response res) {
         }
         else 
             ssp_error("couldn't get new packet for sending!\n");
-    /* This is commented out because frankly, the connection mode of csp is kind of shit       
-    } else if (res.type_of_network == csp && res.transmission_mode == ACKNOWLEDGED_MODE) {
-
-        csp_conn_t *conn = (csp_conn_t *) res.addr;
-        csp_packet_t *packet_sending;
-
-        if (csp_buffer_remaining() != 0) {
-            packet_sending = csp_buffer_get(1);
-
-            memcpy(packet_sending->data, res.msg, res.packet_len);
-            printf("calling csp_send\n");
-            int err = csp_send(conn, packet_sending, 10);
-            
-            if (err < 0) {
-                ssp_error("ERROR in ssp_send");
-                csp_buffer_free(packet_sending);
-            }
-        }
-        */
+  
     }
-    
-    
+       
 }
 
 int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len) {
