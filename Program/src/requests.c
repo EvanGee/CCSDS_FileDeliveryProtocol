@@ -19,6 +19,11 @@
 #include "file_delivery_app.h"
 
 
+
+void copy_lv_to_buffer(char *buffer, LV *lv){
+    memcpy(buffer, lv->value, lv->length);
+}
+
 static void free_lv(LV *lv) {
     ssp_free(lv->value);
     ssp_free(lv);
@@ -188,3 +193,5 @@ int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id,
 
     return 1;
 }
+
+

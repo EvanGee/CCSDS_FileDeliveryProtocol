@@ -113,12 +113,10 @@ static int add_proxy_message() {
     uint32_t id = 2;
     uint8_t len = 1;
 
-
     int error = add_proxy_message_to_request(id, len, src, dest, req);
 
     Message *message = req->messages_to_user->pop(req->messages_to_user);
     ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
-
 
     Message_put_proxy *proxy = (Message_put_proxy *) message->value;
     ASSERT_EQUALS_STR("proxy dest_id should equal 2", proxy->destination_id->value, &id, len);

@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "port.h"
 #include "filesystem_funcs.h"
+#include "requests.h"
 
 /*------------------------------------------------------------------------------
 
@@ -308,3 +309,50 @@ uint16_t get_data_length(char*packet) {
     Pdu_header *header = (Pdu_header*) packet;
     return ntohs(header->PDU_data_field_len);
 }
+
+
+//returns length of added messages, copys messages into packet
+uint32_t add_messages_to_packet(char *packet, uint32_t start, Request *req) {
+    
+    uint32_t packet_index = start;
+
+    for (int i = 0; i < req->messages_to_user->count; i++) {
+        Message *message = (Message *) req->messages_to_user->pop(req->messages_to_user);
+        
+        memcpy(&packet[packet_index], message->header.message_id_cfdp, 5);
+        packet_index += 5;
+
+        memcpy(&packet[packet_index], &message->header.message_type, 1);
+        packet_index += 1;
+
+
+        Message_put_proxy *proxy;
+
+        switch (message->header.message_type)
+        {
+            case PROXY_PUT_REQUEST:
+                proxy = (Message_put_proxy *) message->value;
+                copy_lv_to_buffer(&packet[packet_index], proxy->destination_id);
+                packet_index += proxy->destination_id->length;
+                copy_lv_to_buffer(&packet[start], proxy->source_file_name);
+                packet_index += proxy->source_file_name->length;
+                copy_lv_to_buffer(&packet[start], proxy->destination_file_name);
+                packet_index += proxy->destination_file_name->length;
+
+                break;
+        
+            default:
+                break;
+        }
+    } 
+    return packet_index - start;
+}
+
+
+//adds messages from packet into request
+uint32_t get_messages_from_packet(char *packet, uint32_t start, Request *req) {
+    
+
+
+}
+

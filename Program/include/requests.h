@@ -21,4 +21,6 @@ Request *put_request(
 int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req);
 //Frees a message struct
 void free_message(void *params);
+void copy_lv_to_buffer(char *buffer, LV *lv);
+
 #endif
