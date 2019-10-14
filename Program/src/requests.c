@@ -18,6 +18,46 @@
 #include <stdbool.h>
 #include "file_delivery_app.h"
 
+
+static void free_lv(LV *lv) {
+    ssp_free(lv->value);
+    ssp_free(lv);
+}
+
+static LV *create_lv(int size, void *value) {
+
+    LV *lv = ssp_alloc(1, sizeof(LV));
+    lv->value = ssp_alloc(size, sizeof(char));
+    memcpy(lv->value, value, size);
+    lv->length = size;
+    return lv;
+}
+
+
+void free_message(void *params) {
+
+    Message *message = (Message*) params;
+    Message_put_proxy* proxy_request;
+    
+    switch (message->header.message_type)
+    {
+        case PROXY_PUT_REQUEST:
+            proxy_request = (Message_put_proxy *) message->value;
+            free_lv(proxy_request->destination_file_name);
+            free_lv(proxy_request->source_file_name);
+            free_lv(proxy_request->destination_id);
+
+            break;
+    
+        default:
+            break;
+    }
+
+    ssp_free(message->header.message_id_cfdp);
+    ssp_free(message->value);
+    ssp_free(message);
+}
+
 void ssp_cleanup_req(void *request) {
 
     if (request == NULL)
@@ -39,6 +79,12 @@ void ssp_cleanup_req(void *request) {
         ssp_free(req->res.addr);
     if (req->local_entity != NULL)
         ssp_free(req->local_entity);
+
+    if (req->messages_to_user->count > 0)
+        req->messages_to_user->free(req->messages_to_user, free_message);
+    else 
+        req->messages_to_user->freeOnlyList(req->messages_to_user);
+
     if (req != NULL)
         ssp_free(req);
 
@@ -61,6 +107,8 @@ Request *init_request(uint32_t buff_len) {
     req->buff = ssp_alloc(buff_len, sizeof(char));
     req->res.msg = req->buff;
     req->procedure = none;
+
+    req->messages_to_user = linked_list();
     checkAlloc(req->buff,  1);
     return req;
 }
@@ -111,13 +159,32 @@ Request *put_request(
     return req;
 }
 
+void start_request(Request *req){
+    req->paused = false;
+}
 
-/*
 //Omission of source and destination filenames shall indicate that only Meta
 //data will be delivered
 
 
-int add_proxy_to_request(uint32_t beneficial_cfid,  Request *req) {
 
+//beneficial_cfid is the destination id that the proxy will send to, length_of_id is in octets (or bytes)
+int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
+
+    Message *message = ssp_alloc(1, sizeof(Message));    
+
+    message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
+    memcpy(message->header.message_id_cfdp, "cfdp", 5);
+    message->header.message_type = PROXY_PUT_REQUEST;
+
+    Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
+
+    proxy->destination_file_name = create_lv(strnlen(dest_name, MAX_PATH), dest_name);
+    proxy->source_file_name = create_lv(strnlen(source_name, MAX_PATH), source_name);
+    proxy->destination_id = create_lv(length_of_id, &beneficial_cfid);
+
+    message->value = proxy;    
+    req->messages_to_user->push(req->messages_to_user, message, 0);
+
+    return 1;
 }
-*/

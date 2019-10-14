@@ -3,11 +3,12 @@
 #include "requests.h"
 #include "string.h"
 #include "test.h"
+#include "filesystem_funcs.h"
 
 
 static void list_print_id(void *element, void *args) {
     Request *req = (Request *) element;
-    printf("id: %d trans number: %d\n", req->dest_cfdp_id, req->transaction_sequence_number);
+    printf("id: %d trans number: %llu\n", req->dest_cfdp_id, req->transaction_sequence_number);
 }
 
 //for finding the struct in the list
@@ -31,7 +32,7 @@ static void list_print(void *element, void *args) {
     ssp_printf("%s\n", req->source_file_name);
 }
 
-int request_finding_test() {
+static int request_finding_test() {
 
     List *list = linked_list();
 
@@ -79,7 +80,7 @@ int request_finding_test() {
 }
 
 
-void request_test_list_storage() {
+static void request_test_list_storage() {
     Request *req = init_request(5000);
     List *list = linked_list();
 
@@ -103,10 +104,39 @@ void request_test_list_storage() {
 
 }
 
+static int add_proxy_message() {
+
+    Request *req = init_request(5000);
+
+    char *dest = "dest";
+    char *src = "src";
+    uint32_t id = 2;
+    uint8_t len = 1;
+
+
+    int error = add_proxy_message_to_request(id, len, src, dest, req);
+
+    Message *message = req->messages_to_user->pop(req->messages_to_user);
+    ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
+
+
+    Message_put_proxy *proxy = (Message_put_proxy *) message->value;
+    ASSERT_EQUALS_STR("proxy dest_id should equal 2", proxy->destination_id->value, &id, len);
+    ASSERT_EQUALS_STR("proxy src file", proxy->source_file_name->value, src,  proxy->source_file_name->length);
+    ASSERT_EQUALS_STR("proxy dest file", proxy->destination_file_name->value, dest,  proxy->destination_file_name->length);
+
+    free_message(message);
+
+    ssp_cleanup_req(req);
+    return 0;
+
+}
 
 int request_tests() {
 
     int error = 0;
     error = request_finding_test(); 
-    return 0;
+    error = add_proxy_message();
+    
+    return error;
 }

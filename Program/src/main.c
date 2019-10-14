@@ -46,6 +46,8 @@ int main(int argc, char** argv) {
     if (conf->client_cfdp_id != 0){
 
         Request *req = put_request(conf->client_cfdp_id, "pic.jpeg", "remote_pic1.jpeg", ACKNOWLEDGED_MODE, app);
+        start_request(req);
+        
         //send_request(new_client, req);
 
     }

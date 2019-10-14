@@ -299,6 +299,7 @@ List *linked_list()
     head->next = tail;
     head->prev = NULL;
 
+    newList->count = 0;
     newList->push = push;
     newList->remove = removeElement;
     newList->iterate = iterate;
