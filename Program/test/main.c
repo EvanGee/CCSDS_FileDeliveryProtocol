@@ -9,9 +9,10 @@
 #include <netdb.h> 
 #include "types.h"
 #include "request_tests.h"
+#include "packet_tests.h"
+
 
 /*
-#include "packet_tests.h"
 #include "filesystem_tests.h"
 #include "file_delivery_app.h"
 #include "protocol_handler_tests.h"
@@ -23,17 +24,12 @@
 
 int main (int argc, char **argv) {
     
-    //Pdu_header *header = get_header_from_mib(mib, 2222, 1315);
-    //packet_tests(header);
-    //file_system_tests();
-    //request_test_list_storage();
-    //free_mib(mib);
-    //ssp_cleanup_pdu_header(header);
+
     int error = 0;
 
     error = request_tests();
     //error = protocol_handler_test();
-    //error = packet_tests();
+    error = packet_tests();
     //error = list_tests();
     //error = file_system_tests();
 

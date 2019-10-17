@@ -26,7 +26,8 @@ CFILES += $(PROJDIR)/src/file_delivery_app.c
 CFILES += $(PROJDIR)/src/list.c
 CFILES += $(PROJDIR)/src/packet.c
 
-#CFILES += $(PROJDIR)/test/packet_tests.c
+
+CFILES += $(PROJDIR)/test/packet_tests.c
 CFILES += $(PROJDIR)/test/test.c
 CFILES += $(PROJDIR)/test/request_tests.c
 #CFILES += $(PROJDIR)/test/filesystem_tests.c

@@ -1,7 +1,6 @@
 
 #include "test.h"
 #include <stdio.h>
-
 int test_num = 0;
 
 void ASSERT_EQUALS_INT(char* description, int val1, int val2) {

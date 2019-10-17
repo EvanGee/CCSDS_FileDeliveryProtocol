@@ -9,6 +9,8 @@
 #include "protocol_handler.h"
 #include "mib.h"
 #include "file_delivery_app.h"
+#include "packet.h"
+#include "packet_tests.h"
 
 #define PACKET_TEST_SIZE 2000 
 
@@ -227,6 +229,7 @@ int test_build_pdu_header_header(char *packet, Pdu_header *header, uint64_t sequ
     return packet_index;
 }
 
+
 int packet_tests() {
 
     printf("starting Packet Tests (creating and changing packet values)\n");
@@ -266,3 +269,5 @@ int packet_tests() {
     return 0;
 
 }
+
+
