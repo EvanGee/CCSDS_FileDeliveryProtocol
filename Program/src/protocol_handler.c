@@ -367,7 +367,7 @@ void user_request_handler(Response res, Request *req, Client* client) {
 
         case sending_put_metadata:
             ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
-            start = build_put_packet_metadata(res, start, req);
+            start = build_put_packet_metadata(req->buff, start, req);
             ssp_sendto(res);
             req->procedure = sending_data;
             break;
