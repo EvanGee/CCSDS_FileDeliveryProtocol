@@ -68,7 +68,7 @@ uint8_t build_finished_pdu(char *packet, uint32_t start) {
     return data_len;
 }
 
-
+//returns packet_index for data
 uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {    
     Pdu_header *header = (Pdu_header *) packet;
    
@@ -79,6 +79,7 @@ uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {
     Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
     directive->directive_code = META_DATA_PDU;
     packet_index += SIZE_OF_DIRECTIVE_CODE;
+
     Pdu_meta_data *meta_data_packet = (Pdu_meta_data *) &packet[packet_index];
 
     //1 bytes
@@ -95,23 +96,21 @@ uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {
     //variable length params
     uint8_t src_file_name_length = strnlen(req->source_file_name, MAX_PATH);
     uint8_t destination_file_length = strnlen(req->destination_file_name, MAX_PATH);
-    char *src_file_name = req->source_file_name;
-    char *destination_file_name = req->destination_file_name;
     
     //copy source length to packet (1 bytes) 
     memcpy(&packet[packet_index], &src_file_name_length, src_file_name_length);
     packet_index++;
     //copy source name to packet (length bytes) 
-    memcpy(&packet[packet_index], src_file_name, src_file_name_length);
+    memcpy(&packet[packet_index], req->source_file_name, src_file_name_length);
     packet_index += src_file_name_length;
-
     //copy length to packet (1 byte)
     memcpy(&packet[packet_index], &destination_file_length, 1);
     packet_index++;
     
     //copy destination name to packet (length bytes)
-    memcpy(&packet[packet_index], destination_file_name, destination_file_length);
+    memcpy(&packet[packet_index], req->destination_file_name, destination_file_length);
     packet_index += destination_file_length;
+
 
     uint8_t data_len = packet_index - start; 
     set_data_length(packet, data_len);

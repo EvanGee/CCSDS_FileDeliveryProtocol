@@ -203,7 +203,7 @@ static void write_packet_data_to_file(char *data_packet, uint32_t data_len, File
 }
 
 
-static void fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill) {
+void fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill) {
 
     Pdu_meta_data *meta_data = (Pdu_meta_data *) meta_data_packet;
     req_to_fill->segmentation_control = meta_data->segmentation_control;
