@@ -69,17 +69,17 @@ uint8_t build_finished_pdu(char *packet, uint32_t start) {
 }
 
 
-uint8_t build_put_packet_metadata(Response res, uint32_t start, Request *req) {    
-    Pdu_header *header = (Pdu_header *) res.msg;
+uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {    
+    Pdu_header *header = (Pdu_header *) packet;
    
     header->PDU_type = DIRECTIVE;
     uint8_t packet_index = start;
 
     //set directive 1 byte
-    Pdu_directive *directive = (Pdu_directive *) &res.msg[packet_index];
+    Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
     directive->directive_code = META_DATA_PDU;
     packet_index += SIZE_OF_DIRECTIVE_CODE;
-    Pdu_meta_data *meta_data_packet = (Pdu_meta_data *) &res.msg[packet_index];
+    Pdu_meta_data *meta_data_packet = (Pdu_meta_data *) &packet[packet_index];
 
     //1 bytes
     meta_data_packet->segmentation_control = req->segmentation_control;
@@ -89,7 +89,7 @@ uint8_t build_put_packet_metadata(Response res, uint32_t start, Request *req) {
     //4 bytes
     uint32_t network_bytes = htonl(req->file_size);
     network_bytes = network_bytes;
-    memcpy(&res.msg[packet_index], &network_bytes, sizeof(uint32_t));
+    memcpy(&packet[packet_index], &network_bytes, sizeof(uint32_t));
     packet_index += 4;
     
     //variable length params
@@ -99,22 +99,22 @@ uint8_t build_put_packet_metadata(Response res, uint32_t start, Request *req) {
     char *destination_file_name = req->destination_file_name;
     
     //copy source length to packet (1 bytes) 
-    memcpy(&res.msg[packet_index], &src_file_name_length, src_file_name_length);
+    memcpy(&packet[packet_index], &src_file_name_length, src_file_name_length);
     packet_index++;
     //copy source name to packet (length bytes) 
-    memcpy(&res.msg[packet_index], src_file_name, src_file_name_length);
+    memcpy(&packet[packet_index], src_file_name, src_file_name_length);
     packet_index += src_file_name_length;
 
     //copy length to packet (1 byte)
-    memcpy(&res.msg[packet_index], &destination_file_length, 1);
+    memcpy(&packet[packet_index], &destination_file_length, 1);
     packet_index++;
     
     //copy destination name to packet (length bytes)
-    memcpy(&res.msg[packet_index], destination_file_name, destination_file_length);
+    memcpy(&packet[packet_index], destination_file_name, destination_file_length);
     packet_index += destination_file_length;
 
     uint8_t data_len = packet_index - start; 
-    set_data_length(res.msg, data_len);
+    set_data_length(packet, data_len);
 
     return packet_index;
 }
