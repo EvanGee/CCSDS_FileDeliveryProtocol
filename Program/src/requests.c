@@ -19,24 +19,48 @@
 #include "file_delivery_app.h"
 
 
-
-void copy_lv_to_buffer(char *buffer, LV *lv){
-    memcpy(buffer, lv->value, lv->length);
+//returns total space taken up in the packet from the added lv
+uint16_t copy_lv_to_buffer(char *buffer, LV *lv){
+    uint16_t packet_index = 0;
+    buffer[packet_index] = lv->length;
+    packet_index++;
+    memcpy(&buffer[packet_index], lv->value, lv->length);
+    packet_index += lv->length;
+    return packet_index;
 }
 
-static void free_lv(LV *lv) {
+void free_lv(LV *lv) {
     ssp_free(lv->value);
     ssp_free(lv);
 }
 
-static LV *create_lv(int size, void *value) {
+LV *create_lv(int size, void *value) {
 
     LV *lv = ssp_alloc(1, sizeof(LV));
     lv->value = ssp_alloc(size, sizeof(char));
+    
+
     memcpy(lv->value, value, size);
     lv->length = size;
+
     return lv;
 }
+
+Message *create_message(uint8_t type) {
+
+    Message *message = ssp_alloc(1, sizeof(Message));    
+    message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
+    memcpy(message->header.message_id_cfdp, "cfdp", 5);
+    message->header.message_type = type;
+}
+
+
+//lv is what we copy into, packet is the buffer, and start is where in the buffer
+//we start copying the lv to
+LV *copy_lv_from_buffer(char *packet, uint32_t start) {
+    uint8_t len = packet[start];
+    return create_lv(len, &packet[start + 1]);
+}   
 
 
 void free_message(void *params) {
@@ -172,23 +196,19 @@ void start_request(Request *req){
 //data will be delivered
 
 
+Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
+    Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
+    proxy->destination_file_name = create_lv(strnlen(dest_name, MAX_PATH), dest_name);
+    proxy->source_file_name = create_lv(strnlen(source_name, MAX_PATH), source_name);
+    proxy->destination_id = create_lv(length_of_id, &beneficial_cfid);
+    return proxy;
+}
 
 //beneficial_cfid is the destination id that the proxy will send to, length_of_id is in octets (or bytes)
 int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
 
-    Message *message = ssp_alloc(1, sizeof(Message));    
-
-    message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
-    memcpy(message->header.message_id_cfdp, "cfdp", 5);
-    message->header.message_type = PROXY_PUT_REQUEST;
-
-    Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
-
-    proxy->destination_file_name = create_lv(strnlen(dest_name, MAX_PATH), dest_name);
-    proxy->source_file_name = create_lv(strnlen(source_name, MAX_PATH), source_name);
-    proxy->destination_id = create_lv(length_of_id, &beneficial_cfid);
-
-    message->value = proxy;    
+    Message *message = create_message(PROXY_PUT_REQUEST);
+    message->value = create_message_put_proxy(beneficial_cfid, length_of_id, source_name, dest_name, req);
     req->messages_to_user->push(req->messages_to_user, message, 0);
 
     return 1;

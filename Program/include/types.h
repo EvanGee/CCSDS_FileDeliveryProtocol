@@ -146,6 +146,7 @@ typedef struct message_put_proxy {
 typedef struct message {
 
     Message_header header;
+    //will take various kinds of Message_xx types
     void *value;
 
 } Message;

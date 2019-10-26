@@ -240,8 +240,6 @@ int test_build_metadata_packet(char *packet, uint32_t start) {
     ASSERT_EQUALS_STR("test src_file_name", req->source_file_name, recv_request->source_file_name, strnlen(req->source_file_name, MAX_PATH));
     ASSERT_EQUALS_STR("test dest_file_name", req->destination_file_name, recv_request->destination_file_name,  strnlen(req->source_file_name, MAX_PATH));
     
-
-
     char *str = "HELLO WORLD";
 
     memcpy(req->destination_file_name, str, strnlen(str, MAX_PATH) );
@@ -262,10 +260,8 @@ int test_build_metadata_packet(char *packet, uint32_t start) {
 }
 
 
-int test_add_messages_to_packet() {
+int test_add_messages_to_packet(char *packet, uint32_t start) {
 
-    /*
-    
     char *dest = "dest";
     char *src = "src";
     uint32_t id = 2;
@@ -273,11 +269,41 @@ int test_add_messages_to_packet() {
 
     uint32_t packet_index = start;
 
+    Request *req = init_request(1000);
+
     int error = add_proxy_message_to_request(id, len, src, dest, req);
+
     packet_index += add_messages_to_packet(packet, packet_index, req->messages_to_user);
-    */
+    ssp_print_hex(&packet[start], packet_index - start);
+
+    ASSERT_EQUALS_STR("'cfdp' should be at the start of the message", &packet[start], "cfdp", 5);
+    ASSERT_EQUALS_INT("testing PROXY_PUT_REQUEST code", (uint8_t) packet[start + 5], PROXY_PUT_REQUEST);
+
+    LV* dest_file, *src_file, *dest_id;
 
 
+    packet_index = start + 6;
+    dest_id = copy_lv_from_buffer(packet, packet_index);
+    ASSERT_EQUALS_INT("dest_file.length", dest_id->length, len);
+    ASSERT_EQUALS_INT("dest_file.value", *(uint8_t*) (dest_id->value), id);
+    packet_index += dest_id->length + 1;
+    free_lv(dest_id);
+
+    
+    src_file = copy_lv_from_buffer(packet, packet_index);
+    ASSERT_EQUALS_INT("src_file.length", src_file->length, strnlen(src, 100));
+    ASSERT_EQUALS_STR("src_file.value", src, (char *) src_file->value, src_file->length);
+    packet_index += src_file->length + 1;
+    free_lv(src_file);
+    
+
+    dest_file = copy_lv_from_buffer(packet, packet_index);
+    ASSERT_EQUALS_INT("dest_file.length", dest_file->length, strnlen(dest, 100));
+    ASSERT_EQUALS_STR("dest_file.value", dest, (char *)dest_file->value, dest_file->length);
+    free_lv(dest_file);
+
+
+    ssp_cleanup_req(req);
 }
 
 int packet_tests() {
@@ -313,6 +339,7 @@ int packet_tests() {
 
     test_build_data_packet(packet, data_start_index);
     test_build_metadata_packet(packet, data_start_index);
+    test_add_messages_to_packet(packet, data_start_index);
     
     free_mib(mib);
     ssp_cleanup_pdu_header(pdu_header);

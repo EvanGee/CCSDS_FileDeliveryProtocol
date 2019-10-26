@@ -311,6 +311,8 @@ uint16_t get_data_length(char*packet) {
 
 
 
+
+
 struct packet_callback_params {
     char *packet;
     uint32_t *packet_index;
@@ -323,9 +325,11 @@ static void add_messages_callback(void *element, void *args) {
 
     Message *message = (Message *) element;
     
+    //5 bytes to copy cfdp\0 into the buffer
     memcpy(&packet[packet_index], message->header.message_id_cfdp, 5);
     packet_index += 5;
 
+    //one byte for message type
     memcpy(&packet[packet_index], &message->header.message_type, 1);
     packet_index += 1;
 
@@ -335,12 +339,9 @@ static void add_messages_callback(void *element, void *args) {
     {
         case PROXY_PUT_REQUEST:
             proxy = (Message_put_proxy *) message->value;
-            copy_lv_to_buffer(&packet[packet_index], proxy->destination_id);
-            packet_index += proxy->destination_id->length;
-            copy_lv_to_buffer(&packet[packet_index], proxy->source_file_name);
-            packet_index += proxy->source_file_name->length;
-            copy_lv_to_buffer(&packet[packet_index], proxy->destination_file_name);
-            packet_index += proxy->destination_file_name->length;
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->destination_id);
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->source_file_name);
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->destination_file_name);
 
             break;
     
@@ -358,14 +359,51 @@ uint32_t add_messages_to_packet(char *packet, uint32_t start, List *messages_to_
     uint32_t packet_index = start;
     struct packet_callback_params params = {packet, &packet_index};
     messages_to_user->iterate(messages_to_user, add_messages_callback, &params);
-
+    return packet_index;
 }
 
 
 //adds messages from packet into request
-uint32_t get_messages_from_packet(char *packet, uint32_t start, Request *req) {
+uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
+
+    if (strncmp(&packet[start], "cfdp", 5)) {
+        ssp_error("messages are poorly formatted\n");
+        return 0;
+    }
+
+    Message *m;
+
+    switch (packet[start + 1])
+    {
+        case PROXY_PUT_REQUEST:
+            m = create_message(PROXY_PUT_REQUEST);
+            //m->value = create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req);
+            break;
+    
+        default:
+            break;
+    }
+    /*
+    packet_index = start + 6;
+    dest_id = copy_lv_from_buffer(packet, packet_index);
+    ASSERT_EQUALS_INT("dest_file.length", dest_id->length, len);
+    ASSERT_EQUALS_INT("dest_file.value", *(uint8_t*) (dest_id->value), id);
+    packet_index += dest_id->length + 1;
+    free_lv(dest_id);
+
+    
+    src_file = copy_lv_from_buffer(packet, packet_index);
+    ASSERT_EQUALS_INT("src_file.length", src_file->length, strnlen(src, 100));
+    ASSERT_EQUALS_STR("src_file.value", src, (char *) src_file->value, src_file->length);
+    packet_index += src_file->length + 1;
+    free_lv(src_file);
     
 
+    dest_file = copy_lv_from_buffer(packet, packet_index);
+    ASSERT_EQUALS_INT("dest_file.length", dest_file->length, strnlen(dest, 100));
+    ASSERT_EQUALS_STR("dest_file.value", dest, (char *)dest_file->value, dest_file->length);
+    free_lv(dest_file);
 
+    */
 }
 

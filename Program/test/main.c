@@ -30,6 +30,7 @@ int main (int argc, char **argv) {
     error = request_tests();
     //error = protocol_handler_test();
     error = packet_tests();
+    
     //error = list_tests();
     //error = file_system_tests();
 
