@@ -26,7 +26,7 @@ static int test_respond_metadata_request() {
     return 0;
 }
 
-test_build_data_packet(char *packet, uint32_t packet_index){
+void test_build_data_packet(char *packet, uint32_t packet_index){
 
     File *file = create_file("testfile", 0);
 
@@ -190,7 +190,6 @@ int test_build_ack_eof_pdu(char *packet, uint32_t start) {
 
 int test_build_pdu_header(char *packet, Pdu_header *header, uint64_t sequence_number) {
 
-
     printf("testing header creation\n");
     uint8_t length = build_pdu_header(packet, sequence_number, 0, header);
     uint32_t packet_index = PACKET_STATIC_HEADER_LEN;
@@ -252,7 +251,9 @@ int test_build_metadata_packet(char *packet, uint32_t start) {
     ASSERT_EQUALS_STR("test src_file_name", req->source_file_name, recv_request->source_file_name, strnlen(req->source_file_name, MAX_PATH));
     ASSERT_EQUALS_STR("test dest_file_name", req->destination_file_name, recv_request->destination_file_name,  strnlen(req->source_file_name, MAX_PATH));
     
-
+    uint16_t data_len = get_data_length(packet);
+    ASSERT_EQUALS_INT("test metadata set data length", data_len, len-start);
+    
     ssp_cleanup_req(req);
     ssp_cleanup_req(recv_request);
 
@@ -269,18 +270,17 @@ int test_add_messages_to_packet(char *packet, uint32_t start) {
 
     uint32_t packet_index = start;
 
+    ssp_printf("testing add_messages_to_packet\n");
     Request *req = init_request(1000);
-
     int error = add_proxy_message_to_request(id, len, src, dest, req);
 
-    packet_index += add_messages_to_packet(packet, packet_index, req->messages_to_user);
-    ssp_print_hex(&packet[start], packet_index - start);
+    memset(&packet[start], 0, 100);
+    packet_index = add_messages_to_packet(packet, packet_index, req->messages_to_user);
 
     ASSERT_EQUALS_STR("'cfdp' should be at the start of the message", &packet[start], "cfdp", 5);
     ASSERT_EQUALS_INT("testing PROXY_PUT_REQUEST code", (uint8_t) packet[start + 5], PROXY_PUT_REQUEST);
 
     LV* dest_file, *src_file, *dest_id;
-
 
     packet_index = start + 6;
     dest_id = copy_lv_from_buffer(packet, packet_index);
@@ -302,9 +302,88 @@ int test_add_messages_to_packet(char *packet, uint32_t start) {
     ASSERT_EQUALS_STR("dest_file.value", dest, (char *)dest_file->value, dest_file->length);
     free_lv(dest_file);
 
+    ssp_cleanup_req(req);
+    return 0;
+}
+
+int test_get_message_from_packet(char *packet, uint32_t start) {
+
+    char *dest = "dest";
+    char *src = "src";
+    uint32_t id = 2;
+    uint8_t len = 1;
+
+    uint32_t packet_index = start;
+
+    Request *req = init_request(1000);
+    int error = add_proxy_message_to_request(id, len, src, dest, req);
+
+    uint32_t length_of_message = add_messages_to_packet(packet, start, req->messages_to_user);
+
+    Request *req2 = init_request(1000);
+    uint32_t next_message = get_message_from_packet(packet, start, req2);
+
+    Message *m = req2->messages_to_user->pop(req2->messages_to_user);
+    Message_put_proxy *p_message = m->value;
+
+    ASSERT_EQUALS_INT("dest_file.length", p_message->destination_file_name->length, strnlen(dest, 100));
+    ASSERT_EQUALS_STR("dest_file.value", p_message->destination_file_name->value, dest, strnlen(dest, 100));
+
+    ASSERT_EQUALS_INT("src_file.length",  p_message->source_file_name->length, strnlen(src, 100));
+    ASSERT_EQUALS_STR("src_file.value", src, p_message->source_file_name->value, strnlen(src, 100));
+
+    ASSERT_EQUALS_INT("dest_id.length", p_message->destination_id->length, len);
+    ASSERT_EQUALS_INT("dest_id.value", *(uint8_t*)p_message->destination_id->value, id);
+
+    ASSERT_EQUALS_INT("next message should be at index ", next_message, length_of_message);
 
     ssp_cleanup_req(req);
+    ssp_cleanup_req(req2);
+    return 0;
+    
 }
+
+
+//test multiple messages
+int test_get_messages_from_packet(char *packet, uint32_t start) {
+
+    char *dest = "dest";
+    char *src = "src";
+    uint32_t id = 2;
+    uint8_t len = 1;
+
+    uint32_t packet_index = start;
+
+    Request *req = init_request(1000);
+    int error = add_proxy_message_to_request(id, len, src, dest, req);
+
+    uint32_t length_of_message = add_messages_to_packet(packet, start, req->messages_to_user);
+    length_of_message = add_messages_to_packet(packet, length_of_message, req->messages_to_user);
+    length_of_message = add_messages_to_packet(packet, length_of_message, req->messages_to_user);
+
+    Request *req2 = init_request(1000);
+    get_messages_from_packet(packet, start, 1000 - start, req2);
+    int message_count = req2->messages_to_user->count;
+
+    for (int i = 0; i < message_count; i++) {
+
+        Message *message = req2->messages_to_user->pop(req2->messages_to_user);
+        
+        if (message->header.message_type == PROXY_PUT_REQUEST) {
+
+            Message_put_proxy *p_message = (Message_put_proxy *) message->value;
+            ASSERT_EQUALS_INT("received proxy messages: dest.id", *(uint8_t*) p_message->destination_id->value, id);
+            ASSERT_EQUALS_STR("received proxy messages: src file", src,  (char *) p_message->source_file_name->value, p_message->source_file_name->length);
+            ASSERT_EQUALS_STR("received proxy messages: dest file", dest, (char *) p_message->destination_file_name->value, p_message->destination_file_name->length);    
+        }
+    }
+
+
+
+    ssp_cleanup_req(req);
+    ssp_cleanup_req(req2);
+}
+
 
 int packet_tests() {
 
@@ -326,7 +405,6 @@ int packet_tests() {
 
     Pdu_header *pdu_header = get_header_from_mib(mib, 1, 2);
 
-
     char *packet = calloc(PACKET_TEST_SIZE, sizeof(char));
     uint64_t sequence_number = 12345663234;
     int data_start_index = test_build_pdu_header(packet, pdu_header, sequence_number);
@@ -340,6 +418,8 @@ int packet_tests() {
     test_build_data_packet(packet, data_start_index);
     test_build_metadata_packet(packet, data_start_index);
     test_add_messages_to_packet(packet, data_start_index);
+    test_get_message_from_packet(packet, data_start_index);
+    test_get_messages_from_packet(packet, data_start_index);
     
     free_mib(mib);
     ssp_cleanup_pdu_header(pdu_header);

@@ -29,6 +29,8 @@ uint8_t build_nak_directive(char *packet, uint32_t start, uint8_t directive) ;
 void set_data_length(char*packet, uint16_t data_len);
 uint16_t get_data_length(char*packet);
 
+uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req);
+uint32_t get_messages_from_packet(char *packet, uint32_t start, uint32_t data_length, Request *req);
 uint32_t add_messages_to_packet(char *packet, uint32_t start, List *messages_to_user);
 
 #endif 

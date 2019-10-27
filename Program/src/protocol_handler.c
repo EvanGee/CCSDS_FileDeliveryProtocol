@@ -94,9 +94,6 @@ static int find_request(void *element, void *args) {
 }
 
 
-
-
-
 /*creates a request struct if there is none for the incomming request based on transaction sequence number or
 finds the correct request struct and replaces req with the new pointer. Returns the possition in the packet 
 where the data portion is, returns -1 on fail*/
@@ -203,7 +200,7 @@ static void write_packet_data_to_file(char *data_packet, uint32_t data_len, File
 }
 
 
-void fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill) {
+uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill) {
 
     Pdu_meta_data *meta_data = (Pdu_meta_data *) meta_data_packet;
     req_to_fill->segmentation_control = meta_data->segmentation_control;
@@ -227,7 +224,7 @@ void fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill) {
 
     packet_index += file_name_len;
 
-    return;
+    return packet_index;
 }
 
 
@@ -487,7 +484,8 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         return;
         
     Pdu_header *header = (Pdu_header *) packet;
-
+    uint16_t data_len = get_data_length(packet);
+    
     //set timeout to 0, because received data
     req->timeout = 0;
 
@@ -517,7 +515,10 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
 
             req->procedure = sending_put_metadata;
             ssp_printf("received metadata packet transaction: %d\n", req->transaction_sequence_number);
-            fill_request_pdu_metadata(&packet[packet_index], req);
+            packet_index += fill_request_pdu_metadata(&packet[packet_index], req);
+            get_messages_from_packet(packet, packet_index, data_len, req);
+
+            //get messages from packet here
             process_file_request_metadata(req);
             break;
     

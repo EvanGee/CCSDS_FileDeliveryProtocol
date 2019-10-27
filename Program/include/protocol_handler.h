@@ -16,7 +16,7 @@ uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t len
 
 
 
-void fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill);
+uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill);
 
 uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_t transmission_mode, Pdu_header *pdu_header);
 uint8_t build_ack (char *packet, uint32_t start, uint8_t type);

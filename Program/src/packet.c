@@ -68,7 +68,7 @@ uint8_t build_finished_pdu(char *packet, uint32_t start) {
     return data_len;
 }
 
-//returns packet_index for data
+//returns packet_index for data, to get length of meta data, subtract start from return value
 uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {    
     Pdu_header *header = (Pdu_header *) packet;
    
@@ -111,6 +111,8 @@ uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {
     memcpy(&packet[packet_index], req->destination_file_name, destination_file_length);
     packet_index += destination_file_length;
 
+    //add messages to metadata
+    packet_index = add_messages_to_packet(packet, packet_index, req->messages_to_user);
 
     uint8_t data_len = packet_index - start; 
     set_data_length(packet, data_len);
@@ -349,11 +351,11 @@ static void add_messages_callback(void *element, void *args) {
             break;
     }
 
-    params->packet_index += packet_index;
+    *(params->packet_index) = packet_index;
 
 }
 
-//returns length of added messages, copys messages into packet
+//returns length of added messages, including the start; copys messages into packet
 uint32_t add_messages_to_packet(char *packet, uint32_t start, List *messages_to_user) {
     
     uint32_t packet_index = start;
@@ -363,7 +365,7 @@ uint32_t add_messages_to_packet(char *packet, uint32_t start, List *messages_to_
 }
 
 
-//adds messages from packet into request
+//adds messages from packet into request, returns the location of the next message
 uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
 
     if (strncmp(&packet[start], "cfdp", 5)) {
@@ -372,38 +374,47 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
     }
 
     Message *m;
+    Message_put_proxy *put_proxy;
 
-    switch (packet[start + 1])
+    uint32_t message_start = start + 6;
+
+    switch (packet[start + 5])
     {
         case PROXY_PUT_REQUEST:
             m = create_message(PROXY_PUT_REQUEST);
-            //m->value = create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req);
+            
+            m->value = ssp_alloc(1, sizeof(Message_put_proxy));
+            put_proxy = (Message_put_proxy *) m->value;
+
+            put_proxy->destination_id = copy_lv_from_buffer(packet, message_start);
+            message_start += put_proxy->destination_id->length + 1;
+            
+            put_proxy->source_file_name = copy_lv_from_buffer(packet, message_start);
+            message_start += put_proxy->source_file_name->length + 1;
+
+            put_proxy->destination_file_name = copy_lv_from_buffer(packet, message_start);
+            message_start += put_proxy->destination_file_name->length + 1;
             break;
     
         default:
             break;
     }
-    /*
-    packet_index = start + 6;
-    dest_id = copy_lv_from_buffer(packet, packet_index);
-    ASSERT_EQUALS_INT("dest_file.length", dest_id->length, len);
-    ASSERT_EQUALS_INT("dest_file.value", *(uint8_t*) (dest_id->value), id);
-    packet_index += dest_id->length + 1;
-    free_lv(dest_id);
 
-    
-    src_file = copy_lv_from_buffer(packet, packet_index);
-    ASSERT_EQUALS_INT("src_file.length", src_file->length, strnlen(src, 100));
-    ASSERT_EQUALS_STR("src_file.value", src, (char *) src_file->value, src_file->length);
-    packet_index += src_file->length + 1;
-    free_lv(src_file);
-    
-
-    dest_file = copy_lv_from_buffer(packet, packet_index);
-    ASSERT_EQUALS_INT("dest_file.length", dest_file->length, strnlen(dest, 100));
-    ASSERT_EQUALS_STR("dest_file.value", dest, (char *)dest_file->value, dest_file->length);
-    free_lv(dest_file);
-
-    */
+    req->messages_to_user->push(req->messages_to_user, m, 0);
+    return message_start;
 }
 
+
+uint32_t get_messages_from_packet(char *packet, uint32_t start, uint32_t data_length, Request *req) {
+
+    uint32_t packet_index = start;
+
+    while (packet_index < data_length - 5) {
+
+        if (strncmp(&packet[packet_index], "cfdp", 5))
+            break;
+
+        packet_index = get_message_from_packet(packet, packet_index, req);
+    }
+    return packet_index;
+}
