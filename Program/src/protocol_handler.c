@@ -228,6 +228,20 @@ uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill)
 }
 
 
+void process_messages(Request *req, FTP *app) {
+
+    if (req->messages_to_user->count == 0)
+        return;
+        
+    Message *message = req->messages_to_user->pop(req->messages_to_user);
+    if (message->header.message_type == PROXY_PUT_REQUEST){
+         
+        Message_put_proxy *p = (Message_put_proxy *) message->value;
+        start_request(put_request(*(uint8_t*)p->destination_id->value, (char *)p->source_file_name->value, (char *)p->destination_file_name->value, 0, app));
+    }   
+
+}
+
 
 /*------------------------------------------------------------------------------
 
@@ -425,6 +439,7 @@ void on_server_time_out(Response res, Request *req) {
     if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
         return; 
 
+
     uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
 
     if (req->resent_finished == RESEND_FINISHED_TIMES) {
@@ -485,7 +500,6 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         
     Pdu_header *header = (Pdu_header *) packet;
     uint16_t data_len = get_data_length(packet);
-    
     //set timeout to 0, because received data
     req->timeout = 0;
 
@@ -517,6 +531,7 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
             ssp_printf("received metadata packet transaction: %d\n", req->transaction_sequence_number);
             packet_index += fill_request_pdu_metadata(&packet[packet_index], req);
             get_messages_from_packet(packet, packet_index, data_len, req);
+            process_messages(req, app);
 
             //get messages from packet here
             process_file_request_metadata(req);
@@ -545,5 +560,7 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         default:
             break;
     }
+
+    
 }
 

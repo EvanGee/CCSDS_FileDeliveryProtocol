@@ -25,6 +25,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     //adding new cfdp entities to management information base
     add_new_cfdp_entity(mib, 1, *addr, 1111, posix, UN_ACKNOWLEDGED_MODE);
     add_new_cfdp_entity(mib, 2, *addr, 1112, posix, UN_ACKNOWLEDGED_MODE); 
+    add_new_cfdp_entity(mib, 7, *addr, 1113, posix, UN_ACKNOWLEDGED_MODE); 
 
     add_new_cfdp_entity(mib, 3, 1, 1, csp, UN_ACKNOWLEDGED_MODE);   
     add_new_cfdp_entity(mib, 4, 2, 2, csp, UN_ACKNOWLEDGED_MODE);   

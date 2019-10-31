@@ -52,6 +52,7 @@ Message *create_message(uint8_t type) {
     message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
     memcpy(message->header.message_id_cfdp, "cfdp", 5);
     message->header.message_type = type;
+    return message;
 }
 
 
@@ -142,8 +143,9 @@ Request *init_request(uint32_t buff_len) {
     return req;
 }
 
-//Omission of source and destination filenames shall indicate that only Meta
-//data will be delivered
+/*NULL for source and destination filenames shall indicate that only Meta
+data will be delivered. Side effect: add request to client request list
+returns the request*/
 Request *put_request(
             uint32_t dest_id,
             char *source_file_name,
@@ -152,13 +154,18 @@ Request *put_request(
             FTP *app
             ) {
 
-    uint32_t file_size = get_file_size(source_file_name);
-    Client *client;
+    File *file;
+    uint32_t file_size = 0;
 
-    if (file_size == -1)
-        return NULL;
-
-    client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
+    if (source_file_name != NULL && destination_file_name != NULL) {
+        file_size = get_file_size(source_file_name);
+        if (file_size == 0)
+            return NULL;
+        file = create_file(source_file_name, 0);
+    }
+    
+    //spin up a new client thread
+    Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
     if (client == NULL) {
         client = ssp_client(dest_id, app);
         app->active_clients->insert(app->active_clients, client, dest_id);
@@ -166,7 +173,6 @@ Request *put_request(
 
     //give the client a new request to perform
     Request *req = init_request(client->packet_len);
-    req->file = create_file(source_file_name, 0);
 
     //build a request 
     req->transaction_sequence_number = app->transaction_sequence_number++;
@@ -175,10 +181,15 @@ Request *put_request(
     req->procedure = sending_put_metadata;
     req->paused = true;
     req->dest_cfdp_id = client->remote_entity->cfdp_id;
+
+    //do I need this/use this?
     req->file_size = file_size;
     
-    memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
-    memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
+    if (source_file_name != NULL && destination_file_name != NULL) {
+        memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
+        memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
+        
+    }
 
     req->transmission_mode = transmission_mode;
     req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
