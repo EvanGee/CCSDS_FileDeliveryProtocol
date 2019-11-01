@@ -64,7 +64,7 @@ LV *copy_lv_from_buffer(char *packet, uint32_t start) {
 }   
 
 
-void free_message(void *params) {
+void ssp_free_message(void *params) {
 
     Message *message = (Message*) params;
     Message_put_proxy* proxy_request;
@@ -111,7 +111,7 @@ void ssp_cleanup_req(void *request) {
         ssp_free(req->local_entity);
 
     if (req->messages_to_user->count > 0)
-        req->messages_to_user->free(req->messages_to_user, free_message);
+        req->messages_to_user->free(req->messages_to_user, ssp_free_message);
     else 
         req->messages_to_user->freeOnlyList(req->messages_to_user);
 
@@ -137,6 +137,7 @@ Request *init_request(uint32_t buff_len) {
     req->buff = ssp_alloc(buff_len, sizeof(char));
     req->res.msg = req->buff;
     req->procedure = none;
+    req->paused = true;
 
     req->messages_to_user = linked_list();
     checkAlloc(req->buff,  1);
@@ -157,15 +158,49 @@ Request *put_request(
     File *file;
     uint32_t file_size = 0;
 
-    if (source_file_name != NULL && destination_file_name != NULL) {
-        file_size = get_file_size(source_file_name);
-        if (file_size == 0)
-            return NULL;
-        file = create_file(source_file_name, 0);
-    }
+    if (source_file_name == NULL || destination_file_name == NULL) {
     
+        //spin up a new client thread
+        Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
+
+        if (client == NULL) {
+            client = ssp_client(dest_id, app);
+            app->active_clients->insert(app->active_clients, client, dest_id);
+        }
+
+        Request *req = init_request(client->packet_len);
+
+
+        //build a request 
+        req->transaction_sequence_number = app->transaction_sequence_number++;
+
+        //enumeration
+        req->procedure = sending_put_metadata;
+        req->dest_cfdp_id = client->remote_entity->cfdp_id;
+
+        req->transmission_mode = transmission_mode;
+        req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
+
+        client->request_list->insert(client->request_list, req, 0);
+
+        return req;
+
+    }
+
+    if (strnlen(source_file_name, MAX_PATH) == 0 || strnlen(destination_file_name, MAX_PATH) == 0) {
+        ssp_printf("ERROR: no file names present in put request, if you want to just send messages, make both source and dest NULL\n");
+        return;
+    }
+
+    file_size = get_file_size(source_file_name);
+    if (file_size == 0)
+        return NULL;
+    file = create_file(source_file_name, 0);
+    
+
     //spin up a new client thread
     Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
+
     if (client == NULL) {
         client = ssp_client(dest_id, app);
         app->active_clients->insert(app->active_clients, client, dest_id);
@@ -179,18 +214,14 @@ Request *put_request(
 
     //enumeration
     req->procedure = sending_put_metadata;
-    req->paused = true;
     req->dest_cfdp_id = client->remote_entity->cfdp_id;
 
     //do I need this/use this?
     req->file_size = file_size;
     
-    if (source_file_name != NULL && destination_file_name != NULL) {
-        memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
-        memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
+    memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
+    memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
         
-    }
-
     req->transmission_mode = transmission_mode;
     req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
 

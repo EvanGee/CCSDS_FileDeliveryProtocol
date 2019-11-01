@@ -337,6 +337,7 @@ int test_get_message_from_packet(char *packet, uint32_t start) {
 
     ASSERT_EQUALS_INT("next message should be at index ", next_message, length_of_message);
 
+    ssp_free_message(m);
     ssp_cleanup_req(req);
     ssp_cleanup_req(req2);
     return 0;
@@ -355,6 +356,8 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
     uint32_t packet_index = start;
 
     Request *req = init_request(1000);
+    
+    
     int error = add_proxy_message_to_request(id, len, src, dest, req);
 
     uint32_t length_of_message = add_messages_to_packet(packet, start, req->messages_to_user);
@@ -363,6 +366,7 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
 
     Request *req2 = init_request(1000);
     get_messages_from_packet(packet, start, 1000 - start, req2);
+
     int message_count = req2->messages_to_user->count;
 
     for (int i = 0; i < message_count; i++) {
@@ -375,13 +379,14 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
             ASSERT_EQUALS_INT("received proxy messages: dest.id", *(uint8_t*) p_message->destination_id->value, id);
             ASSERT_EQUALS_STR("received proxy messages: src file", src,  (char *) p_message->source_file_name->value, p_message->source_file_name->length);
             ASSERT_EQUALS_STR("received proxy messages: dest file", dest, (char *) p_message->destination_file_name->value, p_message->destination_file_name->length);    
+            
         }
+        ssp_free_message(message);
     }
-
-
 
     ssp_cleanup_req(req);
     ssp_cleanup_req(req2);
+
 }
 
 

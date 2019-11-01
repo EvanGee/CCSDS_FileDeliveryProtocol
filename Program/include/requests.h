@@ -24,7 +24,7 @@ Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t le
 
 
 //Frees a message struct
-void free_message(void *params);
+void ssp_free_message(void *params);
 LV *create_lv(int size, void *value);
 uint16_t copy_lv_to_buffer(char *buffer, LV *lv);
 LV *copy_lv_from_buffer(char *packet, uint32_t start);

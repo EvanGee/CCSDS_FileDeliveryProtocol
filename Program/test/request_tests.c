@@ -5,6 +5,7 @@
 #include "test.h"
 #include "filesystem_funcs.h"
 #include "string.h"
+#include "file_delivery_app.h"
 
 static void list_print_id(void *element, void *args) {
     Request *req = (Request *) element;
@@ -123,8 +124,7 @@ static int add_proxy_message() {
     ASSERT_EQUALS_STR("proxy src file", proxy->source_file_name->value, src,  proxy->source_file_name->length);
     ASSERT_EQUALS_STR("proxy dest file", proxy->destination_file_name->value, dest,  proxy->destination_file_name->length);
 
-    free_message(message);
-
+    ssp_free_message(message);
     ssp_cleanup_req(req);
     return 0;
 
@@ -157,10 +157,27 @@ int test_lv_functions() {
     
 }
 
+
+int request_user_input_tests() {
+
+    FTP *app = init_ftp(1);
+    put_request(2, "", "", 0, app);
+    
+    
+
+    
+    
+    
+    
+    app->close = true;
+    ssp_thread_join(app->server_handle);
+}
+
 int request_tests() {
 
     int error = 0;
     error = request_finding_test(); 
+    error = request_user_input_tests();
     error = add_proxy_message();
     error = test_lv_functions();
     
