@@ -27,8 +27,6 @@ static void request_metadata(Request *req, Response res) {
     return;
 }
 
-
-
 /*------------------------------------------------------------------------------
 
                                     Processing Packets
@@ -239,6 +237,8 @@ void process_messages(Request *req, FTP *app) {
         Message_put_proxy *p = (Message_put_proxy *) message->value;
         ssp_printf("source file name: %s\n", (char *)p->source_file_name->value);
         start_request(put_request(*(uint8_t*)p->destination_id->value, (char *)p->source_file_name->value, (char *)p->destination_file_name->value, 0, app));
+        ssp_free_message(message);
+
     }   
 
 }

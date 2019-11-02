@@ -235,7 +235,7 @@ struct offset_holder {
     int i;
 };
 
-void fill_nak_array(void *element, void *args){
+void fill_nak_array_callback(Node *node, void *element, void *args){
     struct offset_holder *holder = (struct offset_holder *)args;
     
     Offset *offset = (Offset *)element;
@@ -257,7 +257,7 @@ uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
     holder.offsets = ssp_alloc(count, sizeof(Offset));
     holder.i = 0;
 
-    req->file->missing_offsets->iterate(req->file->missing_offsets, fill_nak_array, &holder);
+    req->file->missing_offsets->iterate(req->file->missing_offsets, fill_nak_array_callback, &holder);
     
     pdu_nak->start_scope = holder.offsets[0].start;
     pdu_nak->end_scope = holder.offsets[holder.i-1].end;
@@ -320,7 +320,7 @@ struct packet_callback_params {
     uint32_t *packet_index;
 };
 
-static void add_messages_callback(void *element, void *args) {
+static void add_messages_callback(Node *node, void *element, void *args) {
     struct packet_callback_params *params = (struct packet_callback_params *) args; 
     char *packet = params->packet;
     uint32_t packet_index = *(params->packet_index);

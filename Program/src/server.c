@@ -306,8 +306,6 @@ void connectionless_server(char* port, int initial_buff_size,
     char *buff = ssp_alloc(sizeof(char), *buff_size);
     checkAlloc(buff, 1);
 
-
-
     for (;;)
     {
         if (exit_now || checkExit(other)){

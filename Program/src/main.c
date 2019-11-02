@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
     }
 
     //ssp_thread_join(app->server_handle);
-    ssp_join_clients(app->active_clients);
+    //ssp_join_clients(app->active_clients);
     ssp_thread_join(app->server_handle);
 
 
