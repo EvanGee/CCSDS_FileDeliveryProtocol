@@ -235,8 +235,9 @@ void process_messages(Request *req, FTP *app) {
         
     Message *message = req->messages_to_user->pop(req->messages_to_user);
     if (message->header.message_type == PROXY_PUT_REQUEST){
-         
+        
         Message_put_proxy *p = (Message_put_proxy *) message->value;
+        ssp_printf("source file name: %s\n", (char *)p->source_file_name->value);
         start_request(put_request(*(uint8_t*)p->destination_id->value, (char *)p->source_file_name->value, (char *)p->destination_file_name->value, 0, app));
     }   
 
@@ -380,6 +381,12 @@ void user_request_handler(Response res, Request *req, Client* client) {
             ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
             start = build_put_packet_metadata(req->buff, start, req);
             ssp_sendto(res);
+
+            if (req->file == NULL) {
+                req->procedure = sending_finished;
+                break;
+            }
+
             req->procedure = sending_data;
             break;
 
@@ -461,7 +468,7 @@ void on_server_time_out(Response res, Request *req) {
         build_nak_directive(req->buff, start, EOF_PDU);
         ssp_sendto(res);
     }
-        //received EOF, send back 3 eof ack packets
+    //received EOF, send back 3 eof ack packets
     if (req->local_entity->EOF_recv_indication && req->resent_eof < RESEND_EOF_TIMES) {
         ssp_printf("sending eof ack transaction: %d\n", req->transaction_sequence_number);
         build_ack(req->buff, start, EOF_PDU);
@@ -521,6 +528,7 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
 
     Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
     packet_index++;
+
     switch (directive->directive_code)
     {
         case META_DATA_PDU:
@@ -533,8 +541,9 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
             get_messages_from_packet(packet, packet_index, data_len, req);
             process_messages(req, app);
 
-            //get messages from packet here
-            process_file_request_metadata(req);
+            if (req->file_size != 0)
+                process_file_request_metadata(req);
+            
             break;
     
         case EOF_PDU:

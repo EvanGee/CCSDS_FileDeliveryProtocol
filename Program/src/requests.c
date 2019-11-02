@@ -144,6 +144,32 @@ Request *init_request(uint32_t buff_len) {
     return req;
 }
 
+
+//starts a new client, adding it to app->active_clients, as well as 
+//starting a new request and adding it to the client, returns a pointer
+//to the request
+static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
+
+    //spin up a new client thread
+    Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
+
+    if (client == NULL) {
+        client = ssp_client(dest_id, app);
+        app->active_clients->insert(app->active_clients, client, dest_id);
+    }
+
+    Request *req = init_request(client->packet_len);
+
+    //build a request 
+    req->transaction_sequence_number = app->transaction_sequence_number++;
+    req->dest_cfdp_id = client->remote_entity->cfdp_id;
+    req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
+    client->request_list->insert(client->request_list, req, 0);
+
+    return req;
+}
+
+
 /*NULL for source and destination filenames shall indicate that only Meta
 data will be delivered. Side effect: add request to client request list
 returns the request*/
@@ -155,67 +181,31 @@ Request *put_request(
             FTP *app
             ) {
 
-    File *file;
+    Request *req;
     uint32_t file_size = 0;
 
     if (source_file_name == NULL || destination_file_name == NULL) {
-    
-        //spin up a new client thread
-        Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
-
-        if (client == NULL) {
-            client = ssp_client(dest_id, app);
-            app->active_clients->insert(app->active_clients, client, dest_id);
-        }
-
-        Request *req = init_request(client->packet_len);
-
-
-        //build a request 
-        req->transaction_sequence_number = app->transaction_sequence_number++;
-
-        //enumeration
+        req = start_new_client_request(app, dest_id);
         req->procedure = sending_put_metadata;
-        req->dest_cfdp_id = client->remote_entity->cfdp_id;
-
         req->transmission_mode = transmission_mode;
-        req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
-
-        client->request_list->insert(client->request_list, req, 0);
-
         return req;
-
     }
 
     if (strnlen(source_file_name, MAX_PATH) == 0 || strnlen(destination_file_name, MAX_PATH) == 0) {
         ssp_printf("ERROR: no file names present in put request, if you want to just send messages, make both source and dest NULL\n");
-        return;
+        return NULL;
     }
+
+    req = start_new_client_request(app, dest_id);
 
     file_size = get_file_size(source_file_name);
     if (file_size == 0)
         return NULL;
-    file = create_file(source_file_name, 0);
-    
 
-    //spin up a new client thread
-    Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
-
-    if (client == NULL) {
-        client = ssp_client(dest_id, app);
-        app->active_clients->insert(app->active_clients, client, dest_id);
-    }
-
-    //give the client a new request to perform
-    Request *req = init_request(client->packet_len);
-
-    //build a request 
-    req->transaction_sequence_number = app->transaction_sequence_number++;
-
-    //enumeration
+    req->file = create_file(source_file_name, 0);
     req->procedure = sending_put_metadata;
-    req->dest_cfdp_id = client->remote_entity->cfdp_id;
-
+    req->transmission_mode = transmission_mode;
+    
     //do I need this/use this?
     req->file_size = file_size;
     
@@ -225,8 +215,6 @@ Request *put_request(
     req->transmission_mode = transmission_mode;
     req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
 
-    client->request_list->insert(client->request_list, req, 0);
-    
     return req;
 }
 
@@ -239,9 +227,10 @@ void start_request(Request *req){
 
 
 Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
+
     Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
-    proxy->destination_file_name = create_lv(strnlen(dest_name, MAX_PATH), dest_name);
-    proxy->source_file_name = create_lv(strnlen(source_name, MAX_PATH), source_name);
+    proxy->destination_file_name = create_lv(strnlen(dest_name, MAX_PATH) + 1, dest_name);
+    proxy->source_file_name = create_lv(strnlen(source_name, MAX_PATH) + 1, source_name);
     proxy->destination_id = create_lv(length_of_id, &beneficial_cfid);
     return proxy;
 }

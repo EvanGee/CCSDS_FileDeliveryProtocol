@@ -291,14 +291,14 @@ int test_add_messages_to_packet(char *packet, uint32_t start) {
 
     
     src_file = copy_lv_from_buffer(packet, packet_index);
-    ASSERT_EQUALS_INT("src_file.length", src_file->length, strnlen(src, 100));
+    ASSERT_EQUALS_INT("src_file.length", src_file->length, strnlen(src, 100) + 1);
     ASSERT_EQUALS_STR("src_file.value", src, (char *) src_file->value, src_file->length);
     packet_index += src_file->length + 1;
     free_lv(src_file);
     
 
     dest_file = copy_lv_from_buffer(packet, packet_index);
-    ASSERT_EQUALS_INT("dest_file.length", dest_file->length, strnlen(dest, 100));
+    ASSERT_EQUALS_INT("dest_file.length", dest_file->length, strnlen(dest, 100) + 1);
     ASSERT_EQUALS_STR("dest_file.value", dest, (char *)dest_file->value, dest_file->length);
     free_lv(dest_file);
 
@@ -326,10 +326,10 @@ int test_get_message_from_packet(char *packet, uint32_t start) {
     Message *m = req2->messages_to_user->pop(req2->messages_to_user);
     Message_put_proxy *p_message = m->value;
 
-    ASSERT_EQUALS_INT("dest_file.length", p_message->destination_file_name->length, strnlen(dest, 100));
+    ASSERT_EQUALS_INT("dest_file.length", p_message->destination_file_name->length, strnlen(dest, 100) + 1);
     ASSERT_EQUALS_STR("dest_file.value", p_message->destination_file_name->value, dest, strnlen(dest, 100));
 
-    ASSERT_EQUALS_INT("src_file.length",  p_message->source_file_name->length, strnlen(src, 100));
+    ASSERT_EQUALS_INT("src_file.length",  p_message->source_file_name->length, strnlen(src, 100) + 1);
     ASSERT_EQUALS_STR("src_file.value", src, p_message->source_file_name->value, strnlen(src, 100));
 
     ASSERT_EQUALS_INT("dest_id.length", p_message->destination_id->length, len);

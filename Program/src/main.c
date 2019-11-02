@@ -45,16 +45,12 @@ int main(int argc, char** argv) {
     //create a client
     if (conf->client_cfdp_id != 0){
 
-        //Request *req = put_request(conf->client_cfdp_id, "pic.jpeg", "remote_pic1.jpeg", ACKNOWLEDGED_MODE, app);
-       
         Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
         if (req == NULL)
             return -1;
 
         add_proxy_message_to_request(2, 1, "pic.jpeg", "dest.jpeg", req);
         start_request(req);
-
-        //send_request(new_client, req);
 
     }
 
