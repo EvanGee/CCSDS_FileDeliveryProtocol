@@ -135,9 +135,11 @@ Request *init_request(uint32_t buff_len) {
     req->file = NULL;
     req->buff_len = buff_len;
     req->buff = ssp_alloc(buff_len, sizeof(char));
-    req->res.msg = req->buff;
+    
     req->procedure = none;
     req->paused = true;
+
+    req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();
     checkAlloc(req->buff,  1);
@@ -163,7 +165,6 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     //build a request 
     req->transaction_sequence_number = app->transaction_sequence_number++;
     req->dest_cfdp_id = client->remote_entity->cfdp_id;
-    req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
     client->request_list->insert(client->request_list, req, 0);
 
     return req;
@@ -213,7 +214,6 @@ Request *put_request(
     memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
         
     req->transmission_mode = transmission_mode;
-    req->res.addr = ssp_alloc(sizeof(uint64_t), 1);
 
     return req;
 }
