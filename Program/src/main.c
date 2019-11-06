@@ -45,20 +45,18 @@ int main(int argc, char** argv) {
     //create a client
     if (conf->client_cfdp_id != 0){
 
-        Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
+        //Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
+        Request *req = put_request(conf->client_cfdp_id, "pic.jpeg", "anotherpicyo.jpg", ACKNOWLEDGED_MODE, app);
+    
         if (req == NULL)
             return -1;
 
-        add_proxy_message_to_request(2, 1, "pic.jpeg", "dest.jpeg", req);
+        //add_proxy_message_to_request(2, 1, "pic.jpeg", "dest.jpg", req);
         start_request(req);
 
     }
 
-    //ssp_thread_join(app->server_handle);
-    //ssp_join_clients(app->active_clients);
     ssp_thread_join(app->server_handle);
-
-
     free(conf); 
 
     

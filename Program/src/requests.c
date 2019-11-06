@@ -204,16 +204,13 @@ Request *put_request(
         return NULL;
 
     req->file = create_file(source_file_name, 0);
+    req->file_size = file_size;
+
     req->procedure = sending_put_metadata;
     req->transmission_mode = transmission_mode;
     
-    //do I need this/use this?
-    req->file_size = file_size;
-    
     memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
     memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
-        
-    req->transmission_mode = transmission_mode;
 
     return req;
 }

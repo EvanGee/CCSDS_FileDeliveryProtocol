@@ -149,7 +149,6 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->pdu_header = get_header_from_mib(app->mib, source_id, app->my_cfdp_id);
         found_req->remote_entity = get_remote_entity(app->mib, source_id);
-
         found_req->procedure = sending_put_metadata;
         found_req->res.addr = ssp_alloc(1, res.size_of_addr);
         memcpy(found_req->res.addr, res.addr, res.size_of_addr);
@@ -157,7 +156,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         found_req->res.sfd = res.sfd;
         found_req->res.transmission_mode = app->remote_entity->default_transmission_mode;
         found_req->res.type_of_network = app->remote_entity->type_of_network;
-        
+        found_req->paused = false;
         request_list->push(request_list, found_req, transaction_sequence_number);
     } 
 
@@ -235,8 +234,14 @@ void process_messages(Request *req, FTP *app) {
     if (message->header.message_type == PROXY_PUT_REQUEST){
         
         Message_put_proxy *p = (Message_put_proxy *) message->value;
-        ssp_printf("source file name: %s\n", (char *)p->source_file_name->value);
-        start_request(put_request(*(uint8_t*)p->destination_id->value, (char *)p->source_file_name->value, (char *)p->destination_file_name->value, 0, app));
+        ssp_printf("received proxy request for source file name: %s dest file name %s, to id %d\n", 
+        (char *)p->source_file_name->value,
+        (char *)p->destination_file_name->value,
+        *(uint8_t*)p->destination_id->value);
+
+        start_request(put_request(*(uint8_t*)p->destination_id->value,
+        (char *)p->source_file_name->value, 
+        (char *)p->destination_file_name->value, ACKNOWLEDGED_MODE, app));
         ssp_free_message(message);
 
     }   
@@ -410,6 +415,7 @@ void user_request_handler(Response res, Request *req, Client* client) {
 
 static int reset_timeout(Request *req) {
 
+    
     if (req->timeout++ >= TIMEOUT_BEFORE_CANCEL_REQUEST) {
         ssp_printf("time to live ended, closing up request transaction: %d\n", req->transaction_sequence_number);
         if (req->procedure != none) 

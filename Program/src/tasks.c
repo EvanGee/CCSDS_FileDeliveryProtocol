@@ -30,7 +30,6 @@ static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, 
     int packet_index = process_pdu_header(packet, 1, res, request_container, app->request_list, app);
     app->current_request = (*request_container);
 
-
     if (packet_index < 0)
         return -1;
     
@@ -80,9 +79,9 @@ static int remove_request(void *request, void *args) {
 static void remove_request_check(void *request, void *args) {
     Request *req = (Request *) request;
     List *req_list = (List *) args;
-    //ssp_printf("CLEANINGUP request count: %d procedure:%d cleanup %d none: %d sending_put_metadata %d\n", req_list->count, req->procedure, clean_up, none, sending_put_metadata);
       
     if (req->procedure == clean_up) {
+        ssp_printf("removing request\n");
         Request *remove_this = req_list->remove(req_list, 0, remove_request, req);
         ssp_cleanup_req(remove_this);
     }
@@ -98,8 +97,8 @@ static void user_request_check(Node *node, void *request, void *args) {
     struct user_request_check_params* params = (struct user_request_check_params *) args;
     
     params->res.msg = req->buff;
-    
     memset(params->res.msg, 0, params->client->packet_len);
+
     user_request_handler(params->res, req, params->client);
     remove_request_check(request, params->client->request_list);
 }
@@ -135,6 +134,7 @@ static void timeout_check_callback(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     on_server_time_out(req->res, req); 
     remove_request_check(request, args);
+
 }
 
 
@@ -144,10 +144,14 @@ static void client_check_callback(Node *node, void *client, void *args) {
 
     if (c->close) {
         Client *remove_this = (Client *) list->removeNode(list, node);
-        
+        ssp_printf("removing client, from server \n");
         ssp_thread_join(c->client_handle);
         ssp_free(remove_this);
     }
+}
+
+static void test_s () {
+
 }
 
 //this function is a callback when using  my posix ports
