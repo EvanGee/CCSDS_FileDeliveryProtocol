@@ -27,12 +27,12 @@ int main (int argc, char **argv) {
 
     int error = 0;
 
-    error = request_tests();
+    //error = request_tests();
     //error = protocol_handler_test();
-    error = packet_tests();
-    
+    //error = packet_tests();
     //error = list_tests();
     //error = file_system_tests();
+    error = tasks_tests();
 
     /*
     if (strcmp(argv[1], "1") == 0)
