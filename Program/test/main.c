@@ -8,19 +8,7 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 #include "types.h"
-#include "request_tests.h"
-#include "packet_tests.h"
-
-
-/*
-#include "filesystem_tests.h"
-#include "file_delivery_app.h"
-#include "protocol_handler_tests.h"
-#include "list_tests.h"
-*/
-#include "server_tests.h"
-
-
+#include "unit_tests.h"
 
 int main (int argc, char **argv) {
     
@@ -30,7 +18,7 @@ int main (int argc, char **argv) {
     //error = request_tests();
     //error = protocol_handler_test();
     //error = packet_tests();
-    //error = list_tests();
+    error = list_tests();
     //error = file_system_tests();
     error = tasks_tests();
 

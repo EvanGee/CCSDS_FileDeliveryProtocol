@@ -10,7 +10,7 @@
 #include "mib.h"
 #include "file_delivery_app.h"
 #include "packet.h"
-#include "packet_tests.h"
+#include "unit_tests.h"
 
 #define PACKET_TEST_SIZE 2000 
 

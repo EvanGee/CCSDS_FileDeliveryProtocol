@@ -145,7 +145,7 @@ static void *removeNode(List *list, Node *node) {
 
 static void *removeElement(List *list, uint32_t id, int (*f)(void *element, void *args), void *args)
 {
-    Node *cur = list->head->next;
+    Node *cur = list->head;
     int found_with_func = 0;
     int found_with_id = 0;
     while (cur->next != NULL)
@@ -158,15 +158,7 @@ static void *removeElement(List *list, uint32_t id, int (*f)(void *element, void
 
         if (found_with_func || found_with_id)
         {
-            Node *previous = cur->prev;
-            Node *next = cur->next;
-
-            previous->next = next;
-            next->prev = previous;
-
-            list->count--;
-            void *element = cur->element;
-            freeNode(cur);
+            void *element = removeNode(list, cur);
             return element;
         }
         cur = cur->next;

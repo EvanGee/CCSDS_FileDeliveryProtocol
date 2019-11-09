@@ -5,6 +5,9 @@
 #include "mib.h"
 #include "test.h"
 #include "file_delivery_app.h"
+#include "unit_tests.h"
+
+
 static char *build_mock_packet(FTP *app, uint32_t id) {
 
     char *packet = calloc(sizeof(char*), 2000);

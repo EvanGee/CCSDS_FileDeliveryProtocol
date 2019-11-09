@@ -6,6 +6,7 @@
 #include "filesystem_funcs.h"
 #include "string.h"
 #include "file_delivery_app.h"
+#include "unit_tests.h"
 
 static void list_print_id(void *element, void *args) {
     Request *req = (Request *) element;
