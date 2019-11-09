@@ -68,14 +68,6 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
     
 }
 
-static int remove_request(void *request, void *args) {
-    Request *req = (Request *) request;
-    Request *req2 = (Request *) args;
-    if (req->dest_cfdp_id == req2->dest_cfdp_id && req->transaction_sequence_number == req2->transaction_sequence_number)
-        return 1;
-    return 0;
-}
-
 void remove_request_check(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     List *req_list = (List *) args;
@@ -124,7 +116,10 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
     };
 
     client->request_list->iterate(client->request_list, user_request_check, &params);
-    
+    if (client->request_list->count == 0) {
+        client->close = true;
+    }
+        
     return 0;
 }
 
@@ -147,6 +142,7 @@ static void client_check_callback(Node *node, void *client, void *args) {
         ssp_thread_join(c->client_handle);
         ssp_free(remove_this);
     }
+
 }
 
 //this function is a callback when using  my posix ports

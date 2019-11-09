@@ -25,6 +25,7 @@
         #include <arpa/inet.h>
         #include <libgen.h>
         #include <netdb.h> 
+        #include <time.h>
 #endif
 
 
@@ -59,6 +60,7 @@
     #include "csp.h"
 
 #endif
+
 
 
 
@@ -279,6 +281,30 @@ void ssp_printf( char *stuff, ...) {
 }
 
 
+uint32_t ssp_time_count() {
+
+    #ifdef POSIX_PORT
+        clock_t c = clock();
+        c = c / CLOCKS_PER_SEC;
+        return c;
+    #endif
+
+    #ifdef FREE_RTOS_PORT
+        //some kind of ticks
+    #endif 
+}
+
+//returns a number to start counting from, modulo is the time in seconds that is the 
+/* 
+uint32_t start_timer(uint32_t modulo) {
+    return ssp_time_count() % modulo;
+}
+
+//timeout_max is how long we want to check, time is our start, returned from start_timer
+uint32_t check_timeout(uint32_t time, uint32_t timeout_max, uint32_t modulo) {
+    return     
+}
+*/
 
 /*------------------------------------------------------------------------------
     Threading and task functions

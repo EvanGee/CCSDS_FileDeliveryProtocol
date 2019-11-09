@@ -247,6 +247,21 @@ void process_messages(Request *req, FTP *app) {
 
 }
 
+static int reset_timeout(Request *req) {
+
+    
+    if (req->timeout++ >= TIMEOUT_BEFORE_CANCEL_REQUEST) {
+        ssp_printf("time to live ended, closing up request transaction: %d\n", req->transaction_sequence_number);
+        if (req->procedure != none) 
+            ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);
+        else {
+            ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
+        }
+        req->procedure = clean_up;
+        return 1;
+    }
+    return 0;
+}
 
 /*------------------------------------------------------------------------------
 
@@ -357,7 +372,7 @@ void user_request_handler(Response res, Request *req, Client* client) {
         return;
 
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, client->pdu_header);
-
+    
     check_req_status(req, client);
 
     switch (req->procedure)
@@ -412,21 +427,7 @@ void user_request_handler(Response res, Request *req, Client* client) {
 
 ------------------------------------------------------------------------------*/
 
-static int reset_timeout(Request *req) {
 
-    
-    if (req->timeout++ >= TIMEOUT_BEFORE_CANCEL_REQUEST) {
-        ssp_printf("time to live ended, closing up request transaction: %d\n", req->transaction_sequence_number);
-        if (req->procedure != none) 
-            ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);
-        else {
-            ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
-        }
-        req->procedure = clean_up;
-        return 1;
-    }
-    return 0;
-}
 
 /*
 static void print_offsets(void *element, void *args) {
