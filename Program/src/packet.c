@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "port.h"
 #include "filesystem_funcs.h"
+#include "requests.h"
 
 /*------------------------------------------------------------------------------
 
@@ -67,18 +68,19 @@ uint8_t build_finished_pdu(char *packet, uint32_t start) {
     return data_len;
 }
 
-
-uint8_t build_put_packet_metadata(Response res, uint32_t start, Request *req) {    
-    Pdu_header *header = (Pdu_header *) res.msg;
+//returns packet_index for data, to get length of meta data, subtract start from return value
+uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {    
+    Pdu_header *header = (Pdu_header *) packet;
    
     header->PDU_type = DIRECTIVE;
     uint8_t packet_index = start;
 
     //set directive 1 byte
-    Pdu_directive *directive = (Pdu_directive *) &res.msg[packet_index];
+    Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
     directive->directive_code = META_DATA_PDU;
     packet_index += SIZE_OF_DIRECTIVE_CODE;
-    Pdu_meta_data *meta_data_packet = (Pdu_meta_data *) &res.msg[packet_index];
+
+    Pdu_meta_data *meta_data_packet = (Pdu_meta_data *) &packet[packet_index];
 
     //1 bytes
     meta_data_packet->segmentation_control = req->segmentation_control;
@@ -88,32 +90,32 @@ uint8_t build_put_packet_metadata(Response res, uint32_t start, Request *req) {
     //4 bytes
     uint32_t network_bytes = htonl(req->file_size);
     network_bytes = network_bytes;
-    memcpy(&res.msg[packet_index], &network_bytes, sizeof(uint32_t));
+    memcpy(&packet[packet_index], &network_bytes, sizeof(uint32_t));
     packet_index += 4;
     
     //variable length params
     uint8_t src_file_name_length = strnlen(req->source_file_name, MAX_PATH);
     uint8_t destination_file_length = strnlen(req->destination_file_name, MAX_PATH);
-    char *src_file_name = req->source_file_name;
-    char *destination_file_name = req->destination_file_name;
     
     //copy source length to packet (1 bytes) 
-    memcpy(&res.msg[packet_index], &src_file_name_length, src_file_name_length);
+    memcpy(&packet[packet_index], &src_file_name_length, src_file_name_length);
     packet_index++;
     //copy source name to packet (length bytes) 
-    memcpy(&res.msg[packet_index], src_file_name, src_file_name_length);
+    memcpy(&packet[packet_index], req->source_file_name, src_file_name_length);
     packet_index += src_file_name_length;
-
     //copy length to packet (1 byte)
-    memcpy(&res.msg[packet_index], &destination_file_length, 1);
+    memcpy(&packet[packet_index], &destination_file_length, 1);
     packet_index++;
     
     //copy destination name to packet (length bytes)
-    memcpy(&res.msg[packet_index], destination_file_name, destination_file_length);
+    memcpy(&packet[packet_index], req->destination_file_name, destination_file_length);
     packet_index += destination_file_length;
 
+    //add messages to metadata
+    packet_index = add_messages_to_packet(packet, packet_index, req->messages_to_user);
+
     uint8_t data_len = packet_index - start; 
-    set_data_length(res.msg, data_len);
+    set_data_length(packet, data_len);
 
     return packet_index;
 }
@@ -233,7 +235,7 @@ struct offset_holder {
     int i;
 };
 
-void fill_nak_array(void *element, void *args){
+void fill_nak_array_callback(Node *node, void *element, void *args){
     struct offset_holder *holder = (struct offset_holder *)args;
     
     Offset *offset = (Offset *)element;
@@ -255,7 +257,7 @@ uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
     holder.offsets = ssp_alloc(count, sizeof(Offset));
     holder.i = 0;
 
-    req->file->missing_offsets->iterate(req->file->missing_offsets, fill_nak_array, &holder);
+    req->file->missing_offsets->iterate(req->file->missing_offsets, fill_nak_array_callback, &holder);
     
     pdu_nak->start_scope = holder.offsets[0].start;
     pdu_nak->end_scope = holder.offsets[holder.i-1].end;
@@ -307,4 +309,112 @@ void set_data_length(char*packet, uint16_t data_len){
 uint16_t get_data_length(char*packet) {
     Pdu_header *header = (Pdu_header*) packet;
     return ntohs(header->PDU_data_field_len);
+}
+
+
+
+
+
+struct packet_callback_params {
+    char *packet;
+    uint32_t *packet_index;
+};
+
+static void add_messages_callback(Node *node, void *element, void *args) {
+    struct packet_callback_params *params = (struct packet_callback_params *) args; 
+    char *packet = params->packet;
+    uint32_t packet_index = *(params->packet_index);
+
+    Message *message = (Message *) element;
+    
+    //5 bytes to copy cfdp\0 into the buffer
+    memcpy(&packet[packet_index], message->header.message_id_cfdp, 5);
+    packet_index += 5;
+
+    //one byte for message type
+    memcpy(&packet[packet_index], &message->header.message_type, 1);
+    packet_index += 1;
+
+    Message_put_proxy *proxy;
+
+    switch (message->header.message_type)
+    {
+        case PROXY_PUT_REQUEST:
+            proxy = (Message_put_proxy *) message->value;
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->destination_id);
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->source_file_name);
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->destination_file_name);
+
+            break;
+    
+        default:
+            break;
+    }
+
+    *(params->packet_index) = packet_index;
+
+}
+
+//returns length of added messages, including the start; copys messages into packet
+uint32_t add_messages_to_packet(char *packet, uint32_t start, List *messages_to_user) {
+    
+    uint32_t packet_index = start;
+    struct packet_callback_params params = {packet, &packet_index};
+    messages_to_user->iterate(messages_to_user, add_messages_callback, &params);
+    return packet_index;
+}
+
+
+//adds messages from packet into request, returns the location of the next message
+uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
+
+    if (strncmp(&packet[start], "cfdp", 5)) {
+        ssp_error("messages are poorly formatted\n");
+        return 0;
+    }
+
+    Message *m;
+    Message_put_proxy *put_proxy;
+
+    uint32_t message_start = start + 6;
+
+    switch (packet[start + 5])
+    {
+        case PROXY_PUT_REQUEST:
+            m = create_message(PROXY_PUT_REQUEST);
+            
+            m->value = ssp_alloc(1, sizeof(Message_put_proxy));
+            put_proxy = (Message_put_proxy *) m->value;
+
+            put_proxy->destination_id = copy_lv_from_buffer(packet, message_start);
+            message_start += put_proxy->destination_id->length + 1;
+            
+            put_proxy->source_file_name = copy_lv_from_buffer(packet, message_start);
+            message_start += put_proxy->source_file_name->length + 1;
+
+            put_proxy->destination_file_name = copy_lv_from_buffer(packet, message_start);
+            message_start += put_proxy->destination_file_name->length + 1;
+            break;
+    
+        default:
+            break;
+    }
+
+    req->messages_to_user->push(req->messages_to_user, m, 0);
+    return message_start;
+}
+
+
+uint32_t get_messages_from_packet(char *packet, uint32_t start, uint32_t data_length, Request *req) {
+
+    uint32_t packet_index = start;
+
+    while (packet_index < data_length - 5) {
+
+        if (strncmp(&packet[packet_index], "cfdp", 5))
+            break;
+
+        packet_index = get_message_from_packet(packet, packet_index, req);
+    }
+    return packet_index;
 }

@@ -11,9 +11,9 @@
     new node, or NULL if failed
 ------------------------------------------------------------------------------*/
 
-NODE *createNode(void *element, uint32_t id)
+Node *createNode(void *element, uint32_t id)
 {
-    NODE *newNode = calloc(sizeof(NODE), 1);
+    Node *newNode = calloc(sizeof(Node), 1);
     if (newNode == NULL) {
         return NULL;
     }
@@ -31,7 +31,7 @@ NODE *createNode(void *element, uint32_t id)
 ------------------------------------------------------------------------------*/
 
 
-static void freeNode(NODE *node) {
+static void freeNode(Node *node) {
     if (node != NULL)
         free(node);    
 }
@@ -41,9 +41,9 @@ static void *pop(List *list) {
     if (list->count == 0)
         return NULL;
 
-    NODE *last_data_node = list->tail->prev;
+    Node *last_data_node = list->tail->prev;
     
-    NODE *prev = last_data_node->prev;
+    Node *prev = last_data_node->prev;
     prev->next = list->tail;
     list->tail->prev = prev;
 
@@ -61,8 +61,8 @@ static void *pop(List *list) {
 
 static int insert(List *list, void *element, uint32_t id) {
 
-    NODE *head = list->head;
-    NODE *node = createNode(element, id);
+    Node *head = list->head;
+    Node *node = createNode(element, id);
     if (node == NULL) {
         return 0;
     }
@@ -84,11 +84,11 @@ static int insert(List *list, void *element, uint32_t id) {
 static int push(List *list, void *element, uint32_t id)
 {
 
-    NODE *newNode = createNode(element, id);
+    Node *newNode = createNode(element, id);
     if (newNode == NULL) {
         return 0;
     }
-    NODE *tail = list->tail;
+    Node *tail = list->tail;
 
     newNode->next = tail;
     newNode->prev = tail->prev;
@@ -109,16 +109,31 @@ static int push(List *list, void *element, uint32_t id)
     to print out an element.
 ------------------------------------------------------------------------------*/
 
-static void iterate(List *list, void (*f)(void *element, void *args), void *args)
+static void iterate(List *list, void (*f)(Node *node, void *element, void *args), void *args)
 {
-    NODE *cur = list->head->next;
-    NODE *next;
+    Node *cur = list->head->next;
+    Node *next;
     while (cur->next != NULL)
     {
         next = cur->next;
-        f(cur->element, args);
+        f(cur, cur->element, args);
         cur = next;
     }
+}
+
+//deletes the node, and returns the object, (motifys the list)
+static void *removeNode(List *list, Node *node) {
+
+    Node *previous = node->prev;
+    Node *next = node->next;
+
+    previous->next = next;
+    next->prev = previous;
+
+    void *element = node->element;
+    list->freeNode(node);
+    list->count--;
+    return element;
 }
 
 
@@ -130,7 +145,7 @@ static void iterate(List *list, void (*f)(void *element, void *args), void *args
 
 static void *removeElement(List *list, uint32_t id, int (*f)(void *element, void *args), void *args)
 {
-    NODE *cur = list->head->next;
+    Node *cur = list->head;
     int found_with_func = 0;
     int found_with_id = 0;
     while (cur->next != NULL)
@@ -143,15 +158,7 @@ static void *removeElement(List *list, uint32_t id, int (*f)(void *element, void
 
         if (found_with_func || found_with_id)
         {
-            NODE *previous = cur->prev;
-            NODE *next = cur->next;
-
-            previous->next = next;
-            next->prev = previous;
-
-            list->count--;
-            void *element = cur->element;
-            freeNode(cur);
+            void *element = removeNode(list, cur);
             return element;
         }
         cur = cur->next;
@@ -168,11 +175,11 @@ static void *removeElement(List *list, uint32_t id, int (*f)(void *element, void
 
 static void freeList(List *list, void (*f)(void *element))
 {
-    NODE *cur = list->head->next;
+    Node *cur = list->head->next;
 
     while (cur->next != NULL)
     {
-        NODE *n = cur;
+        Node *n = cur;
         cur = cur->next;
         f(n->element);
         freeNode(n);
@@ -185,11 +192,11 @@ static void freeList(List *list, void (*f)(void *element))
 
 static void freeNodes(List *list) {
 
-    NODE *cur = list->head->next;
+    Node *cur = list->head->next;
 
     while (cur->next != NULL)
     {
-        NODE *n = cur;
+        Node *n = cur;
         cur = cur->next;
         freeNode(n);
     }
@@ -208,7 +215,7 @@ static void freeNodes(List *list) {
 static void *findElement(List *list, uint32_t id, int (*f)(void *element, void *args), void *args)
 {
 
-    NODE *cur = list->head->next;
+    Node *cur = list->head->next;
     int found_with_func = 0;
     int found_with_id = 0;
     while (cur->next != NULL)
@@ -229,7 +236,7 @@ static void *findElement(List *list, uint32_t id, int (*f)(void *element, void *
 
 static int insertAt(List *list, void *element, uint32_t id, int (*f)(void *element, void *args), void *args) {
   
-    NODE *cur = list->head->next;
+    Node *cur = list->head->next;
     int found_with_func = 0;
     int found_with_id = 0;
     while (cur->next != NULL)
@@ -241,7 +248,7 @@ static int insertAt(List *list, void *element, uint32_t id, int (*f)(void *eleme
             found_with_id = 1;
 
         if (found_with_func || found_with_id) {
-            NODE *new = createNode(element, id);
+            Node *new = createNode(element, id);
             new->next = cur;
             new->prev = cur->prev;
             new->prev->next = new;
@@ -255,9 +262,9 @@ static int insertAt(List *list, void *element, uint32_t id, int (*f)(void *eleme
 }
 
  
-static NODE *findNode(List *list, uint32_t id, int (*f)(void *element, void *args), void *args) {
+static Node *findNode(List *list, uint32_t id, int (*f)(void *element, void *args), void *args) {
 
-    NODE *cur = list->head->next;
+    Node *cur = list->head->next;
     int found_with_func = 0;
     int found_with_id = 0;
     while (cur->next != NULL)
@@ -291,14 +298,15 @@ List *linked_list()
     if (newList->tail == NULL)
         return NULL;
     
-    NODE *tail = newList->tail;
-    NODE *head = newList->head;
+    Node *tail = newList->tail;
+    Node *head = newList->head;
 
     tail->prev = head;
     tail->next = NULL;
     head->next = tail;
     head->prev = NULL;
 
+    newList->count = 0;
     newList->push = push;
     newList->remove = removeElement;
     newList->iterate = iterate;
@@ -310,6 +318,7 @@ List *linked_list()
     newList->findNode = findNode;
     newList->freeNode = freeNode;
     newList->freeOnlyList = freeNodes;
+    newList->removeNode = removeNode;
 
     return newList;
 }

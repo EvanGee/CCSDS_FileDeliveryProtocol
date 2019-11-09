@@ -67,5 +67,7 @@ void ssp_fd_clr(int sfd, void *socket_set);
 
 int ssp_rename(const char *old, const char *new);
 void reset_request(Request *req);
+uint32_t ssp_time_count();
+
 
 #endif

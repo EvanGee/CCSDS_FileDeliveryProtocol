@@ -3,11 +3,14 @@
 #include "requests.h"
 #include "string.h"
 #include "test.h"
-
+#include "filesystem_funcs.h"
+#include "string.h"
+#include "file_delivery_app.h"
+#include "unit_tests.h"
 
 static void list_print_id(void *element, void *args) {
     Request *req = (Request *) element;
-    printf("id: %d trans number: %d\n", req->dest_cfdp_id, req->transaction_sequence_number);
+    printf("id: %d trans number: %llu\n", req->dest_cfdp_id, req->transaction_sequence_number);
 }
 
 //for finding the struct in the list
@@ -31,7 +34,7 @@ static void list_print(void *element, void *args) {
     ssp_printf("%s\n", req->source_file_name);
 }
 
-int request_finding_test() {
+static int request_finding_test() {
 
     List *list = linked_list();
 
@@ -79,7 +82,7 @@ int request_finding_test() {
 }
 
 
-void request_test_list_storage() {
+static void request_test_list_storage() {
     Request *req = init_request(5000);
     List *list = linked_list();
 
@@ -103,10 +106,81 @@ void request_test_list_storage() {
 
 }
 
+static int add_proxy_message() {
+
+    Request *req = init_request(5000);
+
+    char *dest = "dest";
+    char *src = "src";
+    uint32_t id = 2;
+    uint8_t len = 1;
+
+    int error = add_proxy_message_to_request(id, len, src, dest, req);
+
+    Message *message = req->messages_to_user->pop(req->messages_to_user);
+    ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
+
+    Message_put_proxy *proxy = (Message_put_proxy *) message->value;
+    ASSERT_EQUALS_STR("proxy dest_id should equal 2", proxy->destination_id->value, &id, len);
+    ASSERT_EQUALS_STR("proxy src file", proxy->source_file_name->value, src,  proxy->source_file_name->length);
+    ASSERT_EQUALS_STR("proxy dest file", proxy->destination_file_name->value, dest,  proxy->destination_file_name->length);
+
+    ssp_free_message(message);
+    ssp_cleanup_req(req);
+    return 0;
+
+}
+
+
+
+int test_lv_functions() {
+
+    char packet[100];
+    
+    char *str = "suphomie";
+    LV *lv = create_lv(strnlen(str, 100), str);
+
+    uint32_t len = strnlen(str, 100);
+
+    ASSERT_EQUALS_INT("create_lv length works", lv->length, len);
+    ASSERT_EQUALS_STR("create_lv value works", str, lv->value, len);
+
+    uint16_t packet_index = copy_lv_to_buffer(packet, lv);
+    ASSERT_EQUALS_INT("copy lv, length", packet[0], lv->length);
+    ASSERT_EQUALS_STR("copy lv, value", &packet[1], lv->value, lv->length);
+
+    free_lv(lv);
+
+    lv = copy_lv_from_buffer(packet, 0);
+    ASSERT_EQUALS_INT("copy lv length from packet", lv->length, len);
+    ASSERT_EQUALS_STR("copy lv value from packet", str, lv->value, len);
+    free_lv(lv);
+    
+}
+
+
+int request_user_input_tests() {
+
+    FTP *app = init_ftp(1);
+    put_request(2, "", "", 0, app);
+    
+    
+
+    
+    
+    
+    
+    app->close = true;
+    ssp_thread_join(app->server_handle);
+}
 
 int request_tests() {
 
     int error = 0;
     error = request_finding_test(); 
-    return 0;
+    error = request_user_input_tests();
+    error = add_proxy_message();
+    error = test_lv_functions();
+    
+    return error;
 }

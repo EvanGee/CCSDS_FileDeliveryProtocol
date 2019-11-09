@@ -91,14 +91,14 @@ typedef struct originating_tranaction_id_message {
 
 
 typedef struct lv {
-    unsigned int length : 8;
+    uint8_t length;
     // size is 8 * length
     void *value;
 } LV;
 
 typedef struct tlv {
-    unsigned int type : 8;
-    unsigned int length : 8;
+    uint8_t type;
+    uint8_t length;
     // size is 8 * length
     void *value;
 } TLV;
@@ -123,20 +123,35 @@ typedef struct tlv {
 #define PROXY_FILESTORE_RESPONSE 08
 #define PROXY_PUT_CANCEL 09
 
-typedef struct message_to_user {
 
-    uint32_t message_id_cfdp;
+
+typedef struct message_header {
+
+    char *message_id_cfdp;
     uint8_t message_type;
 
-} Message_to_user;
+} Message_header;
 
 
 //type PROXY_PUT_REQUEST
-struct message_proxy {
-    LV Destination_id;
-    LV source_file_name;
-    LV destination_file_name;
-};
+typedef struct message_put_proxy {
+
+    LV *destination_id;
+    LV *source_file_name;
+    LV *destination_file_name;
+
+} Message_put_proxy;
+
+//can cast the message_value based on the message_type in the header;
+typedef struct message {
+
+    Message_header header;
+    //will take various kinds of Message_xx types
+    void *value;
+
+} Message;
+
+
 
 //------------------------------------------------------------------------------
 
@@ -582,8 +597,7 @@ typedef struct request {
     Remote_entity *remote_entity;
     Local_entity *local_entity;
 
-    TLV message_to_user;
-    char* filestore_requests;
+    List *messages_to_user;
     
     //sets the buffer length, for making packets
     uint32_t buff_len;
@@ -648,11 +662,6 @@ typedef struct client {
     bool close;
 
 } Client;
-
-
-
-
-
 
 #endif
 
