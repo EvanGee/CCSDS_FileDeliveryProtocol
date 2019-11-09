@@ -76,13 +76,13 @@ static int remove_request(void *request, void *args) {
     return 0;
 }
 
-static void remove_request_check(void *request, void *args) {
+void remove_request_check(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     List *req_list = (List *) args;
       
     if (req->procedure == clean_up) {
         ssp_printf("removing request\n");
-        Request *remove_this = req_list->remove(req_list, 0, remove_request, req);
+        Request *remove_this = req_list->removeNode(req_list, node);
         ssp_cleanup_req(remove_this);
     }
 }
@@ -100,7 +100,7 @@ static void user_request_check(Node *node, void *request, void *args) {
     memset(params->res.msg, 0, params->client->packet_len);
 
     user_request_handler(params->res, req, params->client);
-    remove_request_check(request, params->client->request_list);
+    remove_request_check(node, request, params->client->request_list);
 }
 
 static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, void *other) {
@@ -133,8 +133,7 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
 static void timeout_check_callback(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     on_server_time_out(req->res, req); 
-    remove_request_check(request, args);
-
+    remove_request_check(node, request, args);
 }
 
 
@@ -148,10 +147,6 @@ static void client_check_callback(Node *node, void *client, void *args) {
         ssp_thread_join(c->client_handle);
         ssp_free(remove_this);
     }
-}
-
-static void test_s () {
-
 }
 
 //this function is a callback when using  my posix ports
@@ -245,7 +240,14 @@ void *ssp_connectionless_server_task(void *params) {
     char port[10];
     snprintf(port, 10, "%d",app->remote_entity->UT_port);
     
-    connectionless_server(port, app->packet_len, on_recv_server_callback, on_time_out_callback, on_stdin_callback, check_exit_server_callback, on_exit_server_callback, app);
+    connectionless_server(port, 
+        app->packet_len, 
+        on_recv_server_callback, 
+        on_time_out_callback, 
+        on_stdin_callback, 
+        check_exit_server_callback, 
+        on_exit_server_callback, 
+        app);
     
     return NULL;
 }
@@ -264,7 +266,17 @@ void *ssp_connectionless_client_task(void* params){
     //convert uint id to char *
     inet_ntop(AF_INET, &client->remote_entity->UT_address, host_name, INET_ADDRSTRLEN);
     
-    connectionless_client(host_name, port, client->packet_len, client, client, client, client, on_send_client_callback, on_recv_client_callback, check_exit_client_callback, on_exit_client_callback);
+    connectionless_client(host_name, 
+        port, 
+        client->packet_len, 
+        client, 
+        client, 
+        client, 
+        client, 
+        on_send_client_callback, 
+        on_recv_client_callback, 
+        check_exit_client_callback, 
+        on_exit_client_callback);
     
     return NULL;
 }
@@ -278,7 +290,16 @@ void *ssp_connection_server_task(void *params) {
     snprintf(port, 10, "%u",app->remote_entity->UT_port);
 
     //1024 is the connection max limit
-    connection_server(port, app->packet_len, 10, on_recv_server_callback, on_time_out_callback, on_stdin_callback, check_exit_server_callback, on_exit_server_callback, app);
+    connection_server(port, 
+        app->packet_len,
+        10, 
+        on_recv_server_callback, 
+        on_time_out_callback, 
+        on_stdin_callback, 
+        check_exit_server_callback, 
+        on_exit_server_callback, 
+        app);
+
     return NULL;
 }
 
@@ -295,7 +316,17 @@ void *ssp_connection_client_task(void *params) {
     //convert uint id to char *
     inet_ntop(AF_INET, &client->remote_entity->UT_address, host_name, INET_ADDRSTRLEN);
 
-    connection_client(host_name, port, client->packet_len, client, client, client, client, on_send_client_callback, on_recv_client_callback, check_exit_client_callback, on_exit_client_callback);
+    connection_client(host_name, 
+        port, 
+        client->packet_len, 
+        client, 
+        client, 
+        client, 
+        client, 
+        on_send_client_callback, 
+        on_recv_client_callback, 
+        check_exit_client_callback, 
+        on_exit_client_callback);
   
     return NULL;
 }
@@ -303,6 +334,7 @@ void *ssp_connection_client_task(void *params) {
 void *ssp_csp_connectionless_server_task(void *params) {
     printf("starting csp connectionless server\n");
     FTP *app = (FTP *) params;
+
     csp_connectionless_server(
         app->remote_entity->UT_port,
         on_recv_server_callback, 
@@ -318,9 +350,16 @@ void *ssp_csp_connectionless_server_task(void *params) {
 void *ssp_csp_connectionless_client_task(void *params) {
     printf("starting csp connectionless client\n");
     Client *client = (Client *) params;
+    
     csp_connectionless_client(client->remote_entity->UT_address, 
-    client->remote_entity->UT_port,
-    client->app->remote_entity->UT_port, on_send_client_callback, on_recv_client_callback, check_exit_client_callback, on_exit_client_callback, client);
+        client->remote_entity->UT_port,
+        client->app->remote_entity->UT_port, 
+        on_send_client_callback, 
+        on_recv_client_callback, 
+        check_exit_client_callback, 
+        on_exit_client_callback, 
+        client);
+
     return NULL;
 }
 
@@ -328,6 +367,7 @@ void *ssp_csp_connectionless_client_task(void *params) {
 void *ssp_csp_connection_server_task(void *params) {
     printf("starting csp connection server\n");
     FTP *app = (FTP *) params;
+
     csp_connection_server(app->remote_entity->UT_port,
         on_recv_server_callback,
         on_time_out_callback,
@@ -343,12 +383,14 @@ void *ssp_csp_connection_client_task(void *params) {
     printf("starting csp connection client\n");
     Client *client = (Client *) params;
 
-    csp_connection_client(client->remote_entity->UT_address, client->remote_entity->UT_port,
+    csp_connection_client(client->remote_entity->UT_address, 
+        client->remote_entity->UT_port,
         on_send_client_callback,
         on_recv_client_callback,
         check_exit_client_callback,
         on_exit_client_callback,
         params);
+
     return NULL;
 }
 /*------------------------------------------------------------------------------

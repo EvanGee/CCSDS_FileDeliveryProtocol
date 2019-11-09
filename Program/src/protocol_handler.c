@@ -55,7 +55,6 @@ static void process_pdu_eof(char *packet, Request *req, Response res) {
 int process_file_request_metadata(Request *req) {
 
     char temp[75];
-    req->local_entity->Metadata_recv_indication = 1;
 
     if (req->file == NULL)
         req->file = create_file(req->destination_file_name, 1);
@@ -474,6 +473,7 @@ void on_server_time_out(Response res, Request *req) {
         build_nak_directive(req->buff, start, EOF_PDU);
         ssp_sendto(res);
     }
+
     //received EOF, send back 3 eof ack packets
     if (req->local_entity->EOF_recv_indication && req->resent_eof < RESEND_EOF_TIMES) {
         ssp_printf("sending eof ack transaction: %d\n", req->transaction_sequence_number);
@@ -481,6 +481,9 @@ void on_server_time_out(Response res, Request *req) {
         ssp_sendto(res);
         req->resent_eof++;
     }
+
+    if (req->file == NULL)
+        return;
 
     //send missing NAKS
     if (req->file->missing_offsets->count > 0) {
@@ -546,6 +549,8 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
             packet_index += fill_request_pdu_metadata(&packet[packet_index], req);
             get_messages_from_packet(packet, packet_index, data_len, req);
             process_messages(req, app);
+            
+            req->local_entity->Metadata_recv_indication = 1;
 
             if (req->file_size != 0)
                 process_file_request_metadata(req);
@@ -561,7 +566,6 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
             
             ssp_printf("received eof packet transaction: %d\n", req->transaction_sequence_number);
             process_pdu_eof(&packet[packet_index], req, res);
-
             break;
 
         case ACK_PDU: 

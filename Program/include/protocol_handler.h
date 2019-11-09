@@ -15,7 +15,6 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
 uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t length);
 
 
-
 uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill);
 void process_messages(Request *req, FTP *app);
 
