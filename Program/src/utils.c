@@ -112,3 +112,10 @@ void ssp_print_hex(char *stuff, int size){
         }
         ssp_printf("\n");
 }   
+
+
+int is_negative(int number) {
+    int negative_mask = 0x80000000;
+    int is_negative = number & negative_mask;
+    return is_negative;
+}
