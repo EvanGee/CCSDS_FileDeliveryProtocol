@@ -247,21 +247,6 @@ void process_messages(Request *req, FTP *app) {
 
 }
 
-static int reset_timeout(Request *req) {
-
-    
-    if (req->timeout++ >= TIMEOUT_BEFORE_CANCEL_REQUEST) {
-        ssp_printf("time to live ended, closing up request transaction: %d\n", req->transaction_sequence_number);
-        if (req->procedure != none) 
-            ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);
-        else {
-            ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
-        }
-        req->procedure = clean_up;
-        return 1;
-    }
-    return 0;
-}
 
 /*------------------------------------------------------------------------------
 
@@ -355,7 +340,7 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             break;
     }
 }
-static void check_req_status(Request *req, Client *client) {
+static void check_req_status(Request *req) {
 
     if (req->resent_finished >= RESEND_FINISHED_TIMES){
         req->procedure = none;
@@ -373,7 +358,7 @@ void user_request_handler(Response res, Request *req, Client* client) {
 
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, client->pdu_header);
     
-    check_req_status(req, client);
+    check_req_status(req);
 
     switch (req->procedure)
     {
@@ -416,6 +401,8 @@ void user_request_handler(Response res, Request *req, Client* client) {
             req->resent_finished++;
             break;
 
+        case clean_up:
+        case none:
         default:
             break;
     }
@@ -443,9 +430,6 @@ void on_server_time_out(Response res, Request *req) {
     if (req->paused)
         return;
     
-    if (reset_timeout(req))
-        return;
-
     if (req->procedure == none)
         return;
 
@@ -517,8 +501,6 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         
     Pdu_header *header = (Pdu_header *) packet;
     uint16_t data_len = get_data_length(packet);
-    //set timeout to 0, because received data
-    req->timeout = 0;
 
     //process file data
     if (header->PDU_type == 1) {
@@ -580,7 +562,5 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         default:
             break;
     }
-
-    
 }
 

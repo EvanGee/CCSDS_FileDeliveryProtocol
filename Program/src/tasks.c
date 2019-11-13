@@ -10,12 +10,30 @@
 #include "filesystem_funcs.h"
 #include <stdio.h>
 #include "types.h"
+#include "utils.h"
 #include <arpa/inet.h>
 /*------------------------------------------------------------------------------
     
     Callbacks for the tasks bellow
 
 ------------------------------------------------------------------------------*/
+
+//sets request procedure as clean_up if ttl passed
+static void timeout(Request *req) {
+
+    bool is_timeout = check_timeout(&req->timeout, TIMEOUT_BEFORE_CANCEL_REQUEST);
+    if (is_timeout) {
+        if (req->procedure != none) 
+            ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);
+        else {
+            ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
+        }
+        req->procedure = clean_up;
+    }
+}
+
+
+
 static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
 
     FTP *app = (FTP *) other;
@@ -28,12 +46,15 @@ static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, 
     Request **request_container = &app->current_request;
 
     int packet_index = process_pdu_header(packet, 1, res, request_container, app->request_list, app);
-    app->current_request = (*request_container);
+    Request *current_request = (*request_container);
+    app->current_request = current_request;
 
     if (packet_index < 0)
         return -1;
     
-    parse_packet_server(packet, packet_index, app->current_request->res, (*request_container), app);
+    parse_packet_server(packet, packet_index, app->current_request->res, current_request, app);
+
+    reset_timeout(&current_request->timeout);
 
     memset(packet, 0, res.packet_len);
     return 0;
@@ -59,11 +80,15 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
         ssp_printf("error parsing header\n");
         return -1;
     }
-     
-    res.msg = (*request_container)->buff;
-    parse_packet_client(packet, packet_index, res, (*request_container), client);
+    Request *current_request = (*request_container);
+    res.msg = current_request->buff;
+
+    parse_packet_client(packet, packet_index, res, current_request, client);
+
+    reset_timeout(&current_request->timeout);
 
     memset(packet, 0, res.packet_len);
+    
     return 0;
     
 }
@@ -92,6 +117,9 @@ static void user_request_check(Node *node, void *request, void *args) {
     memset(params->res.msg, 0, params->client->packet_len);
 
     user_request_handler(params->res, req, params->client);
+
+    timeout(req);
+    
     remove_request_check(node, request, params->client->request_list);
 }
 
@@ -115,6 +143,7 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
         client
     };
 
+
     client->request_list->iterate(client->request_list, user_request_check, &params);
     if (client->request_list->count == 0) {
         client->close = true;
@@ -128,6 +157,9 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
 static void timeout_check_callback(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     on_server_time_out(req->res, req); 
+    
+    timeout(req);
+
     remove_request_check(node, request, args);
 }
 

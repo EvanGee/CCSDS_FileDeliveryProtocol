@@ -47,5 +47,10 @@ Config *configuration(int argc, char **argv);
 #define ntohll(x) ((1==ntohl(1)) ? (x) : ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
 
 void ssp_print_hex(char *stuff, int size);
+int is_negative(int number);
+
+//check if timeout number of seconds has past since prevtime
+int check_timeout(int *prevtime, uint32_t timeout);
+void reset_timeout(int *prevtime);
 
 #endif //UTILS_H

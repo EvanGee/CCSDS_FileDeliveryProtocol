@@ -119,3 +119,25 @@ int is_negative(int number) {
     int is_negative = number & negative_mask;
     return is_negative;
 }
+
+
+void reset_timeout(int *prevtime) {
+    *prevtime = ssp_time_count();
+}
+
+int check_timeout(int *prevtime, uint32_t timeout) {
+
+    int prev = *prevtime;
+    int current_time = ssp_time_count();
+    int time_out = prev + timeout;
+
+    if (current_time >= time_out) {
+        *prevtime = current_time;
+        return 1;
+    }
+    //wrap around the overflow condition
+    else if (current_time < prev) {
+        *prevtime = current_time;
+    }
+    return 0; 
+}
