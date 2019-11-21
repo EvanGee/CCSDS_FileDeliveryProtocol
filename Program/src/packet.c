@@ -197,7 +197,7 @@ uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t len
     return 0;
 }
 
-void build_eof_packet(char *packet, uint32_t start, Request *req) {
+void build_eof_packet(char *packet, uint32_t start, File *file) {
 
     Pdu_header *header = (Pdu_header *) packet;
     //set header to file directive 0 is directive, 1 is data
@@ -218,9 +218,9 @@ void build_eof_packet(char *packet, uint32_t start, Request *req) {
     packet_index++;
 
     //4 bytes
-    eof_packet->file_size = ntohl(req->file->total_size);
+    eof_packet->file_size = ntohl(file->total_size);
     packet_index += 4;
-    eof_packet->checksum = req->file->partial_checksum;
+    eof_packet->checksum = file->partial_checksum;
     packet_index += 4;
 
     //TODO addTLV fault_location

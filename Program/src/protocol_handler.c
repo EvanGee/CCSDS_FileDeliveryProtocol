@@ -45,7 +45,7 @@ static void process_pdu_eof(char *packet, Request *req, Response res) {
         req->file = create_temp_file(req->source_file_name);
     }
 
-
+    
     req->local_entity->EOF_recv_indication = 1;
     req->file->eof_checksum = eof_packet->checksum;
     req->file->total_size = ntohl(eof_packet->file_size);
@@ -365,7 +365,7 @@ void user_request_handler(Response res, Request *req, Client* client) {
         case sending_eof: 
             ssp_printf("sending eof transaction: %d\n", req->transaction_sequence_number);
             req->procedure = none;
-            build_eof_packet(req->buff, start, req);
+            build_eof_packet(req->buff, start, req->file);
             req->local_entity->EOF_sent_indication = 1;
             ssp_sendto(res);
             break;
@@ -455,6 +455,7 @@ void on_server_time_out(Response res, Request *req) {
 
     //send missing eofs
     if (!req->local_entity->EOF_recv_indication) {
+        ssp_printf("sending eof nak transaction: %d\n", req->transaction_sequence_number);
         build_nak_directive(req->buff, start, EOF_PDU);
         ssp_sendto(res);
     }
