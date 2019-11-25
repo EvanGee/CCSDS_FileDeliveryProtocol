@@ -10,6 +10,7 @@
     int request_tests();
     int test_header(char *packet, Pdu_header *header, uint64_t sequence_number);
     int packet_tests();
+    int protocol_handler_test();
     
 
     #define TEMP_FILESIZE 1000

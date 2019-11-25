@@ -18,21 +18,13 @@ int main (int argc, char **argv) {
     int error = 0;
 
     //error = request_tests();
-    //error = protocol_handler_test();
+    error = protocol_handler_test();
+    
     //error = packet_tests();
     //error = list_tests();
     //error = file_system_tests();
     //error = tasks_tests();
-    uint32_t seconds = 3;
-    int prevtime = 0;
-    bool is_timeout = false;
-    while (1) {
-        is_timeout = check_timeout(&prevtime, seconds);
-        
-        if (is_timeout)
-            printf("timeout! %d\n", is_timeout);
-        
-    }
+    
     /*
     if (strcmp(argv[1], "1") == 0)
         error = server_tests(0);
