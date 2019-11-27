@@ -15,6 +15,12 @@
 #define PACKET_TEST_SIZE 2000 
 
 
+static int test_build_eof_packet() {
+
+    
+    
+}
+
 static int test_respond_to_naks(char *packet, uint32_t packet_index) {
     Request *req = init_request(5000);
     ssp_cleanup_req(req);

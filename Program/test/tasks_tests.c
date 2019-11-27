@@ -16,8 +16,9 @@ void test_remove_request() {
     List *l = populate_request_list();
     Request *request = (Request *) l->find(l, 3, NULL, NULL);
     request->procedure = clean_up;
+    //run a task here, or a removal function
 
-    //remove_request_check(request, l); 
+
 
     l->iterate(l, check_request_callback, NULL);
     l->free(l, ssp_cleanup_req);

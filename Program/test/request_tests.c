@@ -163,13 +163,11 @@ int request_user_input_tests() {
 
     FTP *app = init_ftp(1);
     put_request(2, "", "", 0, app);
-    
-    
 
-    
-    
-    
-    
+    put_request(2, NULL, NULL, 0, app);
+
+
+
     app->close = true;
     ssp_thread_join(app->server_handle);
 }
