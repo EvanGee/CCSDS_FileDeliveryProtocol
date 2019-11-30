@@ -9,8 +9,12 @@
     //int tasks_tests();    
     //int request_tests();
     //int test_header(char *packet, Pdu_header *header, uint64_t sequence_number);
-    //int packet_tests();
+    int packet_tests();
     int protocol_handler_test();
+    
+
+    int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id);
+    Response mock_response();
     
 
     #define TEMP_FILESIZE 1000

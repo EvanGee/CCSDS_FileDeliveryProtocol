@@ -147,6 +147,7 @@ Request *init_request(uint32_t buff_len) {
 }
 
 
+
 //starts a new client, adding it to app->active_clients, as well as 
 //starting a new request and adding it to the client, returns a pointer
 //to the request

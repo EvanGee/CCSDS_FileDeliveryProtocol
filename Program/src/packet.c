@@ -12,8 +12,19 @@
                                     creating packets
 
 ------------------------------------------------------------------------------*/
-//returns the location in the packet where the next pointer for tthe packet will start after the header
 
+
+// if is_data_packet is false, then is directive packet
+static void set_packet_header(char *packet, uint16_t data_len, bool is_data_packet) {
+
+    Pdu_header *header = (Pdu_header *) packet;
+    header->PDU_type = is_data_packet;
+    set_data_length(packet, data_len);
+
+}
+
+
+//returns the location in the packet where the next pointer for tthe packet will start after the header
 uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_t transmission_mode, Pdu_header *pdu_header) {
 
     memcpy(packet, pdu_header, PACKET_STATIC_HEADER_LEN);
@@ -50,7 +61,7 @@ uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uin
 uint8_t build_finished_pdu(char *packet, uint32_t start) {
 
     uint32_t packet_index = start;
-    uint32_t data_len = 0;
+    uint16_t data_len = 0;
 
     packet[packet_index] = FINISHED_PDU;
     packet_index++;
@@ -64,15 +75,13 @@ uint8_t build_finished_pdu(char *packet, uint32_t start) {
     data_len += 1;
     packet_index += 1;
 
-    set_data_length(packet, data_len);
+    set_packet_header(packet, data_len, DIRECTIVE);
     return data_len;
 }
 
 //returns packet_index for data, to get length of meta data, subtract start from return value
 uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {    
-    Pdu_header *header = (Pdu_header *) packet;
-   
-    header->PDU_type = DIRECTIVE;
+
     uint8_t packet_index = start;
 
     //set directive 1 byte
@@ -115,8 +124,8 @@ uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {
     packet_index = add_messages_to_packet(packet, packet_index, req->messages_to_user);
 
     uint8_t data_len = packet_index - start; 
-    set_data_length(packet, data_len);
-
+    set_packet_header(packet, data_len, DIRECTIVE);
+    
     return packet_index;
 }
 uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Request *req, Client* client) {
@@ -196,6 +205,7 @@ uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t len
 
     return 0;
 }
+
 
 void build_eof_packet(char *packet, uint32_t start, File *file) {
 

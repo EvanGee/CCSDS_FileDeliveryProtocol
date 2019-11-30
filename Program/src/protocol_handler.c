@@ -33,7 +33,7 @@ static void request_metadata(Request *req, Response res) {
 
 ------------------------------------------------------------------------------*/
 
-static void process_pdu_eof(char *packet, Request *req, Response res) {
+void process_pdu_eof(char *packet, Request *req, Response res) {
 
     Pdu_eof *eof_packet = (Pdu_eof *) packet;
 
@@ -120,7 +120,6 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     uint16_t len = get_data_length(packet);
 
     Request *request = *req;
-    
 
     //if packet is from the same request, don't' change current request
     if (request != NULL && request->transaction_sequence_number == transaction_sequence_number && request->dest_cfdp_id == source_id){ 
