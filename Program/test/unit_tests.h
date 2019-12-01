@@ -14,8 +14,9 @@
     
 
     int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id);
-    Response mock_response();
-    
+    Response *mock_response();
+    void mock_eof_packet(char *packet, int packet_index);
+    Request *mock_request();
 
     #define TEMP_FILESIZE 1000
     //int file_system_tests();
