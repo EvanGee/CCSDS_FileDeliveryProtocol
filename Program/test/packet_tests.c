@@ -51,7 +51,10 @@ static int test_build_eof_packet(char *packet, int packet_start) {
     Pdu_eof *eof_pdu = (Pdu_eof*) &packet[packet_index];
     ASSERT_EQUALS_INT("condition_code should equal NO_ERROR", eof_pdu->condition_code, COND_NO_ERROR);   
     ASSERT_EQUALS_INT("filesize should equal", htonl(eof_pdu->file_size), file->total_size);
-    ASSERT_EQUALS_INT("checksum should equal", eof_pdu->checksum, file->partial_checksum);    
+    ASSERT_EQUALS_INT("checksum should equal", eof_pdu->checksum, file->partial_checksum);
+
+    free_file(file);
+
     //testing this
     return 0;
 }
@@ -69,6 +72,8 @@ static int test_respond_metadata_request() {
 }
 
 static void test_build_data_packet(char *packet, uint32_t packet_index){
+
+    DECLARE_NEW_TEST("testing data packet");
 
     File *file = create_file("testfile", 0);
 
@@ -94,7 +99,8 @@ static void nak_print(void *element, void *args){
 }
 
 static int test_build_nak_packet(char* packet, uint32_t start) {
-    printf("testing nak creation 1 \n");
+
+    DECLARE_NEW_TEST("testing build nak packet");
     Request *req = init_request(5000);
 
     req->file_size = 100000;
@@ -104,7 +110,6 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     process_file_request_metadata(req);
 
     uint64_t count = req->file->missing_offsets->count;
-    ssp_printf("missing offset number=%u\n", count);
 
     uint32_t data_len = build_nak_packet(packet, start, req);
 
@@ -131,8 +136,6 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     ASSERT_EQUALS_INT("start offset == 0 ", start_scope, 0);
     ASSERT_EQUALS_INT("end scope == 100000 ", end_scope, 100000);
 
-    //add a bunch more  
-    printf("testing nak creation 2 \n");
 
     receive_offset(req->file, 0, 1250, 5000);
     receive_offset(req->file, 0, 6000, 9000);
@@ -197,6 +200,8 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
 }
 
 int test_build_ack_finished_pdu(char *packet, uint32_t start) {
+
+    DECLARE_NEW_TEST("testing finish ack packet");
     printf("testing finished ack creation\n");
     Request *req;
 
@@ -215,7 +220,8 @@ int test_build_ack_finished_pdu(char *packet, uint32_t start) {
 
 int test_build_ack_eof_pdu(char *packet, uint32_t start) {
     //empty request
-    printf("testing eof ack creation\n");
+
+    DECLARE_NEW_TEST("testing eof ack packet");
 
     Request *req;
     uint8_t len =  build_ack (packet, start, EOF_PDU);
@@ -233,7 +239,8 @@ int test_build_ack_eof_pdu(char *packet, uint32_t start) {
 
 int test_build_pdu_header(char *packet, Pdu_header *header, uint64_t sequence_number) {
 
-    printf("testing header creation\n");
+
+    DECLARE_NEW_TEST("testing header creation");
     uint8_t length = build_pdu_header(packet, sequence_number, 0, header);
     uint32_t packet_index = PACKET_STATIC_HEADER_LEN;
 
@@ -270,8 +277,8 @@ int test_build_pdu_header(char *packet, Pdu_header *header, uint64_t sequence_nu
 int test_build_metadata_packet(char *packet, uint32_t start) {
 
     memset(&packet[start], 0, 20);
+    DECLARE_NEW_TEST("testing metadata packets");
 
-    printf("testing metadata packets\n");
     Request *req = init_request(1000);
     Request *recv_request = init_request(1000);
 
@@ -312,8 +319,8 @@ int test_add_messages_to_packet(char *packet, uint32_t start) {
     uint8_t len = 1;
 
     uint32_t packet_index = start;
+    DECLARE_NEW_TEST("testing add_messages_to_packet");
 
-    ssp_printf("testing add_messages_to_packet\n");
     Request *req = init_request(1000);
     int error = add_proxy_message_to_request(id, len, src, dest, req);
 

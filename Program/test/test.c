@@ -25,7 +25,7 @@ int assert_equals_int(char *file_name, int line_num,  char* description, int val
     else {
         printf("\033[0;31m");
         printf("%s", description);
-        printf(" fail # %d %d %s\n", test_num, line_num, file_name);
+        printf(" fail # %d %s:%d\n", test_num, file_name, line_num);
         printf("\033[0m"); 
         return 1;
     }
@@ -40,7 +40,7 @@ int assert_not_equals_int(char *file_name, int line_num,  char* description, int
     if (val1 == val2){
         printf("\033[0;31m");
         printf("%s", description);
-        printf(" fail # %d %d %s\n", test_num, line_num, file_name);
+        printf(" fail # %d %s:%d\n", test_num, file_name, line_num);
         printf("\033[0m"); 
         return 1;
     }
@@ -65,7 +65,7 @@ int assert_equals_str(char *file_name, int line_num, char* description, char *va
     } else {
         printf("\033[0;31m");
         printf("%s", description);
-        printf(" fail # %d %d %s\n", test_num, line_num, file_name);
+        printf(" fail # %d %s:%d\n", test_num, file_name, line_num);
         printf("\033[0m"); 
         return 1;
 
@@ -81,7 +81,7 @@ int assert_not_equals_str(char *file_name, int line_num, char* description, char
 
         printf("\033[0;31m");
         printf("%s", description);
-        printf(" fail # %d %d %s\n", test_num, line_num, file_name);
+        printf(" fail # %d %s:%d\n", test_num, file_name, line_num);
         printf("\033[0m"); 
         return 1;
 
@@ -100,7 +100,7 @@ int assert_null(char *file_name, int line_num, char* description, void *val1) {
     if (val1 != NULL) {
         printf("\033[0;31m");
         printf("%s", description);
-        printf(" fail # %d %d %s\n", test_num, line_num, file_name);
+        printf(" fail # %d %s:%d\n", test_num, file_name, line_num);
         printf("\033[0m"); 
         return 1;
     } else {
@@ -119,7 +119,7 @@ int assert_not_null(char *file_name, int line_num, char* description, void *val1
     if (val1 == NULL) {
         printf("\033[0;31m");
         printf("%s", description);
-        printf(" fail # %d %d %s\n", test_num, line_num, file_name);
+        printf(" fail # %d %s:%d\n", test_num, file_name, line_num);
         printf("\033[0m"); 
         return 1;
 

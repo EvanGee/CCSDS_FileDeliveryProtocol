@@ -45,7 +45,6 @@ void process_pdu_eof(char *packet, Request *req, Response res) {
         req->file = create_temp_file(req->source_file_name);
     }
 
-    
     req->local_entity->EOF_recv_indication = 1;
     req->file->eof_checksum = eof_packet->checksum;
     req->file->total_size = ntohl(eof_packet->file_size);

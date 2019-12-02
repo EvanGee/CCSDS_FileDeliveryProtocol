@@ -118,13 +118,19 @@ int ssp_close(int fd) {
 
 void ssp_sendto(Response res) {
 
+
     if (res.type_of_network == posix && res.transmission_mode == UN_ACKNOWLEDGED_MODE) {
         struct sockaddr* addr = (struct sockaddr*) res.addr;
      
-        int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(*addr));
-        if (err < 0) {
-            ssp_error("ERROR in sendto");
-        }
+        #ifdef TEST 
+            printf(res.msg);
+        #endif
+        #ifndef TEST
+            int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(*addr));
+            if (err < 0) {
+                ssp_error("ERROR in sendto");
+            }
+        #endif
     }
     else if (res.type_of_network == posix && res.transmission_mode == ACKNOWLEDGED_MODE) {
     
