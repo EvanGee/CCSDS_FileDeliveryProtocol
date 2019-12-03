@@ -9,7 +9,7 @@
 #include "filesystem_funcs.h"
 #include <fcntl.h>
 #include "types.h"
-
+#include "config.h"
 
 #ifdef POSIX_PORT
         #include <pthread.h>
@@ -123,7 +123,7 @@ void ssp_sendto(Response res) {
         struct sockaddr* addr = (struct sockaddr*) res.addr;
      
         #ifdef TEST 
-            printf(res.msg);
+            printf("sending outgoing packet (testing)\n");
         #endif
         #ifndef TEST
             int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(*addr));

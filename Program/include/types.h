@@ -471,7 +471,7 @@ typedef struct local_entity {
 
 typedef enum Network_type {
     csp,
-    free_rtos,
+    //free_rtos,
     posix,
 
 } Network_type;

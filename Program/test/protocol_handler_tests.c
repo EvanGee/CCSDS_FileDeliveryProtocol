@@ -8,7 +8,7 @@
 #include "unit_tests.h"
 #include "port.h"
 #include "requests.h"
-
+#include "filesystem_funcs.h"
 
 
 static int test_process_pdu_eof() {
@@ -16,16 +16,52 @@ static int test_process_pdu_eof() {
     
     DECLARE_NEW_TEST("testing process eof pdu");
 
+
     char *packet = malloc(2000);
-    mock_eof_packet(packet, 1, 2);
+    
+    //test images
+    File *file = mock_eof_packet(packet, 1, 2, "test_files/dest.jpg");
     Request *req = mock_request();
-
-    process_pdu_eof(packet, req, req->res);
-
-    free(packet);
+    process_pdu_eof(&packet[10], req, req->res);
+    
+    ASSERT_EQUALS_INT("received eof, increment EOF_rec_indication", req->local_entity->EOF_recv_indication, true);
+    ASSERT_EQUALS_INT("received eof, checksum should equal", req->file->eof_checksum, file->partial_checksum);
+    ASSERT_EQUALS_INT("received eof, filesize should equal", req->file->total_size, file->total_size);
+    
+    free_file(file);
     ssp_cleanup_req(req);
 
+    //test empty files
+    file = mock_eof_packet(packet, 1, 2, "test_files/empty.txt");
+    req = mock_request();
     
+    process_pdu_eof(&packet[10], req, req->res);
+
+    ASSERT_EQUALS_INT("received eof, increment EOF_rec_indication", req->local_entity->EOF_recv_indication, true);
+    ASSERT_EQUALS_INT("received eof, checksum should equal", req->file->eof_checksum, file->partial_checksum);
+    ASSERT_EQUALS_INT("received eof, filesize should equal", req->file->total_size, file->total_size);
+
+    
+    free_file(file);
+    ssp_cleanup_req(req);
+
+    //test empty filestruct
+    file = mock_eof_packet(packet, 1, 2, "test_files/empty.txt");
+    req = mock_request();
+    free_file(req->file);
+    req->file = NULL;
+
+    process_pdu_eof(&packet[10], req, req->res);
+
+    ASSERT_EQUALS_INT("received eof, increment EOF_rec_indication", req->local_entity->EOF_recv_indication, true);
+    ASSERT_EQUALS_INT("received eof, checksum should equal", req->file->eof_checksum, file->partial_checksum);
+    ASSERT_EQUALS_INT("received eof, filesize should equal", req->file->total_size, file->total_size);
+
+    
+    free(packet);
+    free_file(file);
+    ssp_cleanup_req(req);
+
     return 0;
 }
 
