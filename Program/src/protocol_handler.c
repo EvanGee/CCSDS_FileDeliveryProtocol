@@ -18,6 +18,14 @@
 
 ------------------------------------------------------------------------------*/
 
+
+static void build_temperary_file(Request *req) {
+
+    snprintf(req->source_file_name, 75, "%s%llu%s", ".temp_", req->transaction_sequence_number, ".jpeg");
+    ssp_printf("haven't received metadata yet, building temperary file %s\n", req->source_file_name);
+    req->file = create_temp_file(req->source_file_name);
+}
+
 static void request_metadata(Request *req, Response res) {
 
     ssp_printf("sending request for new metadata packet\n");
@@ -33,6 +41,7 @@ static void request_metadata(Request *req, Response res) {
 
 ------------------------------------------------------------------------------*/
 
+//processes the eof packet, sets checksum, indication, and filesize.
 void process_pdu_eof(char *packet, Request *req, Response res) {
 
     Pdu_eof *eof_packet = (Pdu_eof *) packet;
@@ -41,8 +50,7 @@ void process_pdu_eof(char *packet, Request *req, Response res) {
         request_metadata(req, res);
     }
     if (req->file == NULL) {
-        snprintf(req->source_file_name, 75, "%s%llu%s", ".temp_", req->transaction_sequence_number, ".jpeg");
-        req->file = create_temp_file(req->source_file_name);
+        build_temperary_file(req);
     }
 
     req->local_entity->EOF_recv_indication = 1;
@@ -466,8 +474,10 @@ void on_server_time_out(Response res, Request *req) {
         req->resent_eof++;
     }
 
-    if (req->file == NULL)
+    if (req->file == NULL) {
+        ssp_printf("file is null, not sending data naks");
         return;
+    }
 
     //send missing NAKS
     if (req->file->missing_offsets->count > 0) {
@@ -478,7 +488,7 @@ void on_server_time_out(Response res, Request *req) {
 
     } else {
 
-        if (req->file->eof_checksum == req->file->partial_checksum){
+        if (req->file->eof_checksum == req->file->partial_checksum && req->local_entity->EOF_recv_indication){
             ssp_printf("sending finsihed pdu transaction: %d\n", req->transaction_sequence_number);
             build_finished_pdu(req->buff, start);
             ssp_sendto(res);
@@ -505,14 +515,11 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
     if (header->PDU_type == 1) {
         if (!req->local_entity->Metadata_recv_indication) {
             if (req->file == NULL) {
-                snprintf(req->source_file_name, 75, "%s%llu%s", ".temp_", req->transaction_sequence_number, ".jpeg");
-                ssp_printf("haven't received metadata yet, building temperary file %s\n", req->source_file_name);
-                req->file = create_temp_file(req->source_file_name);
+                build_temperary_file(req);
             }
             request_metadata(req, res);
         }
         write_packet_data_to_file(&packet[packet_index], req->packet_data_len, req->file);
-        //ssp_printf("received data from transaction %d\n", req->transaction_sequence_number);
         return;
     }
     

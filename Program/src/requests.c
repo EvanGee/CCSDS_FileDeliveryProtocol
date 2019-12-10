@@ -204,7 +204,7 @@ Request *put_request(
     if (file_size == 0)
         return NULL;
 
-    req->file = create_file(source_file_name, 0);
+    req->file = create_file(source_file_name, false);
     req->file_size = file_size;
 
     req->procedure = sending_put_metadata;
