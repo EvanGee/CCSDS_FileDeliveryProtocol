@@ -26,15 +26,56 @@ static void build_temperary_file(Request *req) {
     req->file = create_temp_file(req->source_file_name);
 }
 
-static void request_metadata(Request *req, Response res) {
 
-    ssp_printf("sending request for new metadata packet\n");
+static void send_ack(Request *req, Response res, unsigned int type){
+
     uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
-    build_nak_directive(req->buff, start, META_DATA_PDU);
+    build_ack(req->buff, start, type);
     ssp_sendto(res);
-    return;
 }
 
+static void send_nak(Request *req, Response res, unsigned int type) {
+
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
+    build_nak_directive(req->buff, start, type);
+    ssp_sendto(res);
+}
+
+static void request_eof(Request *req, Response res) {
+    
+    ssp_printf("sending eof nak transaction: %d\n", req->transaction_sequence_number);
+    send_nak(req, res, EOF_PDU);
+}
+
+static void request_metadata(Request *req, Response res) {
+
+    ssp_printf("sending request for new metadata packet %d\n", req->transaction_sequence_number);
+    send_nak(req, res, META_DATA_PDU);
+}
+
+static void request_data(Request *req, Response res) {
+
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
+    ssp_printf("sending Nak data transaction: %d\n", req->transaction_sequence_number);
+    build_nak_packet(req->buff, start, req);
+    ssp_sendto(res);
+}
+
+static void resend_eof_ack(Request *req, Response res) {
+
+    ssp_printf("sending eof ack transaction: %d\n", req->transaction_sequence_number);
+    send_ack(req,res, EOF_PDU);
+    req->resent_eof++;
+}
+
+static void resend_finished_ack(Request *req, Response res) {
+
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
+    ssp_printf("sending finished pdu transaction: %d\n", req->transaction_sequence_number);
+    build_finished_pdu(req->buff, start);
+    ssp_sendto(res);
+    req->resent_finished++;   
+}
 /*------------------------------------------------------------------------------
 
                                     Processing Packets
@@ -433,17 +474,9 @@ static void print_offsets(void *element, void *args) {
 void on_server_time_out(Response res, Request *req) {
     
 
-    if (req->paused)
-        return;
-    
-    if (req->procedure == none)
+    if (req->paused || req->procedure == none || req->transmission_mode == UN_ACKNOWLEDGED_MODE)
         return;
 
-    if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
-        return; 
-
-
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
 
     if (req->resent_finished == RESEND_FINISHED_TIMES) {
         req->procedure = none;
@@ -453,25 +486,18 @@ void on_server_time_out(Response res, Request *req) {
 
     //send request for metadata
     if (!req->local_entity->Metadata_recv_indication) {
-        ssp_printf("sending request for new metadata packet transaction: %d\n", req->transaction_sequence_number);
-        build_nak_directive(req->buff, start, META_DATA_PDU);
-        ssp_sendto(res);
+        request_metadata(req, res);
         return;
     }
 
     //send missing eofs
     if (!req->local_entity->EOF_recv_indication) {
-        ssp_printf("sending eof nak transaction: %d\n", req->transaction_sequence_number);
-        build_nak_directive(req->buff, start, EOF_PDU);
-        ssp_sendto(res);
+        request_eof(req, res);
     }
 
     //received EOF, send back 3 eof ack packets
     if (req->local_entity->EOF_recv_indication && req->resent_eof < RESEND_EOF_TIMES) {
-        ssp_printf("sending eof ack transaction: %d\n", req->transaction_sequence_number);
-        build_ack(req->buff, start, EOF_PDU);
-        ssp_sendto(res);
-        req->resent_eof++;
+        resend_eof_ack(req, res);
     }
 
     if (req->file == NULL) {
@@ -481,18 +507,13 @@ void on_server_time_out(Response res, Request *req) {
 
     //send missing NAKS
     if (req->file->missing_offsets->count > 0) {
-        ssp_printf("sending Nak data transaction: %d\n", req->transaction_sequence_number);
-        build_nak_packet(req->buff, start, req);
-        ssp_sendto(res);
+        request_data(req, res);
         return;
 
     } else {
 
         if (req->file->eof_checksum == req->file->partial_checksum && req->local_entity->EOF_recv_indication){
-            ssp_printf("sending finsihed pdu transaction: %d\n", req->transaction_sequence_number);
-            build_finished_pdu(req->buff, start);
-            ssp_sendto(res);
-            req->resent_finished++;   
+            resend_finished_ack(req, res);
             return;
         }
         else {
