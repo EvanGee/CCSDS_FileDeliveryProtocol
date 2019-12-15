@@ -62,7 +62,10 @@ File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *fil
     return file;
 }
 
+void mock_metadata_packet() {
 
+
+}
 
 Response *mock_response() {
     Response *res = calloc(1, sizeof(Response));

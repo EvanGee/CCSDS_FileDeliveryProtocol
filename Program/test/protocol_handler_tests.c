@@ -65,78 +65,6 @@ static int test_process_pdu_eof() {
     return 0;
 }
 
-/*
-
-void on_server_time_out(Response res, Request *req) {
-    
-
-    if (req->paused)
-        return;
-    
-    if (req->procedure == none)
-        return;
-
-    if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
-        return; 
-
-
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
-
-    if (req->resent_finished == RESEND_FINISHED_TIMES) {
-        req->procedure = none;
-        ssp_printf("file sent, closing request transaction: %d\n", req->transaction_sequence_number);
-        return;
-    }
-
-    //send request for metadata
-    if (!req->local_entity->Metadata_recv_indication) {
-        ssp_printf("sending request for new metadata packet transaction: %d\n", req->transaction_sequence_number);
-        build_nak_directive(req->buff, start, META_DATA_PDU);
-        ssp_sendto(res);
-        return;
-    }
-
-    //send missing eofs
-    if (!req->local_entity->EOF_recv_indication) {
-        ssp_printf("sending eof nak transaction: %d\n", req->transaction_sequence_number);
-        build_nak_directive(req->buff, start, EOF_PDU);
-        ssp_sendto(res);
-    }
-
-    //received EOF, send back 3 eof ack packets
-    if (req->local_entity->EOF_recv_indication && req->resent_eof < RESEND_EOF_TIMES) {
-        ssp_printf("sending eof ack transaction: %d\n", req->transaction_sequence_number);
-        build_ack(req->buff, start, EOF_PDU);
-        ssp_sendto(res);
-        req->resent_eof++;
-    }
-
-    if (req->file == NULL)
-        return;
-
-    //send missing NAKS
-    if (req->file->missing_offsets->count > 0) {
-        ssp_printf("sending Nak data transaction: %d\n", req->transaction_sequence_number);
-        build_nak_packet(req->buff, start, req);
-        ssp_sendto(res);
-        return;
-
-    } else {
-
-        if (req->file->eof_checksum == req->file->partial_checksum){
-            ssp_printf("sending finsihed pdu transaction: %d\n", req->transaction_sequence_number);
-            build_finished_pdu(req->buff, start);
-            ssp_sendto(res);
-            req->resent_finished++;   
-            return;
-        }
-        else {
-            ssp_printf("checksum have: %u checksum_need: %u\n", req->file->partial_checksum, req->file->eof_checksum);
-        }
-    }
-
-}
-*/
 //main state machine
 int test_on_server_time_out()  {
 
@@ -148,14 +76,18 @@ int test_on_server_time_out()  {
     //no meta data received, sending request for new one (can't send NAKs yet, because we don't know filesize)
     on_server_time_out(req->res, req);
     req->local_entity->Metadata_recv_indication = true;
-
-    
     on_server_time_out(req->res, req);
-    
 
+    req->local_entity->EOF_recv_indication = true;
+    on_server_time_out(req->res, req);
+
+    req->local_entity->transaction_finished_indication = true;
+    on_server_time_out(req->res, req);
+
+    on_server_time_out_different(req->res, req);
 
     //file equals null, should return.
-    on_server_time_out(req->res, req);
+    //on_server_time_out(req->res, req);
     return 0;
 
 }

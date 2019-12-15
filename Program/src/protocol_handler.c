@@ -74,6 +74,7 @@ static void resend_finished_ack(Request *req, Response res) {
     ssp_printf("sending finished pdu transaction: %d\n", req->transaction_sequence_number);
     build_finished_pdu(req->buff, start);
     ssp_sendto(res);
+    req->local_entity->transaction_finished_indication = true;
     req->resent_finished++;   
 }
 /*------------------------------------------------------------------------------
@@ -484,6 +485,7 @@ void on_server_time_out(Response res, Request *req) {
         return;
     }
 
+
     //send request for metadata
     if (!req->local_entity->Metadata_recv_indication) {
         request_metadata(req, res);
@@ -494,12 +496,18 @@ void on_server_time_out(Response res, Request *req) {
     if (!req->local_entity->EOF_recv_indication) {
         request_eof(req, res);
     }
-
     //received EOF, send back 3 eof ack packets
-    if (req->local_entity->EOF_recv_indication && req->resent_eof < RESEND_EOF_TIMES) {
+    else if (req->local_entity->EOF_recv_indication && req->resent_eof < RESEND_EOF_TIMES) {
         resend_eof_ack(req, res);
     }
 
+    //receiving just messages, send back finished
+    if (req->file_size == 0) {
+        resend_finished_ack(req, res);
+        return;
+    }
+
+    //if have not received metadata for a file tranaction, this should not ever trigger //TODO add asert
     if (req->file == NULL) {
         ssp_printf("file is null, not sending data naks");
         return;
@@ -511,14 +519,14 @@ void on_server_time_out(Response res, Request *req) {
         return;
 
     } else {
-
+        //finished transaction, 
         if (req->file->eof_checksum == req->file->partial_checksum && req->local_entity->EOF_recv_indication){
             resend_finished_ack(req, res);
             return;
         }
-        else {
-            ssp_printf("checksum have: %u checksum_need: %u\n", req->file->partial_checksum, req->file->eof_checksum);
-        }
+        
+        ssp_printf("checksum have: %u checksum_need: %u\n", req->file->partial_checksum, req->file->eof_checksum);
+        
     }
 
 }
@@ -560,7 +568,7 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
             get_messages_from_packet(packet, packet_index, data_len, req);
             process_messages(req, app);
             
-            req->local_entity->Metadata_recv_indication = 1;
+            req->local_entity->Metadata_recv_indication = true;
 
             if (req->file_size != 0)
                 process_file_request_metadata(req);
@@ -583,7 +591,7 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
             Pdu_ack* ack_packet = (Pdu_ack *) &packet[packet_index]; 
             if (ack_packet->directive_code == FINISHED_PDU) {
                 ssp_printf("received finished packet transaction: %d\n", req->transaction_sequence_number);
-                req->local_entity->transaction_finished_indication = 1;
+                req->local_entity->transaction_finished_indication = true;
             }
             break;
         default:
