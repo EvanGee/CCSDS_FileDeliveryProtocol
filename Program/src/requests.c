@@ -167,6 +167,7 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     req->transaction_sequence_number = app->transaction_sequence_number++;
     req->dest_cfdp_id = client->remote_entity->cfdp_id;
     req->pdu_header = get_header_from_mib(app->mib, client->remote_entity->cfdp_id, app->my_cfdp_id);
+    req->packet_data_len = client->packet_len;
     
     client->request_list->insert(client->request_list, req, 0);
 
@@ -190,7 +191,7 @@ Request *put_request(
 
     if (source_file_name == NULL || destination_file_name == NULL) {
         req = start_new_client_request(app, dest_id);
-        req->procedure = sending_put_metadata;
+        req->procedure = sending_start;
         req->transmission_mode = transmission_mode;
         return req;
     }
@@ -209,7 +210,7 @@ Request *put_request(
     req->file = create_file(source_file_name, false);
     req->file_size = file_size;
 
-    req->procedure = sending_put_metadata;
+    req->procedure = sending_start;
     req->transmission_mode = transmission_mode;
     
     memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));

@@ -243,6 +243,49 @@ static void resend_finished_ack(Request *req, Response res) {
     req->resent_finished++;
 }
 
+static void send_put_metadata(Request *req, Response res) {
+
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, req->pdu_header);
+    ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
+    start = build_put_packet_metadata(req->buff, start, req);
+    ssp_sendto(res);
+}
+
+static void send_eof_pdu(Request *req, Response res) {
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, req->pdu_header);
+    ssp_printf("sending eof transaction: %d\n", req->transaction_sequence_number);
+    if (req->file_size == 0)
+        build_eof_packet(req->buff, start, 0, 0);
+    else 
+        build_eof_packet(req->buff, start, req->file->total_size, req->file->partial_checksum);
+    
+    req->local_entity->EOF_sent_indication = true;
+    ssp_sendto(res);
+    return;
+}
+
+static void start_sequence(Request *req, Response res) {
+    send_put_metadata(req, res);
+    if (req->file_size == 0 ){
+        req->procedure = sending_eof;
+        return;
+    }
+    req->procedure = sending_data;
+}
+
+static void send_data(Request *req, Response res) {
+    if (req->local_entity->EOF_sent_indication == true)
+        return;
+    
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, req->pdu_header);
+    if (build_data_packet(req->buff, start, req->file, req->packet_data_len)) {
+        req->procedure = sending_eof;
+        ssp_printf("sending data blast transaction: %d\n", req->transaction_sequence_number);
+    }
+    ssp_sendto(res);
+}
+
+
 
 int nak_response(char *packet, uint32_t start, Request *req, Response res, Client *client) {
         uint32_t packet_index = start;
@@ -341,53 +384,35 @@ void user_request_handler(Response res, Request *req, Client* client) {
     if (req == NULL || req->paused)
         return;
 
-    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, client->pdu_header);
+    //uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, client->pdu_header);
     
     check_req_status(req);
 
     switch (req->procedure)
     {
         case sending_eof: 
-            ssp_printf("sending eof transaction: %d\n", req->transaction_sequence_number);
+            send_eof_pdu(req, res);
             req->procedure = none;
-            if (req->file_size == 0)
-                build_eof_packet(req->buff, start, 0, 0);
-            else 
-                build_eof_packet(req->buff, start, req->file->total_size, req->file->partial_checksum);
-            
-            req->local_entity->EOF_sent_indication = true;
-            ssp_sendto(res);
             break;
 
         case sending_data: 
-            if (req->local_entity->EOF_sent_indication == true)
-                return;
-            
-            if (build_data_packet(req->buff, start, req->file, client->packet_len)) {
-                req->procedure = sending_eof;
-                ssp_printf("sending data blast transaction: %d\n", req->transaction_sequence_number);
-            }
-            ssp_sendto(res);
+            send_data(req, res);
             break;
 
         case sending_put_metadata:
-            ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
-            start = build_put_packet_metadata(req->buff, start, req);
-            ssp_sendto(res);
-
-            if (req->file_size == 0 ){
-                req->procedure = sending_eof;
-                break;
-            }
-
-            req->procedure = sending_data;
+            send_put_metadata(req, res);
+            req->procedure = none;
             break;
 
         case sending_finished:
             resend_finished_ack(req, res);
+            req->procedure = none;
             break;
 
         case sending_start:
+            start_sequence(req, res);
+            break;
+
         case clean_up:
         case none:
             break;
