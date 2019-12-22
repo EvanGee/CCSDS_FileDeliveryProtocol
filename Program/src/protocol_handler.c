@@ -19,11 +19,11 @@
 ------------------------------------------------------------------------------*/
 
 
-static void build_temperary_file(Request *req) {
+static void build_temperary_file(Request *req, uint32_t size) {
 
     snprintf(req->source_file_name, 75, "%s%llu%s", ".temp_", req->transaction_sequence_number, ".jpeg");
     ssp_printf("haven't received metadata yet, building temperary file %s\n", req->source_file_name);
-    req->file = create_temp_file(req->source_file_name);
+    req->file = create_temp_file(req->source_file_name, size);
 }
 
 
@@ -485,14 +485,15 @@ static void resend_finished_pdu(Request *req, Response res) {
 void process_pdu_eof(char *packet, Request *req, Response res) {
 
     Pdu_eof *eof_packet = (Pdu_eof *) packet;
+    uint32_t file_size = ntohl(eof_packet->file_size);
 
     if (req->file == NULL && req->local_entity->Metadata_recv_indication) {
-        build_temperary_file(req);
+        build_temperary_file(req, file_size);
     }
 
     req->local_entity->EOF_recv_indication = 1;
     req->file->eof_checksum = eof_packet->checksum;
-    req->file->total_size = ntohl(eof_packet->file_size);
+    req->file->total_size = file_size;
     
 }
 
@@ -620,9 +621,8 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         if (!req->local_entity->Metadata_recv_indication) {
             if (req->file == NULL) {
                 printf("file is null\n");
-                build_temperary_file(req);
+                build_temperary_file(req, TEMP_FILESIZE);
             }
-            //request_metadata(req, res);
         }
         uint16_t data_len = get_data_length(packet);
         write_packet_data_to_file(&packet[packet_index], data_len, req->file);

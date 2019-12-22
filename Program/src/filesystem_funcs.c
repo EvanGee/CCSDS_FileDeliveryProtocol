@@ -248,15 +248,16 @@ int receive_offset(File *file, uint8_t ack, uint32_t offset_start, uint32_t offs
 
 }
 
-File *create_temp_file(char *file_name) {
+File *create_temp_file(char *file_name, uint32_t size) {
     File *file = create_file(file_name, 1);
     file->is_temp = 1;
+    file->total_size = size;
 
     ssp_printf("mode acknowledged, building offset map\n");
     Offset *offset = ssp_alloc(1, sizeof(Offset));
-    offset->end = TEMP_FILESIZE;
+    offset->end = size;
     offset->start = 0;
-    file->missing_offsets->insert(file->missing_offsets, offset, TEMP_FILESIZE);
+    file->missing_offsets->insert(file->missing_offsets, offset, size);
     return file;
 }
 
@@ -285,5 +286,6 @@ int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t 
     offset->end = file_size;
     file->missing_offsets->push(file->missing_offsets, offset, file_size);
     file->is_temp = 0;
+    file->total_size = file_size;
     return 0;
 }
