@@ -110,7 +110,7 @@ struct user_request_check_params {
 };
 
 static void user_request_check(Node *node, void *request, void *args) {
-    Request * req = (Request *) request;
+    Request *req = (Request *) request;
     struct user_request_check_params* params = (struct user_request_check_params *) args;
     
     params->res.msg = req->buff;
@@ -142,7 +142,6 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
         res,
         client
     };
-
 
     client->request_list->iterate(client->request_list, user_request_check, &params);
     if (client->request_list->count == 0) {

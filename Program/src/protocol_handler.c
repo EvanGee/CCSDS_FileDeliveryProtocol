@@ -484,6 +484,8 @@ static void resend_finished_pdu(Request *req, Response res) {
 //processes the eof packet, sets checksum, indication, and filesize.
 void process_pdu_eof(char *packet, Request *req, Response res) {
 
+
+    ssp_printf("received eof packet transaction: %d\n", req->transaction_sequence_number);
     Pdu_eof *eof_packet = (Pdu_eof *) packet;
     uint32_t file_size = ntohl(eof_packet->file_size);
 
@@ -644,17 +646,23 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         case EOF_PDU:
             if (req->local_entity->EOF_recv_indication)
                 break;
-            
-            ssp_printf("received eof packet transaction: %d\n", req->transaction_sequence_number);
             process_pdu_eof(&packet[packet_index], req, res);
             break;
 
         case ACK_PDU: 
             ssp_printf("received Ack transaction: %d\n", req->transaction_sequence_number);
-            Pdu_ack* ack_packet = (Pdu_ack *) &packet[packet_index]; 
-            if (ack_packet->directive_code == FINISHED_PDU) {
-                ssp_printf("received finished packet transaction: %d\n", req->transaction_sequence_number);
-                req->local_entity->transaction_finished_indication = true;
+            Pdu_ack* ack_packet = (Pdu_ack *) &packet[packet_index];
+            switch (ack_packet->directive_code)
+            {
+                case FINISHED_PDU:
+
+                    ssp_printf("received finished packet transaction: %d\n", req->transaction_sequence_number);
+                    req->local_entity->transaction_finished_indication = true;
+                    /* code */
+                    break;
+            
+                default:
+                    break;
             }
             break;
         default:
