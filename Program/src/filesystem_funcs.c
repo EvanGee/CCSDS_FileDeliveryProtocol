@@ -271,7 +271,7 @@ static int print_nak(void *element, void* args) {
 
 int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t file_size, File *file) {
 
-    //ssp_printf("renaming %s to: %s", temp, destination_file_name);
+    ssp_printf("renaming %s to: %s", temp, destination_file_name);
     ssp_rename(temp, destination_file_name);
     
     //file->missing_offsets->print(file->missing_offsets, print_nak, NULL);
