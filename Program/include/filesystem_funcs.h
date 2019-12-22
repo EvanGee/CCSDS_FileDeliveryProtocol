@@ -19,6 +19,6 @@ int write_offset(File *file, void *buff, uint32_t size, uint32_t offset);
 uint32_t calc_check_sum(char *data, uint32_t length);
 uint32_t check_sum_file(File *file, uint16_t stack_buffer);
 int receive_offset(File *file, uint8_t ack, uint32_t offset_start, uint32_t offset_end);
-File *create_temp_file(char *file_name);
+File *create_temp_file(char *file_name, uint32_t size);
 int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t file_size, File *file);
 #endif 

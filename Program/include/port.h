@@ -54,7 +54,6 @@ int ssp_close(int fd);
 void ssp_free(void *pointer);
 void ssp_thread_join(void *thread_handle);
 
-
 //network stuff
 void ssp_fd_zero(void *socket_set);
 void ssp_fd_set(int sfd, void *socket_set);

@@ -460,6 +460,7 @@ typedef struct local_entity {
     unsigned int resumed_indication : 1;
 
     unsigned int Metadata_recv_indication: 1;
+
     //function pointer to default handler?
     void *default_fault_handler;
 
@@ -471,7 +472,7 @@ typedef struct local_entity {
 
 typedef enum Network_type {
     csp,
-    free_rtos,
+    //free_rtos,
     posix,
 
 } Network_type;
@@ -552,13 +553,13 @@ typedef struct response {
 
 
 typedef enum procedure {
-    sending_finished,
     none,
+    sending_finished,
     sending_put_metadata,
     sending_eof,
-    //sending data
     sending_data,
-    clean_up
+    clean_up,
+    sending_start,
 
 } Request_procedure;
 

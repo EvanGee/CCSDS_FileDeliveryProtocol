@@ -68,8 +68,8 @@ Pdu_header *get_header_from_mib(MIB *mib, uint32_t dest_id, uint32_t source_id){
     pdu_header->transaction_seq_num_len = 3;
     pdu_header->length_of_entity_IDs = 1; 
     pdu_header->transmission_mode = remote->default_transmission_mode;
-
     pdu_header->destination_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
+
     checkAlloc(pdu_header->destination_id, 1);
     memcpy(pdu_header->destination_id, &remote->cfdp_id, pdu_header->length_of_entity_IDs);
 

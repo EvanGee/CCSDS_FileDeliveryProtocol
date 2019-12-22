@@ -27,8 +27,9 @@ CFILES += $(PROJDIR)/src/list.c
 CFILES += $(PROJDIR)/src/packet.c
 
 
-#CFILES += $(PROJDIR)/test/packet_tests.c
+CFILES += $(PROJDIR)/test/packet_tests.c
 CFILES += $(PROJDIR)/test/test.c
+CFILES += $(PROJDIR)/test/mock.c
 #CFILES += $(PROJDIR)/test/request_tests.c
 #CFILES += $(PROJDIR)/test/tasks_tests.c
 #CFILES += $(PROJDIR)/test/list_tests.c
@@ -43,25 +44,25 @@ CFILES += $(PROJDIR)/test/protocol_handler_tests.c
 MAIN = main
 
 #---------------------------Compiler Warnings---------------------------
-CWARNS += -W
-CWARNS += -Wall
+#CWARNS += -W
+#CWARNS += -Wall
 #CWARNS += -Werror
-CWARNS += -Wextra
-CWARNS += -Wformat
-CWARNS += -Wmissing-braces
-CWARNS += -Wno-cast-align
-CWARNS += -Wparentheses
-CWARNS += -Wshadow
-CWARNS += -Wno-sign-compare
-CWARNS += -Wswitch
+#CWARNS += -Wextra
+#CWARNS += -Wformat
+#CWARNS += -Wmissing-braces
+#CWARNS += -Wno-cast-align
+#CWARNS += -Wparentheses
+#CWARNS += -Wshadow
+#CWARNS += -Wno-sign-compare
+#CWARNS += -Wswitch
 CWARNS += -Wuninitialized
-CWARNS += -Wunknown-pragmas
-CWARNS += -Wunused-function
-CWARNS += -Wunused-label
+#CWARNS += -Wunknown-pragmas
+#CWARNS += -Wunused-function
+#CWARNS += -Wunused-label
 #CWARNS += -Wunused-parameter
 #CWARNS += -Wunused-value
-CWARNS += -Wunused-variable
-CWARNS += -Wmissing-prototypes
+#CWARNS += -Wunused-variable
+#CWARNS += -Wmissing-prototypes
 
 #---------------------------Libs---------------------------
 LINKFLAGS = 

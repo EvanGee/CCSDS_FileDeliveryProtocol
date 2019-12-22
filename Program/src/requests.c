@@ -147,6 +147,7 @@ Request *init_request(uint32_t buff_len) {
 }
 
 
+
 //starts a new client, adding it to app->active_clients, as well as 
 //starting a new request and adding it to the client, returns a pointer
 //to the request
@@ -165,6 +166,10 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     //build a request 
     req->transaction_sequence_number = app->transaction_sequence_number++;
     req->dest_cfdp_id = client->remote_entity->cfdp_id;
+    req->pdu_header = get_header_from_mib(app->mib, client->remote_entity->cfdp_id, app->my_cfdp_id);
+    req->res.packet_len = client->packet_len;
+    req->packet_data_len = app->packet_len;
+    
     client->request_list->insert(client->request_list, req, 0);
 
     return req;
@@ -187,8 +192,8 @@ Request *put_request(
 
     if (source_file_name == NULL || destination_file_name == NULL) {
         req = start_new_client_request(app, dest_id);
-        req->procedure = sending_put_metadata;
         req->transmission_mode = transmission_mode;
+        req->procedure = sending_start;
         return req;
     }
 
@@ -203,11 +208,11 @@ Request *put_request(
     if (file_size == 0)
         return NULL;
 
-    req->file = create_file(source_file_name, 0);
+    req->file = create_file(source_file_name, false);
     req->file_size = file_size;
 
-    req->procedure = sending_put_metadata;
     req->transmission_mode = transmission_mode;
+    req->procedure = sending_start;
     
     memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
     memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
