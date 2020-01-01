@@ -138,7 +138,8 @@ Request *init_request(uint32_t buff_len) {
     
     req->procedure = none;
     req->paused = true;
-
+    reset_timeout(&req->timeout);
+    
     req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();
@@ -156,9 +157,13 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     //spin up a new client thread
     Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
 
+
     if (client == NULL) {
+        ssp_printf("Spinning up a new client thread\n");
         client = ssp_client(dest_id, app);
         app->active_clients->insert(app->active_clients, client, dest_id);
+    } else {
+        ssp_printf("adding request to existing client thread\n");
     }
 
     Request *req = init_request(client->packet_len);
@@ -190,6 +195,7 @@ Request *put_request(
     Request *req;
     uint32_t file_size = 0;
 
+    ssp_printf("trying to start new request\n");
     if (source_file_name == NULL || destination_file_name == NULL) {
         req = start_new_client_request(app, dest_id);
         req->transmission_mode = transmission_mode;
@@ -248,3 +254,57 @@ int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id,
 }
 
 
+void print_request_state(Request *req) {
+
+    ssp_printf("----------------Transaction %d---------------\n", req->transaction_sequence_number);
+    ssp_printf("local_entity stats: \n");
+    ssp_printf("EOF_recv indication %d\n", req->local_entity->EOF_recv_indication);
+    ssp_printf("EOF_sent indication %d\n", req->local_entity->EOF_sent_indication);
+    ssp_printf("Metadata_recv indication %d\n", req->local_entity->Metadata_recv_indication);
+    ssp_printf("Metadata_sent indication %d\n", req->local_entity->Metadata_sent_indication);
+    
+    ssp_printf("Resume indication %d\n", req->local_entity->resumed_indication);
+    ssp_printf("Suspended indication %d\n", req->local_entity->suspended_indication);
+    ssp_printf("Transaction finished indication %d\n", req->local_entity->transaction_finished_indication);
+    print_request_procedure(req);
+    ssp_printf("---------------------------------------------\n");
+}
+
+
+void print_request_procedure(Request *req){
+
+    ssp_printf("current procedure: ");
+    switch (req->procedure)
+    {
+        case sending_eof: 
+            ssp_printf("sending_eof\n");
+            break;
+
+        case sending_data:
+            ssp_printf("sending_data\n");
+            break;
+
+        case sending_put_metadata:
+            ssp_printf("sending_put_metadata\n");
+            break;
+
+        case sending_finished:
+            ssp_printf("sending_finished\n");
+            break;
+
+        case sending_start:
+            ssp_printf("sending_start\n");
+            break;
+
+        case clean_up: // will close the request happens in the previous functions
+            ssp_printf("clean_up\n");
+            break;
+
+        case none:
+            ssp_printf("none\n");
+            break;
+
+        default:
+            break;
+    }
+}

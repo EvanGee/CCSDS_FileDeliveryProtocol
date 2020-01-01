@@ -166,10 +166,10 @@ uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Reques
 //length is the total size of the packet
 uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t length) {
 
-    if (file->next_offset_to_send > file->total_size){
-        ssp_error("cant send an offset past the file's length\n");
-        return 1;
+    if (file->next_offset_to_send >= file->total_size){
+        return 0;
     }
+
 
     Pdu_header *header = (Pdu_header *) packet;
     //set header to file directive 0 is directive, 1 is data

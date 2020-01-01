@@ -250,7 +250,10 @@ void *ssp_init_sockaddr_struct(size_t *size_of_addr) {
 void *ssp_alloc(uint32_t n_memb, size_t size) {
     
     #ifdef POSIX_PORT
-        return calloc(n_memb, size);
+        void *mem = calloc(n_memb, size);
+        if (mem == NULL)
+            ssp_printf("Memory failed to alloc!\n");
+        return mem;
     #endif
 
     #ifdef FREE_RTOS_PORT
@@ -289,15 +292,21 @@ void ssp_printf( char *stuff, ...) {
 
 
 
-
+//returns seconds elapsed
 int ssp_time_count() {
 
     #ifdef POSIX_PORT
-        clock_t c = clock();
-        c = c / CLOCKS_PER_SEC;
-        return c;
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
 
+        //clock_t c = clock();
+        //c = c / CLOCKS_PER_SEC;
+        return ts.tv_sec;
     #endif
+
+
+
+
 
     #ifdef FREE_RTOS_PORT
         //some kind of ticks

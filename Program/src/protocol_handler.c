@@ -141,8 +141,14 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         request_list->push(request_list, found_req, transaction_sequence_number);
     } 
 
+    else if (found_req == NULL) {
+        ssp_printf("could not find request \n");
+        return -1;
+    }
+
     found_req->packet_data_len = len;
     *req = found_req;
+
 
     return packet_index;
 
@@ -249,6 +255,7 @@ static void send_put_metadata(Request *req, Response res) {
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, req->pdu_header);
     ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
     start = build_put_packet_metadata(req->buff, start, req);
+    req->local_entity->Metadata_sent_indication = true;
     ssp_sendto(res);
 }
 
@@ -275,10 +282,7 @@ static void start_sequence(Request *req, Response res) {
     req->procedure = sending_data;
 }
 
-static void send_data(Request *req, Response res) {
-    if (req->local_entity->EOF_sent_indication == true)
-        return;
-    
+static void send_data(Request *req, Response res) {    
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, req->pdu_header);
 
     if (build_data_packet(req->buff, start, req->file, res.packet_len)) {
@@ -342,7 +346,6 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             ssp_printf("received finished pdu transaction: %d\n", req->transaction_sequence_number);
             break;
         case NAK_PDU:
-            req->local_entity->Metadata_recv_indication = true;
             nak_response(packet, packet_index, req, res, client);
             ssp_printf("received Nak pdu transaction: %d\n", req->transaction_sequence_number);
             break;

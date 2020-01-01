@@ -461,6 +461,8 @@ typedef struct local_entity {
 
     unsigned int Metadata_recv_indication: 1;
 
+    unsigned int Metadata_sent_indication: 1;
+    
     //function pointer to default handler?
     void *default_fault_handler;
 

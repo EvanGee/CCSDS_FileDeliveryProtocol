@@ -44,6 +44,7 @@ void ssp_sendto(Response res);
 int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len);
 
 void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void *params);
+int ssp_time_count(void);
 
 int ssp_open(char *pathname, int flags);
 int ssp_read(int fd, char* buff, size_t size);
@@ -66,7 +67,6 @@ void ssp_fd_clr(int sfd, void *socket_set);
 
 int ssp_rename(const char *old, const char *new);
 void reset_request(Request *req);
-int ssp_time_count();
 
 
 #endif

@@ -18,7 +18,6 @@ to use for general functionality.
 #include "port.h"
 
 
-
 #define MAX_LEN 255
 #define ID_LEN 10
 

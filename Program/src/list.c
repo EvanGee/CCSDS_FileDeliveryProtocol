@@ -111,9 +111,11 @@ static int push(List *list, void *element, uint32_t id)
 
 static void iterate(List *list, void (*f)(Node *node, void *element, void *args), void *args)
 {
+
+
     Node *cur = list->head->next;
     Node *next;
-    while (cur->next != NULL)
+    while (cur->next != NULL && cur != list->tail)
     {
         next = cur->next;
         f(cur, cur->element, args);
@@ -123,6 +125,7 @@ static void iterate(List *list, void (*f)(Node *node, void *element, void *args)
 
 //deletes the node, and returns the object, (motifys the list)
 static void *removeNode(List *list, Node *node) {
+
 
     Node *previous = node->prev;
     Node *next = node->next;

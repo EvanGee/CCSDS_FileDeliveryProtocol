@@ -12,6 +12,9 @@
 #include "types.h"
 #include "utils.h"
 #include <arpa/inet.h>
+
+//for print_request_state
+#include "requests.h"
 /*------------------------------------------------------------------------------
     
     Callbacks for the tasks bellow
@@ -23,10 +26,11 @@ static void timeout(Request *req) {
 
     bool is_timeout = check_timeout(&req->timeout, TIMEOUT_BEFORE_CANCEL_REQUEST);
     if (is_timeout) {
-        if (req->procedure != none) 
-            ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);
-        else {
+        if (req->local_entity->transaction_finished_indication){
             ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
+        } else {
+            ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);
+            print_request_state(req);
         }
         req->procedure = clean_up;
     }
@@ -96,7 +100,8 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
 void remove_request_check(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     List *req_list = (List *) args;
-      
+    //print_request_procedure(req);
+
     if (req->procedure == clean_up) {
         ssp_printf("removing request\n");
         Request *remove_this = req_list->removeNode(req_list, node);
@@ -117,7 +122,6 @@ static void user_request_check(Node *node, void *request, void *args) {
     memset(params->res.msg, 0, params->client->packet_len);
 
     user_request_handler(params->res, req, params->client);
-
     timeout(req);
     
     remove_request_check(node, request, params->client->request_list);
@@ -153,12 +157,10 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
 
 
 
-static void timeout_check_callback(Node *node, void *request, void *args) {
+static void timeout_check_callback_server(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     on_server_time_out(req->res, req); 
-    
     timeout(req);
-
     remove_request_check(node, request, args);
 }
 
@@ -166,7 +168,7 @@ static void timeout_check_callback(Node *node, void *request, void *args) {
 static void client_check_callback(Node *node, void *client, void *args) {
     Client *c = (Client *) client;
     List *list = (List *) args;
-
+    //printf("checking client\n");
     if (c->close) {
         Client *remove_this = (Client *) list->removeNode(list, node);
         ssp_printf("removing client, from server \n");
@@ -176,14 +178,14 @@ static void client_check_callback(Node *node, void *client, void *args) {
 
 }
 
-//this function is a callback when using  my posix ports
-static int on_time_out_callback(void *other) {
+//this function is a callback for servers
+static int on_time_out_callback_server(void *other) {
 
     FTP *app = (FTP*) other;
     if(app->current_request == NULL)
         return 0;
 
-    app->request_list->iterate(app->request_list, timeout_check_callback, app->request_list);
+    app->request_list->iterate(app->request_list, timeout_check_callback_server, app->request_list);
     app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
     
     return 0;
@@ -270,7 +272,7 @@ void *ssp_connectionless_server_task(void *params) {
     connectionless_server(port, 
         app->packet_len, 
         on_recv_server_callback, 
-        on_time_out_callback, 
+        on_time_out_callback_server, 
         on_stdin_callback, 
         check_exit_server_callback, 
         on_exit_server_callback, 
@@ -321,7 +323,7 @@ void *ssp_connection_server_task(void *params) {
         app->packet_len,
         10, 
         on_recv_server_callback, 
-        on_time_out_callback, 
+        on_time_out_callback_server, 
         on_stdin_callback, 
         check_exit_server_callback, 
         on_exit_server_callback, 
@@ -365,7 +367,7 @@ void *ssp_csp_connectionless_server_task(void *params) {
     csp_connectionless_server(
         app->remote_entity->UT_port,
         on_recv_server_callback, 
-        on_time_out_callback, 
+        on_time_out_callback_server, 
         on_stdin_callback, 
         check_exit_server_callback, 
         on_exit_server_callback, 
@@ -397,7 +399,7 @@ void *ssp_csp_connection_server_task(void *params) {
 
     csp_connection_server(app->remote_entity->UT_port,
         on_recv_server_callback,
-        on_time_out_callback,
+        on_time_out_callback_server,
         on_stdin_callback,
         check_exit_server_callback,
         on_exit_server_callback,
