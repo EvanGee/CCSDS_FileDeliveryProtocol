@@ -45,16 +45,15 @@ int main(int argc, char** argv) {
     //create a client
     if (conf->client_cfdp_id != 0){
 
-        //Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
         
-        
+        /*
         start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy.jpg", ACKNOWLEDGED_MODE, app));
         start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy2.jpg", ACKNOWLEDGED_MODE, app));
         start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy3.jpg", ACKNOWLEDGED_MODE, app));
-        
+        */
         //start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy4.jpg", ACKNOWLEDGED_MODE, app));
 
-        /*
+        
         Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
         add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy.jpg", req);
         start_request(req);
@@ -75,9 +74,9 @@ int main(int argc, char** argv) {
         req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
         add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy5.jpg", req);
         start_request(req);
-/*
+*/
 
-        Request *req;
+        //Request *req;
         for (int i=0; i < 10; i++) {
             sleep(10);
             req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
@@ -88,7 +87,7 @@ int main(int argc, char** argv) {
             start_request(req);
 
         }
-*/        
+     
 
     }
 

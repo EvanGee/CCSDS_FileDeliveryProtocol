@@ -111,8 +111,6 @@ static int push(List *list, void *element, uint32_t id)
 
 static void iterate(List *list, void (*f)(Node *node, void *element, void *args), void *args)
 {
-
-
     Node *cur = list->head->next;
     Node *next;
     while (cur->next != NULL && cur != list->tail)

@@ -131,7 +131,9 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
 
     Response res;    
     Client *client = (Client *) other;
+
     if (client->request_list->count == 0){
+        client->close = true;
         return 0;
     }
         
@@ -147,11 +149,7 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
         client
     };
 
-    client->request_list->iterate(client->request_list, user_request_check, &params);
-    if (client->request_list->count == 0) {
-        client->close = true;
-    }
-        
+    client->request_list->iterate(client->request_list, user_request_check, &params);     
     return 0;
 }
 
@@ -168,7 +166,6 @@ static void timeout_check_callback_server(Node *node, void *request, void *args)
 static void client_check_callback(Node *node, void *client, void *args) {
     Client *c = (Client *) client;
     List *list = (List *) args;
-    //printf("checking client\n");
     if (c->close) {
         Client *remove_this = (Client *) list->removeNode(list, node);
         ssp_printf("removing client, from server \n");
@@ -182,12 +179,14 @@ static void client_check_callback(Node *node, void *client, void *args) {
 static int on_time_out_callback_server(void *other) {
 
     FTP *app = (FTP*) other;
-    if(app->current_request == NULL)
-        return 0;
 
-    app->request_list->iterate(app->request_list, timeout_check_callback_server, app->request_list);
-    app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
-    
+    if (app->active_clients->count) {
+        app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
+    } 
+    if (app->request_list->count) {
+        app->request_list->iterate(app->request_list, timeout_check_callback_server, app->request_list);
+    }
+
     return 0;
 }
 
