@@ -53,8 +53,10 @@ static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, 
     Request *current_request = (*request_container);
     app->current_request = current_request;
 
-    if (packet_index < 0)
+    if (packet_index < 0) {
+        ssp_printf("error parsing header\n");
         return -1;
+    }
     
     parse_packet_server(packet, packet_index, app->current_request->res, current_request, app);
 

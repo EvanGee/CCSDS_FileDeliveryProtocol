@@ -103,11 +103,14 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
 
     Request *request = *req;
 
+
     //if packet is from the same request, don't' change current request
+    /*
     if (request != NULL && request->transaction_sequence_number == transaction_sequence_number && request->dest_cfdp_id == source_id){ 
         (*req)->packet_data_len = len;         
         return packet_index;
     }
+    */
 
     //look for active request in list
     struct request_search_params params = {
@@ -126,7 +129,6 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         found_req->transmission_mode = header->transmission_mode;
         found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->dest_cfdp_id = source_id;
-        found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->pdu_header = get_header_from_mib(app->mib, source_id, app->my_cfdp_id);
         found_req->remote_entity = get_remote_entity(app->mib, source_id);
         found_req->procedure = sending_put_metadata;
@@ -148,8 +150,6 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
 
     found_req->packet_data_len = len;
     *req = found_req;
-
-
     return packet_index;
 
 }
