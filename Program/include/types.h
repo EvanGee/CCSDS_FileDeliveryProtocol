@@ -8,7 +8,7 @@
 #include <stddef.h>
 
 
-
+#define MAX_PATH 255
 #define ACKNOWLEDGED_MODE 0
 #define UN_ACKNOWLEDGED_MODE 1
 /*-----------------------------------------------------------------------------
@@ -575,8 +575,8 @@ typedef struct request {
     File *file;
     uint32_t file_size;
 
-    char *source_file_name;
-    char *destination_file_name;
+    char source_file_name[MAX_PATH];
+    char destination_file_name[MAX_PATH];
 
     uint32_t packet_data_len;
 
@@ -598,7 +598,7 @@ typedef struct request {
    // uint8_t sent_first_data_round;
 
     Remote_entity *remote_entity;
-    Local_entity *local_entity;
+    Local_entity local_entity;
 
     List *messages_to_user;
     
@@ -649,6 +649,7 @@ typedef struct client {
     void *client_handle;
     //the maximum size of the packet
     uint32_t packet_len;
+    uint32_t cfdp_id;
     
     Request *current_request;
     List *request_list;

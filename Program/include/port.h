@@ -14,8 +14,6 @@
 #define CSP_NETWORK
 //#define FREE_RTOS_PORT
 
-
-#define MAX_PATH 255
 #include "types.h"
 
 
@@ -37,7 +35,6 @@ void ssp_error( char *msg);
 
 void ssp_printf(char *stuff, ...);
 
-Request *init_request(uint32_t buff_len);
 void *ssp_alloc(uint32_t u_memb, size_t size);
 void ssp_sendto(Response res);
 

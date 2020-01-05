@@ -26,7 +26,7 @@ static void timeout(Request *req) {
 
     bool is_timeout = check_timeout(&req->timeout, TIMEOUT_BEFORE_CANCEL_REQUEST);
     if (is_timeout) {
-        if (req->local_entity->transaction_finished_indication){
+        if (req->local_entity.transaction_finished_indication){
             ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
         } else {
             ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);

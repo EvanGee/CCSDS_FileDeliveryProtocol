@@ -99,16 +99,10 @@ void ssp_cleanup_req(void *request) {
         free_file(req->file);
     if (req->pdu_header != NULL)
         ssp_cleanup_pdu_header(req->pdu_header);
-    if (req->source_file_name != NULL)  
-        ssp_free(req->source_file_name);
-    if (req->destination_file_name != NULL)
-        ssp_free(req->destination_file_name);
     if (req->buff != NULL)
         ssp_free(req->buff);
     if (req->res.addr != NULL)
         ssp_free(req->res.addr);
-    if (req->local_entity != NULL)
-        ssp_free(req->local_entity);
 
     if (req->messages_to_user->count > 0)
         req->messages_to_user->free(req->messages_to_user, ssp_free_message);
@@ -121,17 +115,14 @@ void ssp_cleanup_req(void *request) {
 }
 
 
+
+
+
+
 Request *init_request(uint32_t buff_len) {
 
     Request *req = ssp_alloc(1, sizeof(Request));
 
-    req->source_file_name = ssp_alloc(MAX_PATH, sizeof(char));
-    checkAlloc(req->source_file_name, 1);
-
-    req->destination_file_name = ssp_alloc(MAX_PATH, sizeof(char));
-    checkAlloc(req->destination_file_name,  1);
-
-    req->local_entity = ssp_alloc(1, sizeof(Local_entity));
     req->file = NULL;
     req->buff_len = buff_len;
     req->buff = ssp_alloc(buff_len, sizeof(char));
@@ -143,7 +134,59 @@ Request *init_request(uint32_t buff_len) {
     req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();
+
     checkAlloc(req->buff,  1);
+    return req;
+}
+
+
+Request *init_request_2(uint32_t buff_len, uint32_t transaction_id, Client *client) {
+
+
+    Request *req = ssp_alloc(1, sizeof(Request));
+    checkAlloc(req, 1);
+
+
+    req->pdu_header = client->pdu_header;
+    req->remote_entity = client->remote_entity;
+
+    req->file = NULL;
+    req->buff_len = buff_len;
+
+    req->buff = ssp_alloc(buff_len, sizeof(char));
+    checkAlloc(req->buff,  1);
+
+    req->dest_cfdp_id = client->remote_entity->cfdp_id;
+    req->transaction_sequence_number = transaction_id;
+
+    req->procedure = none;
+    req->paused = true;
+    reset_timeout(&req->timeout);
+    
+    req->res.msg = req->buff;
+
+    req->messages_to_user = linked_list();
+    checkAlloc(req->messages_to_user,  1);
+    
+
+    //using the hosts network transfer, should switch to client configuration
+    /*
+    req->transmission_mode = header->transmission_mode;
+    req->transaction_sequence_number = transaction_sequence_number;
+    req->dest_cfdp_id = source_id;
+    
+    req->res.transmission_mode = app->remote_entity->default_transmission_mode;
+    req->res.type_of_network = app->remote_entity->type_of_network;
+    req->res.packet_len = app->packet_len;
+    req->res.sfd = res.sfd;
+    req->res.addr = ssp_alloc(1, res.size_of_addr);
+
+    memcpy(found_req->res.addr, res.addr, res.size_of_addr);
+    */
+
+    //req->paused = false;
+    //req->procedure = sending_put_metadata;
+
     return req;
 }
 
@@ -258,14 +301,14 @@ void print_request_state(Request *req) {
 
     ssp_printf("----------------Transaction %d---------------\n", req->transaction_sequence_number);
     ssp_printf("local_entity stats: \n");
-    ssp_printf("EOF_recv indication %d\n", req->local_entity->EOF_recv_indication);
-    ssp_printf("EOF_sent indication %d\n", req->local_entity->EOF_sent_indication);
-    ssp_printf("Metadata_recv indication %d\n", req->local_entity->Metadata_recv_indication);
-    ssp_printf("Metadata_sent indication %d\n", req->local_entity->Metadata_sent_indication);
+    ssp_printf("EOF_recv indication %d\n", req->local_entity.EOF_recv_indication);
+    ssp_printf("EOF_sent indication %d\n", req->local_entity.EOF_sent_indication);
+    ssp_printf("Metadata_recv indication %d\n", req->local_entity.Metadata_recv_indication);
+    ssp_printf("Metadata_sent indication %d\n", req->local_entity.Metadata_sent_indication);
     
-    ssp_printf("Resume indication %d\n", req->local_entity->resumed_indication);
-    ssp_printf("Suspended indication %d\n", req->local_entity->suspended_indication);
-    ssp_printf("Transaction finished indication %d\n", req->local_entity->transaction_finished_indication);
+    ssp_printf("Resume indication %d\n", req->local_entity.resumed_indication);
+    ssp_printf("Suspended indication %d\n", req->local_entity.suspended_indication);
+    ssp_printf("Transaction finished indication %d\n", req->local_entity.transaction_finished_indication);
     print_request_procedure(req);
     ssp_printf("---------------------------------------------\n");
 }
