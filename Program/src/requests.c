@@ -140,48 +140,39 @@ Request *init_request(uint32_t buff_len) {
 }
 
 
-Request *init_request_2(uint32_t buff_len, uint32_t transaction_id, Client *client) {
-
+Request *init_request_2(uint32_t buff_len, uint32_t transaction_id, Pdu_header *pdu_header, Remote_entity *remote_entity) {
 
     Request *req = ssp_alloc(1, sizeof(Request));
     checkAlloc(req, 1);
 
 
-    req->pdu_header = client->pdu_header;
-    req->remote_entity = client->remote_entity;
-
+    req->pdu_header = pdu_header;
+    req->remote_entity = remote_entity;
     req->file = NULL;
     req->buff_len = buff_len;
+    req->dest_cfdp_id = remote_entity->cfdp_id;
+    req->transaction_sequence_number = transaction_id;
+    req->procedure = none;
+    req->paused = true;
 
     req->buff = ssp_alloc(buff_len, sizeof(char));
     checkAlloc(req->buff,  1);
 
-    req->dest_cfdp_id = client->remote_entity->cfdp_id;
-    req->transaction_sequence_number = transaction_id;
-
-    req->procedure = none;
-    req->paused = true;
     reset_timeout(&req->timeout);
     
     req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();
     checkAlloc(req->messages_to_user,  1);
+    req->res.transmission_mode = remote_entity->default_transmission_mode;
+    req->res.type_of_network = remote_entity->type_of_network;
+    req->res.packet_len = buff_len;
     
+    //req->res.addr = remote_entity->UT_address;
 
     //using the hosts network transfer, should switch to client configuration
     /*
-    req->transmission_mode = header->transmission_mode;
-    req->transaction_sequence_number = transaction_sequence_number;
-    req->dest_cfdp_id = source_id;
-    
-    req->res.transmission_mode = app->remote_entity->default_transmission_mode;
-    req->res.type_of_network = app->remote_entity->type_of_network;
-    req->res.packet_len = app->packet_len;
     req->res.sfd = res.sfd;
-    req->res.addr = ssp_alloc(1, res.size_of_addr);
-
-    memcpy(found_req->res.addr, res.addr, res.size_of_addr);
     */
 
     //req->paused = false;

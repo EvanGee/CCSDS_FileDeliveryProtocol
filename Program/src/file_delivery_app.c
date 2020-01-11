@@ -97,7 +97,7 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
     client->packet_len = PACKET_LEN;
 
     Remote_entity *remote = get_remote_entity(app->mib, cfdp_id);
-    
+
     if (remote == NULL)
         ssp_printf("couldn't find entity in Remote_entity list\n");
 
