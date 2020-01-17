@@ -8,10 +8,15 @@
 #include <string.h>
 #include "mib.h"
 #include "filesystem_funcs.h"
-#include <stdio.h>
+
 #include "types.h"
 #include "utils.h"
 #include <arpa/inet.h>
+
+
+//snprintf
+#include <stdio.h>
+
 
 //for print_request_state
 #include "requests.h"
@@ -263,7 +268,7 @@ static int on_stdin_callback(void *other) {
 
 ------------------------------------------------------------------------------*/
 void *ssp_connectionless_server_task(void *params) {
-    printf("starting posix connectionless server task\n");
+    ssp_printf("starting posix connectionless server task\n");
     FTP* app = (FTP*) params;
     app->transaction_sequence_number = 1;
 
@@ -284,7 +289,7 @@ void *ssp_connectionless_server_task(void *params) {
 
     
 void *ssp_connectionless_client_task(void* params){
-    printf("starting posix connectionless client task \n");
+    ssp_printf("starting posix connectionless client task \n");
     Client *client = (Client *) params;
 
     char host_name[INET_ADDRSTRLEN];
@@ -312,7 +317,7 @@ void *ssp_connectionless_client_task(void* params){
 }
 
 void *ssp_connection_server_task(void *params) {
-    printf("starting posix connection server\n");
+    ssp_printf("starting posix connection server\n");
     FTP* app = (FTP*) params;
     app->transaction_sequence_number = 1;
 
@@ -334,7 +339,7 @@ void *ssp_connection_server_task(void *params) {
 }
 
 void *ssp_connection_client_task(void *params) {
-    printf("starting posix connection client\n");
+    ssp_printf("starting posix connection client\n");
     Client *client = (Client *) params;
 
     char host_name[INET_ADDRSTRLEN];
@@ -362,7 +367,7 @@ void *ssp_connection_client_task(void *params) {
 }
 
 void *ssp_csp_connectionless_server_task(void *params) {
-    printf("starting csp connectionless server\n");
+    ssp_printf("starting csp connectionless server\n");
     FTP *app = (FTP *) params;
 
     csp_connectionless_server(
@@ -378,7 +383,7 @@ void *ssp_csp_connectionless_server_task(void *params) {
 }
 
 void *ssp_csp_connectionless_client_task(void *params) {
-    printf("starting csp connectionless client\n");
+    ssp_printf("starting csp connectionless client\n");
     Client *client = (Client *) params;
     
     csp_connectionless_client(client->remote_entity->UT_address, 
@@ -395,7 +400,7 @@ void *ssp_csp_connectionless_client_task(void *params) {
 
 
 void *ssp_csp_connection_server_task(void *params) {
-    printf("starting csp connection server\n");
+    ssp_printf("starting csp connection server\n");
     FTP *app = (FTP *) params;
 
     csp_connection_server(app->remote_entity->UT_port,
@@ -410,7 +415,7 @@ void *ssp_csp_connection_server_task(void *params) {
 } 
 
 void *ssp_csp_connection_client_task(void *params) {
-    printf("starting csp connection client\n");
+    ssp_printf("starting csp connection client\n");
     Client *client = (Client *) params;
 
     csp_connection_client(client->remote_entity->UT_address, 

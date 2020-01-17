@@ -27,8 +27,7 @@ int checkAlloc(void *mem, int notOkToFail)
 
     if (mem == NULL && notOkToFail)
     {
-        perror("malloc");
-        exit(EXIT_FAILURE);
+        ssp_error("malloc");
     }
     else if(mem == NULL && !notOkToFail) {
         return 0;

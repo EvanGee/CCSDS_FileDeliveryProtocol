@@ -74,6 +74,7 @@ static int find_request(void *element, void *args) {
 
 
 //------------------------------------TODO------------------------------------------
+/*
 Request *parse_pdu_header(char*packet, uint8_t is_server, Response res, Request **req, List *request_list, FTP *app) {
 
     uint8_t packet_index = PACKET_STATIC_HEADER_LEN;
@@ -104,10 +105,7 @@ Request *parse_pdu_header(char*packet, uint8_t is_server, Response res, Request 
     Request *found_req = (Request *) request_list->find(request_list, 0, find_request, &params);
     return found_req;
 }
-
-
-
-
+*/
 
 
 //------------------------------------------------------------------------------
@@ -140,9 +138,6 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     }
 
     uint16_t len = get_data_length(packet);
-
-    Request *request = *req;
-
 
     //if packet is from the same request, don't' change current request
     /*
