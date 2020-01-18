@@ -655,7 +655,7 @@ typedef struct client {
     List *request_list;
 
     //information about the remote_entity
-    Remote_entity *remote_entity;
+    Remote_entity remote_entity;
 
     //packet header, useful for copying into outgoing packets
     Pdu_header *pdu_header;

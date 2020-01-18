@@ -80,9 +80,9 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
     res.addr = addr;
     res.sfd = sfd;
     res.packet_len = client->packet_len;
-    res.type_of_network = client->remote_entity->type_of_network;
+    res.type_of_network = client->remote_entity.type_of_network;
     res.size_of_addr = size_of_addr;
-    res.transmission_mode = client->remote_entity->default_transmission_mode;
+    res.transmission_mode = client->remote_entity.default_transmission_mode;
 
     Request **request_container = &client->current_request;
 
@@ -148,8 +148,8 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
     res.packet_len = client->packet_len;
     res.addr = addr;
     res.size_of_addr = size_of_addr;
-    res.type_of_network = client->remote_entity->type_of_network;
-    res.transmission_mode = client->remote_entity->default_transmission_mode;
+    res.type_of_network = client->remote_entity.type_of_network;
+    res.transmission_mode = client->remote_entity.default_transmission_mode;
 
     struct user_request_check_params params = {
         res,
@@ -296,11 +296,12 @@ void *ssp_connectionless_client_task(void* params){
     char port[10];
 
     //convert int to char *
-    snprintf(port, 10, "%d", client->remote_entity->UT_port);
+    snprintf(port, 10, "%d", client->remote_entity.UT_port);
 
     //convert uint id to char *
-    inet_ntop(AF_INET, &client->remote_entity->UT_address, host_name, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &client->remote_entity.UT_address, host_name, INET_ADDRSTRLEN);
     
+
     connectionless_client(host_name, 
         port, 
         client->packet_len, 
@@ -346,10 +347,10 @@ void *ssp_connection_client_task(void *params) {
     char port[10];
 
     //convert int to char *
-    snprintf(port, 10, "%d", client->remote_entity->UT_port);
+    snprintf(port, 10, "%d", client->remote_entity.UT_port);
 
     //convert uint id to char *
-    inet_ntop(AF_INET, &client->remote_entity->UT_address, host_name, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &client->remote_entity.UT_address, host_name, INET_ADDRSTRLEN);
 
     connection_client(host_name, 
         port, 
@@ -386,8 +387,8 @@ void *ssp_csp_connectionless_client_task(void *params) {
     ssp_printf("starting csp connectionless client\n");
     Client *client = (Client *) params;
     
-    csp_connectionless_client(client->remote_entity->UT_address, 
-        client->remote_entity->UT_port,
+    csp_connectionless_client(client->remote_entity.UT_address, 
+        client->remote_entity.UT_port,
         client->app->remote_entity.UT_port, 
         on_send_client_callback, 
         on_recv_client_callback, 
@@ -418,8 +419,8 @@ void *ssp_csp_connection_client_task(void *params) {
     ssp_printf("starting csp connection client\n");
     Client *client = (Client *) params;
 
-    csp_connection_client(client->remote_entity->UT_address, 
-        client->remote_entity->UT_port,
+    csp_connection_client(client->remote_entity.UT_address, 
+        client->remote_entity.UT_port,
         on_send_client_callback,
         on_recv_client_callback,
         check_exit_client_callback,

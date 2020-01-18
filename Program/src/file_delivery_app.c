@@ -19,13 +19,15 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
 
     //setting host name for testing
     char *host_name = "127.0.0.1";
-    uint32_t addr[sizeof(uint32_t)];
-    inet_pton(AF_INET, host_name, addr);
+    uint32_t addr = 0;
+
+    inet_pton(AF_INET, host_name, &addr);
     
     //adding new cfdp entities to management information base
-    add_new_cfdp_entity(mib, 1, *addr, 1111, posix, UN_ACKNOWLEDGED_MODE);
-    add_new_cfdp_entity(mib, 2, *addr, 1112, posix, UN_ACKNOWLEDGED_MODE); 
-    add_new_cfdp_entity(mib, 7, *addr, 1113, posix, UN_ACKNOWLEDGED_MODE); 
+    add_new_cfdp_entity(mib, 1, addr, 1111, posix, UN_ACKNOWLEDGED_MODE);
+
+    add_new_cfdp_entity(mib, 2, addr, 1112, posix, UN_ACKNOWLEDGED_MODE); 
+    add_new_cfdp_entity(mib, 7, addr, 1113, posix, UN_ACKNOWLEDGED_MODE); 
 
     add_new_cfdp_entity(mib, 3, 1, 1, csp, UN_ACKNOWLEDGED_MODE);   
     add_new_cfdp_entity(mib, 4, 2, 2, csp, UN_ACKNOWLEDGED_MODE);   
@@ -40,7 +42,6 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
         ssp_error("couldn't start server\n");
         return NULL;
     }
-
 
     //find server client in mib
     //Remote_entity* server_entity = mib->remote_entities->find(mib->remote_entities, my_cfdp_address, NULL, NULL);
@@ -104,26 +105,29 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
     client->request_list = linked_list();
     client->packet_len = PACKET_LEN;
 
-    Remote_entity *remote = get_remote_entity(app->mib, cfdp_id);
-
-    if (remote == NULL)
-        ssp_printf("couldn't find entity in Remote_entity list\n");
-
-    //TODO clean this up, we don't need multiple instances of UT_ports etc
-    client->remote_entity = remote;
+    
+    //Remote_entity *remote_entity = ssp_alloc(1, sizeof(Remote_entity));
+    Remote_entity remote_entity;
+    int error = get_remote_entity_from_json(&remote_entity, cfdp_id);
+    if (error < 0) {
+        ssp_error("couldn't get client remote_entity from mib\n");
+        return NULL;
+    }
+    
+    client->remote_entity = remote_entity;
     client->pdu_header = get_header_from_mib(app->mib, cfdp_id, app->my_cfdp_id);
     client->app = app;
 
-    if (remote->type_of_network == posix && remote->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+    if (remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
 
-    } else if(remote->type_of_network == posix && remote->default_transmission_mode == ACKNOWLEDGED_MODE) {
+    } else if(remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
 
-    } else if (remote->type_of_network == csp && remote->default_transmission_mode == ACKNOWLEDGED_MODE) {
+    } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
 
-    } else if (remote->type_of_network == csp && remote->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+    } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
     }
 

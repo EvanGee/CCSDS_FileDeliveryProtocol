@@ -164,7 +164,7 @@ Request *init_request_2(uint32_t buff_len, uint32_t transaction_id, Pdu_header *
     req->res.type_of_network = remote_entity->type_of_network;
     req->res.packet_len = buff_len;
     
-    //req->res.addr = remote_entity->UT_address;
+    //req->res.addr = remote_entity.UT_address;
 
     //using the hosts network transfer, should switch to client configuration
     /*
@@ -199,8 +199,8 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
 
     //build a request 
     req->transaction_sequence_number = app->transaction_sequence_number++;
-    req->dest_cfdp_id = client->remote_entity->cfdp_id;
-    req->pdu_header = get_header_from_mib(app->mib, client->remote_entity->cfdp_id, app->my_cfdp_id);
+    req->dest_cfdp_id = client->remote_entity.cfdp_id;
+    req->pdu_header = get_header_from_mib(app->mib, client->remote_entity.cfdp_id, app->my_cfdp_id);
     req->res.packet_len = client->packet_len;
     req->packet_data_len = app->packet_len;
     
