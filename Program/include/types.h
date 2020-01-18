@@ -628,7 +628,7 @@ typedef struct ftp {
     Request *current_request;
 
     //underlying connection information 
-    Remote_entity *remote_entity;
+    Remote_entity remote_entity;
 
     List *active_clients;
 

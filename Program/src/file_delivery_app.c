@@ -33,19 +33,27 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     add_new_cfdp_entity(mib, 5, 3, 3, csp, ACKNOWLEDGED_MODE);   
     add_new_cfdp_entity(mib, 6, 4, 4, csp, ACKNOWLEDGED_MODE);   
 
-
-    //find server client in mib
-    Remote_entity* server_entity = mib->remote_entities->find(mib->remote_entities, my_cfdp_address, NULL, NULL);
-    if (server_entity == NULL) {
-        ssp_printf("couldn't find your id in the information base\n");
+    
+    Remote_entity remote_entity;
+    int error = get_remote_entity_from_json(&remote_entity, my_cfdp_address);
+    if (error == -1) {
+        ssp_error("couldn't start server\n");
+        return NULL;
     }
 
-    if (server_entity->type_of_network == csp) {
+
+    //find server client in mib
+    //Remote_entity* server_entity = mib->remote_entities->find(mib->remote_entities, my_cfdp_address, NULL, NULL);
+    //if (server_entity == NULL) {
+    //    ssp_printf("couldn't find your id in the information base\n");
+    //}
+
+    if (remote_entity.type_of_network == csp) {
         
         printf("Initialising CSP\r\n");
 
         /* Init CSP with address MY_ADDRESS */
-        csp_init(server_entity->UT_address);
+        csp_init(remote_entity.UT_address);
 
         /* Init buffer system with 10 packets of maximum PACKET_LEN bytes each */
         csp_buffer_init(10, PACKET_LEN);
@@ -59,7 +67,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     app->my_cfdp_id = my_cfdp_address;
     app->mib = mib;
     app->close = 0;
-    app->remote_entity = server_entity;
+    app->remote_entity = remote_entity;
     app->active_clients = linked_list();
     app->request_list = linked_list();
     app->current_request = NULL;
@@ -73,16 +81,16 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
 
 void ssp_server(FTP *app) {
 
-    if (app->remote_entity->type_of_network == posix && app->remote_entity->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+    if (app->remote_entity.type_of_network == posix && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, app);
 
-    } else if(app->remote_entity->type_of_network == posix && app->remote_entity->default_transmission_mode == ACKNOWLEDGED_MODE) {
+    } else if(app->remote_entity.type_of_network == posix && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
 
-    } else if (app->remote_entity->type_of_network == csp && app->remote_entity->default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+    } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
 
-    } else if (app->remote_entity->type_of_network == csp && app->remote_entity->default_transmission_mode == ACKNOWLEDGED_MODE) {
+    } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
     }
 }

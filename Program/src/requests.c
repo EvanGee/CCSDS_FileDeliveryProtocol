@@ -39,7 +39,6 @@ LV *create_lv(int size, void *value) {
     LV *lv = ssp_alloc(1, sizeof(LV));
     lv->value = ssp_alloc(size, sizeof(char));
     
-
     memcpy(lv->value, value, size);
     lv->length = size;
 
@@ -116,9 +115,6 @@ void ssp_cleanup_req(void *request) {
 
 
 
-
-
-
 Request *init_request(uint32_t buff_len) {
 
     Request *req = ssp_alloc(1, sizeof(Request));
@@ -190,7 +186,6 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
 
     //spin up a new client thread
     Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
-
 
     if (client == NULL) {
         ssp_printf("Spinning up a new client thread\n");

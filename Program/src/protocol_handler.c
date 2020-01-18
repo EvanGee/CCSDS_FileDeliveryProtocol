@@ -173,8 +173,8 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         memcpy(found_req->res.addr, res.addr, res.size_of_addr);
         found_req->res.packet_len = app->packet_len;
         found_req->res.sfd = res.sfd;
-        found_req->res.transmission_mode = app->remote_entity->default_transmission_mode;
-        found_req->res.type_of_network = app->remote_entity->type_of_network;
+        found_req->res.transmission_mode = app->remote_entity.default_transmission_mode;
+        found_req->res.type_of_network = app->remote_entity.type_of_network;
         found_req->paused = false;
         request_list->push(request_list, found_req, transaction_sequence_number);
     } 

@@ -273,7 +273,7 @@ void *ssp_connectionless_server_task(void *params) {
     app->transaction_sequence_number = 1;
 
     char port[10];
-    snprintf(port, 10, "%d",app->remote_entity->UT_port);
+    snprintf(port, 10, "%d",app->remote_entity.UT_port);
     
     connectionless_server(port, 
         app->packet_len, 
@@ -322,7 +322,7 @@ void *ssp_connection_server_task(void *params) {
     app->transaction_sequence_number = 1;
 
     char port[10];
-    snprintf(port, 10, "%u",app->remote_entity->UT_port);
+    snprintf(port, 10, "%u",app->remote_entity.UT_port);
 
     //1024 is the connection max limit
     connection_server(port, 
@@ -371,7 +371,7 @@ void *ssp_csp_connectionless_server_task(void *params) {
     FTP *app = (FTP *) params;
 
     csp_connectionless_server(
-        app->remote_entity->UT_port,
+        app->remote_entity.UT_port,
         on_recv_server_callback, 
         on_time_out_callback_server, 
         on_stdin_callback, 
@@ -388,7 +388,7 @@ void *ssp_csp_connectionless_client_task(void *params) {
     
     csp_connectionless_client(client->remote_entity->UT_address, 
         client->remote_entity->UT_port,
-        client->app->remote_entity->UT_port, 
+        client->app->remote_entity.UT_port, 
         on_send_client_callback, 
         on_recv_client_callback, 
         check_exit_client_callback, 
@@ -403,7 +403,7 @@ void *ssp_csp_connection_server_task(void *params) {
     ssp_printf("starting csp connection server\n");
     FTP *app = (FTP *) params;
 
-    csp_connection_server(app->remote_entity->UT_port,
+    csp_connection_server(app->remote_entity.UT_port,
         on_recv_server_callback,
         on_time_out_callback_server,
         on_stdin_callback,

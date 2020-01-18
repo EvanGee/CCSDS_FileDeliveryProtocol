@@ -128,6 +128,7 @@ void ssp_sendto(Response res) {
         #ifndef TEST
             int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(*addr));
             if (err < 0) {
+                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(*addr));
                 ssp_error("ERROR in sendto");
             }
         #endif

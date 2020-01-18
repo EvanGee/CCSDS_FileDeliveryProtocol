@@ -42,6 +42,9 @@ int main(int argc, char** argv) {
     }
 
     FTP *app = init_ftp(conf->my_cfdp_id);
+    if (app == NULL) {
+        return 1;
+    }
     
     //create a client
     if (conf->client_cfdp_id != 0){
