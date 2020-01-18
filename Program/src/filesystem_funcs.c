@@ -301,7 +301,7 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
     uint32_t total_size = get_file_size(file_name);
     if (total_size == 0){
         ssp_error("couldn't get file size\n");
-        return 1;
+        return -1;
     }
 
     char buff[total_size];
@@ -311,13 +311,13 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
     int r = read(fd, buff, sizeof(buff));
     if (r < 0) {
         ssp_error("read failed\n");
-        return 1;
+        return -1;
     }
 
     r = jsmn_parse(&p, buff, total_size, tok, number_of_tokens);
     if (r < 0) {
         ssp_error("Failed to parse JSON\n");
-        return 1;
+        return -1;
     }
     
     for (int i = 1; i < r; i++) {
