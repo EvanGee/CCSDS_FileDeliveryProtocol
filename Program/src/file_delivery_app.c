@@ -99,8 +99,9 @@ void ssp_server(FTP *app) {
 Client *ssp_client(uint32_t cfdp_id, FTP *app) {
 
     Client *client = ssp_alloc(sizeof(Client), 1);
-    checkAlloc(client, 1);
-
+    if (checkAlloc(client) < 0)
+        return NULL;
+        
     client->current_request = NULL;
     client->request_list = linked_list();
     client->packet_len = PACKET_LEN;
@@ -115,7 +116,7 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
     }
     
     client->remote_entity = remote_entity;
-    client->pdu_header = get_header_from_mib(app->mib, cfdp_id, app->my_cfdp_id);
+    client->pdu_header = get_header_from_mib(remote_entity, app->my_cfdp_id);
     client->app = app;
 
     if (remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {

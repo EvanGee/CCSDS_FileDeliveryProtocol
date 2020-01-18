@@ -138,6 +138,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     }
 
     uint16_t len = get_data_length(packet);
+    int error = 0;
 
     //if packet is from the same request, don't' change current request
     /*
@@ -154,10 +155,18 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     };
 
     Request *found_req = (Request *) request_list->find(request_list, 0, find_request, &params);
+    Remote_entity remote_entity;
 
     //server side, receiving requests (this should be its own function)
     if (found_req == NULL && is_server) 
     {
+        
+        error = get_remote_entity_from_json(&remote_entity, source_id);
+        if (error < 0) {
+            ssp_error("could not get remote entity for incoming packet \n");
+            return -1;
+        }
+
         found_req = init_request(app->packet_len);
     
         ssp_printf("incoming new request\n");
@@ -165,8 +174,14 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         found_req->transmission_mode = header->transmission_mode;
         found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->dest_cfdp_id = source_id;
-        found_req->pdu_header = get_header_from_mib(app->mib, source_id, app->my_cfdp_id);
-        found_req->remote_entity = get_remote_entity(app->mib, source_id);
+
+        found_req->pdu_header = get_header_from_mib(remote_entity, app->my_cfdp_id);
+        if (found_req->pdu_header == NULL)
+            ssp_printf("PDU HEADER IS NULL\n");
+
+
+        found_req->remote_entity = remote_entity;
+        
         found_req->procedure = sending_put_metadata;
         found_req->res.addr = ssp_alloc(1, res.size_of_addr);
 

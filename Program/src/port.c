@@ -236,7 +236,8 @@ void *ssp_init_sockaddr_struct(size_t *size_of_addr) {
 
         *size_of_addr = sizeof(struct sockaddr_storage);
         void *addr = ssp_alloc(1, sizeof(struct sockaddr_storage));
-        checkAlloc(addr, 1);
+        if (checkAlloc(addr) < 0)
+            return NULL;
 
 
     #endif
@@ -326,10 +327,14 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 
     #ifdef POSIX_PORT
     pthread_t *handler = ssp_alloc(1,  sizeof(pthread_t));
-    checkAlloc(handler, 1);
+    if (checkAlloc(handler) < 0)
+        return NULL;
+
 
     pthread_attr_t *attr = ssp_alloc(1, sizeof(pthread_attr_t)); 
-    checkAlloc(attr, 1);
+    
+    if (checkAlloc(attr) < 0)
+        return NULL;
 
     int err = pthread_attr_init(attr);
     if (0 != err) 
@@ -339,7 +344,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     err = pthread_attr_setstacksize(attr, stack_size);
 
     if (0 != err)
-        perror("ERROR pthread_attr_setstacksize %d");
+        ssp_error("ERROR pthread_attr_setstacksize %d");
 
     if (EINVAL == err) {
         printf("the stack size is less that PTHREAD_STACK_MIN %d\n", PTHREAD_STACK_MIN);

@@ -131,11 +131,12 @@ Request *init_request(uint32_t buff_len) {
 
     req->messages_to_user = linked_list();
 
-    checkAlloc(req->buff,  1);
+    checkAlloc(req->buff);
     return req;
 }
 
 
+/*
 Request *init_request_2(uint32_t buff_len, uint32_t transaction_id, Pdu_header *pdu_header, Remote_entity *remote_entity) {
 
     Request *req = ssp_alloc(1, sizeof(Request));
@@ -167,17 +168,16 @@ Request *init_request_2(uint32_t buff_len, uint32_t transaction_id, Pdu_header *
     //req->res.addr = remote_entity.UT_address;
 
     //using the hosts network transfer, should switch to client configuration
-    /*
-    req->res.sfd = res.sfd;
-    */
+    
+    //req->res.sfd = res.sfd;
+    
 
     //req->paused = false;
     //req->procedure = sending_put_metadata;
 
     return req;
 }
-
-
+*/
 
 //starts a new client, adding it to app->active_clients, as well as 
 //starting a new request and adding it to the client, returns a pointer
@@ -200,7 +200,10 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     //build a request 
     req->transaction_sequence_number = app->transaction_sequence_number++;
     req->dest_cfdp_id = client->remote_entity.cfdp_id;
-    req->pdu_header = get_header_from_mib(app->mib, client->remote_entity.cfdp_id, app->my_cfdp_id);
+    req->pdu_header = get_header_from_mib(client->remote_entity, app->my_cfdp_id);
+    if (req->pdu_header ==NULL)
+    ssp_printf("PDU HEADER IS NULL\n");
+
     req->res.packet_len = client->packet_len;
     req->packet_data_len = app->packet_len;
     

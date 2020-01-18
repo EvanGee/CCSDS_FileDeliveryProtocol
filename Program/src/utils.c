@@ -22,15 +22,12 @@ to use for general functionality.
 #define ID_LEN 10
 
 //see header file
-int checkAlloc(void *mem, int notOkToFail)
+int checkAlloc(void *mem)
 {
-
-    if (mem == NULL && notOkToFail)
+    if (mem == NULL)
     {
         ssp_error("malloc");
-    }
-    else if(mem == NULL && !notOkToFail) {
-        return 0;
+        return -1;
     }
     return 1;
 }
@@ -41,7 +38,9 @@ Config *configuration(int argc, char **argv)
 {
     int ch;
     Config *conf = calloc(sizeof(Config), 1);
-    checkAlloc(conf, 1);
+    if (checkAlloc(conf) < 0) 
+        return NULL;
+        
 
     conf->timer = 15;
     conf->verbose_level = 0;

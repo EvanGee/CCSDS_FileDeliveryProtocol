@@ -149,8 +149,7 @@ static int resizeBuff(char **buffer, uint32_t *newBufferSize, uint32_t *prev_buf
      if (*newBufferSize != *prev_buff_size) {
             *buffer = realloc(*buffer, *newBufferSize);
 
-            if(checkAlloc(*buffer, 0)){
-                *prev_buff_size = *newBufferSize;
+            if(checkAlloc(*buffer) < 0){
                 return 1;
             } 
             return 0;
@@ -188,13 +187,13 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
     ssp_fd_set(STDIN_FILENO, socket_set);
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
-    checkAlloc(buff_size, 1);
+    checkAlloc(buff_size);
 
     *buff_size = initial_buff_size;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(sizeof(char), *buff_size);
-    checkAlloc(buff, 1);
+    checkAlloc(buff);
 
     for (;;)
     {
@@ -298,13 +297,13 @@ void connectionless_server(char* port, int initial_buff_size,
     ssp_fd_set(STDIN_FILENO, socket_set);
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
-    checkAlloc(buff_size, 1);
+    checkAlloc(buff_size);
 
     *buff_size = initial_buff_size + 10;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(sizeof(char), *buff_size);
-    checkAlloc(buff, 1);
+    checkAlloc(buff);
 
     for (;;)
     {
@@ -382,14 +381,14 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
         exit_now = 1;
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
-    checkAlloc(buff_size, 1);
+    checkAlloc(buff_size);
 
     *buff_size = packet_len + 10;
 
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(sizeof(char), prev_buff_size);
-    checkAlloc(buff, 1);
+    checkAlloc(buff);
 
 
     for (;;) {
@@ -445,13 +444,13 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
         exit_now = 1;
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
-    checkAlloc(buff_size, 1);
+    checkAlloc(buff_size);
 
     *buff_size = packet_len;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(prev_buff_size, sizeof(char));
-    checkAlloc(buff, 1);
+    checkAlloc(buff);
 
 
     for (;;) {

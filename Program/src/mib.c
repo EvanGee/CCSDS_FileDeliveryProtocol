@@ -14,7 +14,7 @@
 
 MIB *init_mib() {
     MIB *mib = ssp_alloc(1, sizeof(MIB));
-    checkAlloc(mib, 1);
+    checkAlloc(mib);
     mib->remote_entities = linked_list();
     return mib;
 }
@@ -41,7 +41,7 @@ int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_
     remote->default_transmission_mode = transmission_mode;
 
     remote ->max_file_segment_len = 1200;
-    checkAlloc(remote, 1);
+    checkAlloc(remote);
 
     remote->UT_address = UT_address;
     remote->cfdp_id = cfdp_id;
@@ -50,7 +50,7 @@ int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_
     return mib->remote_entities->insert(mib->remote_entities, remote, cfdp_id);
 }
 
-
+/*
 Pdu_header *get_header_from_mib(MIB *mib, uint32_t dest_id, uint32_t source_id){
 
     Remote_entity *remote = mib->remote_entities->find(mib->remote_entities, dest_id, NULL, NULL);
@@ -59,7 +59,7 @@ Pdu_header *get_header_from_mib(MIB *mib, uint32_t dest_id, uint32_t source_id){
     }
 
     Pdu_header *pdu_header = ssp_alloc(1, sizeof(Pdu_header));
-    checkAlloc(pdu_header, 1);
+    checkAlloc(pdu_header);
 
     pdu_header->reserved_bit_0 = 0;
     pdu_header->reserved_bit_1 = 0;
@@ -72,11 +72,11 @@ Pdu_header *get_header_from_mib(MIB *mib, uint32_t dest_id, uint32_t source_id){
     pdu_header->transmission_mode = remote->default_transmission_mode;
     pdu_header->destination_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
 
-    checkAlloc(pdu_header->destination_id, 1);
+    checkAlloc(pdu_header->destination_id);
     memcpy(pdu_header->destination_id, &remote->cfdp_id, pdu_header->length_of_entity_IDs);
 
     pdu_header->source_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
-    checkAlloc(pdu_header->source_id, 1);
+    checkAlloc(pdu_header->source_id);
     memcpy(pdu_header->source_id, &source_id, pdu_header->length_of_entity_IDs);
     return pdu_header;
 }
@@ -87,9 +87,45 @@ Remote_entity *get_remote_entity(MIB *mib, uint32_t dest_id){
     return remote;
 
 };
+*/
 
 
+Pdu_header *get_header_from_mib (Remote_entity remote, uint32_t source_id) {
 
+
+    Pdu_header *pdu_header = ssp_alloc(1, sizeof(Pdu_header));
+    if (pdu_header == NULL)
+        return NULL;
+
+    if (checkAlloc(pdu_header) < 0)
+        return NULL;
+
+
+    pdu_header->reserved_bit_0 = 0;
+    pdu_header->reserved_bit_1 = 0;
+    pdu_header->reserved_bit_2 = 0;
+    pdu_header->CRC_flag = remote.CRC_required;
+    pdu_header->direction = 1;
+    pdu_header->PDU_type = 0;
+    pdu_header->transaction_seq_num_len = 3;
+    pdu_header->length_of_entity_IDs = 1; 
+    pdu_header->transmission_mode = remote.default_transmission_mode;
+    pdu_header->destination_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
+
+    if (checkAlloc(pdu_header->destination_id) < 0)
+        return NULL;
+
+    memcpy(pdu_header->destination_id, &remote.cfdp_id, pdu_header->length_of_entity_IDs);
+
+    pdu_header->source_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
+    if (checkAlloc(pdu_header->source_id) < 0) 
+        return NULL;
+
+
+    memcpy(pdu_header->source_id, &source_id, pdu_header->length_of_entity_IDs);
+    return pdu_header;
+
+}
 
 
 enum {
@@ -253,7 +289,6 @@ Remote_entity *get_remote_entity2(uint32_t dest_id){
     return remote;
 
 };
-
 
 
 void ssp_cleanup_pdu_header(Pdu_header *pdu_header) {
