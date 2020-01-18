@@ -219,34 +219,37 @@ static void parse_mib(char *key, char *value, void *params) {
   
 }
 
-static Remote_entity * get_remote_entity_from_json (uint32_t cfdp_id) {
+static int get_remote_entity_from_json (Remote_entity *remote, uint32_t cfdp_id) {
 
     char file_name[50];
     snprintf(file_name, 50, "%s%d%s", "mib/peer_", cfdp_id, ".json");
-
-    Remote_entity *remote = ssp_alloc(1, sizeof(Remote_entity));
-    
-    if (remote == NULL) {
-        ssp_error("ssp_alloc");
-        return NULL;
-    }
     
     int error = read_json(file_name, parse_mib, remote);
 
     if (error < 0) {
         ssp_error("could not get remote, json parsing failed\n");
-        ssp_free(remote);
-        return NULL;
+        return -1;
     }
 
-    return remote;
+    return 0;
 
 }
 
 
 Remote_entity *get_remote_entity2(uint32_t dest_id){
 
-    Remote_entity *remote = get_remote_entity_from_json(dest_id);
+    Remote_entity *remote = ssp_alloc(1, sizeof(Remote_entity));
+    
+    if (remote == NULL) {
+        ssp_error("ssp_alloc\n");
+        return NULL;
+    }
+
+    int error =  get_remote_entity_from_json(remote, dest_id);
+    if (error == -1) {
+        ssp_error("couldn't get remote from json\n");
+    }
+    
     return remote;
 
 };
