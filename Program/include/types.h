@@ -52,7 +52,7 @@ typedef struct pdu_header{
     unsigned int transaction_seq_num_len: 3; 
 
     //variable in size, and will get memory allocated based on the length variables above
-    void *source_id;
+    uint32_t source_id;
 
     //variable in size, and will get memory allocated based on the length variables above
     void *transaction_sequence_number;

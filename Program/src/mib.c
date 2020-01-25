@@ -38,16 +38,13 @@ Pdu_header *get_header_from_mib (Remote_entity remote, uint32_t source_id) {
         return NULL;
 
     memcpy(pdu_header->destination_id, &remote.cfdp_id, pdu_header->length_of_entity_IDs);
-
-    pdu_header->source_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
-    if (checkAlloc(pdu_header->source_id) < 0) 
-        return NULL;
-
-
-    memcpy(pdu_header->source_id, &source_id, pdu_header->length_of_entity_IDs);
+    pdu_header->source_id = source_id;
+    
     return pdu_header;
 
 }
+
+
 
 int get_header_from_mib2 (Pdu_header *pdu_header, Remote_entity remote, uint32_t my_cfdp_id) {
 
@@ -68,12 +65,8 @@ int get_header_from_mib2 (Pdu_header *pdu_header, Remote_entity remote, uint32_t
 
     memcpy(pdu_header->destination_id, &remote.cfdp_id, pdu_header->length_of_entity_IDs);
 
-    pdu_header->source_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
-    if (checkAlloc(pdu_header->source_id) < 0) 
-        return -1;
+    pdu_header->source_id = my_cfdp_id;
 
-
-    memcpy(pdu_header->source_id, &my_cfdp_id, pdu_header->length_of_entity_IDs);
     return 0;
 }
 
@@ -224,7 +217,6 @@ int get_remote_entity_from_json (Remote_entity *remote, uint32_t cfdp_id) {
 
 void ssp_cleanup_pdu_header(Pdu_header *pdu_header) {
     ssp_free(pdu_header->destination_id);
-    ssp_free(pdu_header->source_id);
     ssp_free(pdu_header);
 }
 

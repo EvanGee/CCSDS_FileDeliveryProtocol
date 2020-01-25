@@ -101,6 +101,9 @@ void ssp_cleanup_req(void *request) {
     if (req->res.addr != NULL)
         ssp_free(req->res.addr);
 
+    if (req->pdu_header.destination_id != NULL)
+        ssp_free(req->pdu_header.destination_id);
+    
     if (req->messages_to_user->count > 0)
         req->messages_to_user->free(req->messages_to_user, ssp_free_message);
     else 

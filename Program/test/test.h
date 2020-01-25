@@ -4,10 +4,10 @@
 #include <stdio.h>
 
 
-int assert_equals_str(char *file_name, int line_num, char* description, char *val1,  char* val2, size_t size);
+int assert_equals_str(char *file_name, int line_num, char* description, void *val1,  void* val2, size_t size);
 int assert_not_equals_int(char *file_name, int line_num,  char* description, int val1, int val2);
 int assert_equals_int(char *file_name, int line_num,  char* description, int val1, int val2);
-int assert_not_equals_str(char *file_name, int line_num, char* description, char *val1,  char* val2, size_t size);
+int assert_not_equals_str(char *file_name, int line_num, char* description, void *val1,  void* val2, size_t size);
 int assert_null(char *file_name, int line_num, char* description, void *val1);
 int assert_not_null(char *file_name, int line_num, char* description, void *val1);
 

@@ -13,7 +13,6 @@
 MIB *init_mib(void);
 void free_mib(MIB *mib);
 int add_new_cfdp_entity(MIB *mib, uint32_t cfdp_id, uint32_t UT_address, uint16_t port, enum Network_type, int transmission_mode);
-//Pdu_header *get_header_from_mib(MIB *mib, uint32_t dest_id, uint32_t source_id);
 Pdu_header *get_header_from_mib (Remote_entity remote, uint32_t source_id);
 int get_header_from_mib2 (Pdu_header *pdu_header, Remote_entity remote, uint32_t my_cfdp_id);
 
