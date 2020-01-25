@@ -297,9 +297,10 @@ void *ssp_connectionless_client_task(void* params){
 
     //convert int to char *
     snprintf(port, 10, "%d", client->remote_entity.UT_port);
+    uint32_t ut_addr = htonl(client->remote_entity.UT_address);
 
     //convert uint id to char *
-    inet_ntop(AF_INET, &client->remote_entity.UT_address, host_name, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
     
 
     connectionless_client(host_name, 
@@ -349,8 +350,9 @@ void *ssp_connection_client_task(void *params) {
     //convert int to char *
     snprintf(port, 10, "%d", client->remote_entity.UT_port);
 
+    uint32_t ut_addr = htonl(client->remote_entity.UT_address);
     //convert uint id to char *
-    inet_ntop(AF_INET, &client->remote_entity.UT_address, host_name, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
 
     connection_client(host_name, 
         port, 
@@ -454,8 +456,6 @@ void ssp_cleanup_ftp(FTP *app) {
     app->active_clients->iterate(app->active_clients, exit_client, NULL);
 
     app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
-
-    free_mib(app->mib);
     app->active_clients->freeOnlyList(app->active_clients);
     ssp_free(app);
 }

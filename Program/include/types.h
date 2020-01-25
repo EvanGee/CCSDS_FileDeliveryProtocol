@@ -619,8 +619,6 @@ typedef struct request {
 typedef struct ftp {
     uint32_t packet_len;
     void *server_handle;
-    MIB *mib;
-
     uint32_t my_cfdp_id;
     
     List* request_list; 

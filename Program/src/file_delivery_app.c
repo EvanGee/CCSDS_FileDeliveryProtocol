@@ -14,27 +14,6 @@
 
 FTP *init_ftp(uint32_t my_cfdp_address) {
 
-    //Memory information base
-    MIB *mib = init_mib();
-
-    //setting host name for testing
-    char *host_name = "127.0.0.1";
-    uint32_t addr = 0;
-
-    inet_pton(AF_INET, host_name, &addr);
-    
-    //adding new cfdp entities to management information base
-    add_new_cfdp_entity(mib, 1, addr, 1111, posix, UN_ACKNOWLEDGED_MODE);
-
-    add_new_cfdp_entity(mib, 2, addr, 1112, posix, UN_ACKNOWLEDGED_MODE); 
-    add_new_cfdp_entity(mib, 7, addr, 1113, posix, UN_ACKNOWLEDGED_MODE); 
-
-    add_new_cfdp_entity(mib, 3, 1, 1, csp, UN_ACKNOWLEDGED_MODE);   
-    add_new_cfdp_entity(mib, 4, 2, 2, csp, UN_ACKNOWLEDGED_MODE);   
-
-    add_new_cfdp_entity(mib, 5, 3, 3, csp, ACKNOWLEDGED_MODE);   
-    add_new_cfdp_entity(mib, 6, 4, 4, csp, ACKNOWLEDGED_MODE);   
-
     
     Remote_entity remote_entity;
     int error = get_remote_entity_from_json(&remote_entity, my_cfdp_address);
@@ -42,12 +21,6 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
         ssp_error("couldn't start server\n");
         return NULL;
     }
-
-    //find server client in mib
-    //Remote_entity* server_entity = mib->remote_entities->find(mib->remote_entities, my_cfdp_address, NULL, NULL);
-    //if (server_entity == NULL) {
-    //    ssp_printf("couldn't find your id in the information base\n");
-    //}
 
     if (remote_entity.type_of_network == csp) {
         
@@ -66,8 +39,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     FTP *app = ssp_alloc(sizeof(FTP), 1);
     app->packet_len = PACKET_LEN;
     app->my_cfdp_id = my_cfdp_address;
-    app->mib = mib;
-    app->close = 0;
+    app->close = false;
     app->remote_entity = remote_entity;
     app->active_clients = linked_list();
     app->request_list = linked_list();
