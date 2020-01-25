@@ -462,6 +462,5 @@ void ssp_cleanup_ftp(FTP *app) {
 
 void ssp_cleanup_client(Client *client) {
     client->request_list->free(client->request_list, ssp_cleanup_req);
-    ssp_cleanup_pdu_header(client->pdu_header);
     
 }

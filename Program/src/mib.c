@@ -12,34 +12,6 @@
 //snprintf
 #include "stdio.h"
 
-Pdu_header *get_header_from_mib (Remote_entity remote, uint32_t source_id) {
-
-
-    Pdu_header *pdu_header = ssp_alloc(1, sizeof(Pdu_header));
-    if (pdu_header == NULL)
-        return NULL;
-
-    if (checkAlloc(pdu_header) < 0)
-        return NULL;
-
-
-    pdu_header->reserved_bit_0 = 0;
-    pdu_header->reserved_bit_1 = 0;
-    pdu_header->reserved_bit_2 = 0;
-    pdu_header->CRC_flag = remote.CRC_required;
-    pdu_header->direction = 1;
-    pdu_header->PDU_type = 0;
-    pdu_header->transaction_seq_num_len = 3;
-    pdu_header->length_of_entity_IDs = 1; 
-    pdu_header->transmission_mode = remote.default_transmission_mode;
-    pdu_header->destination_id = remote.cfdp_id;
-    pdu_header->source_id = source_id;
-    
-    return pdu_header;
-
-}
-
-
 
 int get_header_from_mib2 (Pdu_header *pdu_header, Remote_entity remote, uint32_t my_cfdp_id) {
 

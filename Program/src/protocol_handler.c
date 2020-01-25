@@ -363,11 +363,8 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
         if (req->buff == NULL){
             ssp_printf("req->buff is null\n");
         }
-        if (client->pdu_header == NULL){
-            ssp_printf("pdu_header is null\n");
-        }
 
-        uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, client->pdu_header);
+        uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, &client->pdu_header);
         uint32_t offset_start = 0;
         uint32_t offset_end = 0;
     

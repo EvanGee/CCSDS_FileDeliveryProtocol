@@ -88,7 +88,8 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
     }
     
     client->remote_entity = remote_entity;
-    client->pdu_header = get_header_from_mib(remote_entity, app->my_cfdp_id);
+    get_header_from_mib2(&client->pdu_header, remote_entity, app->my_cfdp_id);
+
     client->app = app;
 
     if (remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {

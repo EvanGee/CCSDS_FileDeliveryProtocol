@@ -657,7 +657,7 @@ typedef struct client {
     Remote_entity remote_entity;
 
     //packet header, useful for copying into outgoing packets
-    Pdu_header *pdu_header;
+    Pdu_header pdu_header;
     
     FTP *app;    
 
