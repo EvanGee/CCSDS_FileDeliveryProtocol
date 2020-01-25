@@ -47,7 +47,7 @@ uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uin
 
     //copy variable length destination id
     memcpy(&packet[packet_index],
-    pdu_header->destination_id,
+    &pdu_header->destination_id,
     pdu_header->length_of_entity_IDs);
     
     uint8_t total_bytes = PACKET_STATIC_HEADER_LEN 

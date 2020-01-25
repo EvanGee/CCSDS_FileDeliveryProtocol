@@ -51,14 +51,15 @@ typedef struct pdu_header{
     //number of octets in sequence number, 0 is one octet
     unsigned int transaction_seq_num_len: 3; 
 
-    //variable in size, and will get memory allocated based on the length variables above
+    //variable in size (for actual packet), and will get memory allocated based on the length variables above
     uint32_t source_id;
 
-    //variable in size, and will get memory allocated based on the length variables above
+    //variable in size (for actual packet), and will get memory allocated based on the length variables above
     void *transaction_sequence_number;
 
-    //variable in size, and will get memory allocated based on the length variables above
-    void *destination_id;
+    //variable in size (for actual packet), and will get memory allocated based on the length variables above
+    uint32_t destination_id;
+
 } Pdu_header;  
 
 typedef struct originating_tranaction_id_message {

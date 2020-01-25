@@ -254,7 +254,7 @@ int test_build_pdu_header(char *packet, Pdu_header *header, uint64_t sequence_nu
     packet_index += header->transaction_seq_num_len;
 
     ASSERT_NOT_EQUALS_STR("packet destination not equal to source id ", &packet[packet_index], &header->source_id, header->length_of_entity_IDs);
-    ASSERT_EQUALS_STR("packet destination id ", &packet[packet_index], header->destination_id, header->length_of_entity_IDs);
+    ASSERT_EQUALS_STR("packet destination id ", &packet[packet_index], &header->destination_id, header->length_of_entity_IDs);
 
     packet_index += header->length_of_entity_IDs;
     Pdu_header *new_header = (Pdu_header *)packet;
