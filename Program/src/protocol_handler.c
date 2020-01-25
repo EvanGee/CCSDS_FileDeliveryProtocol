@@ -29,14 +29,14 @@ static void build_temperary_file(Request *req, uint32_t size) {
 
 static void send_ack(Request *req, Response res, unsigned int type){
 
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
     build_ack(req->buff, start, type);
     ssp_sendto(res);
 }
 
 static void send_nak(Request *req, Response res, unsigned int type) {
 
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
     build_nak_directive(req->buff, start, type);
     ssp_sendto(res);
 }
@@ -168,17 +168,24 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         }
 
         found_req = init_request(app->packet_len);
+        if (found_req == NULL) {
+            ssp_error("could not get allocate for new request \n");
+            return -1;
+        }
     
         ssp_printf("incoming new request\n");
+
         //Make new request and add it
         found_req->transmission_mode = header->transmission_mode;
         found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->dest_cfdp_id = source_id;
 
-        found_req->pdu_header = get_header_from_mib(remote_entity, app->my_cfdp_id);
-        if (found_req->pdu_header == NULL)
-            ssp_printf("PDU HEADER IS NULL\n");
-
+        error = get_header_from_mib2(&found_req->pdu_header, remote_entity, app->my_cfdp_id);
+        if (error < 0) {
+            ssp_printf("Couldn't make PDU HEADER IS NULL\n");
+            return -1;
+        }
+            
 
         found_req->remote_entity = remote_entity;
         
@@ -303,7 +310,7 @@ static void resend_finished_ack(Request *req, Response res) {
 
 static void send_put_metadata(Request *req, Response res) {
 
-    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, req->pdu_header);
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, &req->pdu_header);
     ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
     start = build_put_packet_metadata(req->buff, start, req);
     req->local_entity.Metadata_sent_indication = true;
@@ -311,7 +318,7 @@ static void send_put_metadata(Request *req, Response res) {
 }
 
 static void send_eof_pdu(Request *req, Response res) {
-    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, req->pdu_header);
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, &req->pdu_header);
     ssp_printf("sending eof transaction: %d\n", req->transaction_sequence_number);
     if (req->file_size == 0)
         build_eof_packet(req->buff, start, 0, 0);
@@ -334,7 +341,7 @@ static void start_sequence(Request *req, Response res) {
 }
 
 static void send_data(Request *req, Response res) {    
-    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, req->pdu_header);
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, &req->pdu_header);
 
     if (build_data_packet(req->buff, start, req->file, res.packet_len)) {
         req->procedure = sending_eof;
@@ -518,7 +525,7 @@ static void request_metadata(Request *req, Response res) {
 
 static void request_data(Request *req, Response res) {
 
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
     ssp_printf("sending Nak data transaction: %d\n", req->transaction_sequence_number);
     build_nak_packet(req->buff, start, req);
     ssp_sendto(res);
@@ -527,7 +534,7 @@ static void request_data(Request *req, Response res) {
 
 static void resend_finished_pdu(Request *req, Response res) {
 
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, req->pdu_header);
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
     ssp_printf("sending finished pdu transaction: %d\n", req->transaction_sequence_number);
     build_finished_pdu(req->buff, start);
     ssp_sendto(res);

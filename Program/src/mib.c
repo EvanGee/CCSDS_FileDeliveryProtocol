@@ -49,6 +49,34 @@ Pdu_header *get_header_from_mib (Remote_entity remote, uint32_t source_id) {
 
 }
 
+int get_header_from_mib2 (Pdu_header *pdu_header, Remote_entity remote, uint32_t my_cfdp_id) {
+
+
+    pdu_header->reserved_bit_0 = 0;
+    pdu_header->reserved_bit_1 = 0;
+    pdu_header->reserved_bit_2 = 0;
+    pdu_header->CRC_flag = remote.CRC_required;
+    pdu_header->direction = 1;
+    pdu_header->PDU_type = 0;
+    pdu_header->transaction_seq_num_len = 3;
+    pdu_header->length_of_entity_IDs = 1; 
+    pdu_header->transmission_mode = remote.default_transmission_mode;
+    pdu_header->destination_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
+
+    if (checkAlloc(pdu_header->destination_id) < 0)
+        return -1;
+
+    memcpy(pdu_header->destination_id, &remote.cfdp_id, pdu_header->length_of_entity_IDs);
+
+    pdu_header->source_id = ssp_alloc(pdu_header->length_of_entity_IDs, sizeof(u_int8_t));
+    if (checkAlloc(pdu_header->source_id) < 0) 
+        return -1;
+
+
+    memcpy(pdu_header->source_id, &my_cfdp_id, pdu_header->length_of_entity_IDs);
+    return 0;
+}
+
 
 enum {
     PARSE_cfdp_id,
@@ -192,25 +220,6 @@ int get_remote_entity_from_json (Remote_entity *remote, uint32_t cfdp_id) {
     return 0;
 
 }
-
-
-Remote_entity *get_remote_entity2(uint32_t dest_id){
-
-    Remote_entity *remote = ssp_alloc(1, sizeof(Remote_entity));
-    
-    if (remote == NULL) {
-        ssp_error("ssp_alloc\n");
-        return NULL;
-    }
-
-    int error =  get_remote_entity_from_json(remote, dest_id);
-    if (error == -1) {
-        ssp_error("couldn't get remote from json\n");
-    }
-
-    return remote;
-
-};
 
 
 void ssp_cleanup_pdu_header(Pdu_header *pdu_header) {

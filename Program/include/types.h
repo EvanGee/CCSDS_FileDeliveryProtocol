@@ -609,7 +609,7 @@ typedef struct request {
     char* buff;
 
     //header for building response packets
-    Pdu_header *pdu_header;
+    Pdu_header pdu_header;
 
     //handler for sending responses back
     Response res;

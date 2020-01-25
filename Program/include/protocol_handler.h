@@ -19,7 +19,6 @@ void process_pdu_eof(char *packet, Request *req, Response res);
 uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill);
 void process_messages(Request *req, FTP *app);
 
-uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_t transmission_mode, Pdu_header *pdu_header);
 uint8_t build_ack (char *packet, uint32_t start, uint8_t type);
 int process_file_request_metadata(Request *req);
 int nak_response(char *packet, uint32_t start, Request *req, Response res, Client *client);

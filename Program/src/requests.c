@@ -96,8 +96,6 @@ void ssp_cleanup_req(void *request) {
 
     if (req->file != NULL)
         free_file(req->file);
-    if (req->pdu_header != NULL)
-        ssp_cleanup_pdu_header(req->pdu_header);
     if (req->buff != NULL)
         ssp_free(req->buff);
     if (req->res.addr != NULL)
@@ -200,10 +198,7 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     //build a request 
     req->transaction_sequence_number = app->transaction_sequence_number++;
     req->dest_cfdp_id = client->remote_entity.cfdp_id;
-    req->pdu_header = get_header_from_mib(client->remote_entity, app->my_cfdp_id);
-    if (req->pdu_header ==NULL)
-    ssp_printf("PDU HEADER IS NULL\n");
-
+    req->pdu_header = *client->pdu_header;
     req->res.packet_len = client->packet_len;
     req->packet_data_len = app->packet_len;
     
