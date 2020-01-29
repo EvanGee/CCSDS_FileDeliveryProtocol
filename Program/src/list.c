@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "port.h"
 
 /*------------------------------------------------------------------------------
     This function creates a new node to add into the linked list, returns the
@@ -13,7 +14,7 @@
 
 Node *createNode(void *element, uint32_t id)
 {
-    Node *newNode = calloc(sizeof(Node), 1);
+    Node *newNode = ssp_alloc(sizeof(Node), 1);
     if (newNode == NULL) {
         return NULL;
     }
@@ -33,7 +34,7 @@ Node *createNode(void *element, uint32_t id)
 
 static void freeNode(Node *node) {
     if (node != NULL)
-        free(node);    
+        ssp_free(node);    
 }
 
 static void *pop(List *list) {
@@ -185,9 +186,9 @@ static void freeList(List *list, void (*f)(void *element))
         f(n->element);
         freeNode(n);
     }
-    free(list->head);
-    free(list->tail);
-    free(list);
+    ssp_free(list->head);
+    ssp_free(list->tail);
+    ssp_free(list);
 }
 
 
@@ -201,9 +202,9 @@ static void freeNodes(List *list) {
         cur = cur->next;
         freeNode(n);
     }
-    free(list->head);
-    free(list->tail);
-    free(list);
+    ssp_free(list->head);
+    ssp_free(list->tail);
+    ssp_free(list);
 
 }
 
