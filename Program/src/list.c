@@ -287,17 +287,22 @@ static Node *findNode(List *list, uint32_t id, int (*f)(void *element, void *arg
 
 List *linked_list()
 {
-    List *newList = calloc(sizeof(List), 1);
+    List *newList = ssp_alloc(sizeof(List), 1);
     if (newList == NULL) 
         return NULL;
 
     newList->head = createNode(NULL, 0);
-    if (newList->head == NULL) 
+    if (newList->head == NULL) {
+        ssp_free(newList);
         return NULL;
+    }
 
     newList->tail = createNode(NULL, 0);
-    if (newList->tail == NULL)
+    if (newList->tail == NULL) {
+        ssp_free(newList->head);
+        ssp_free(newList);
         return NULL;
+    }
     
     Node *tail = newList->tail;
     Node *head = newList->head;
