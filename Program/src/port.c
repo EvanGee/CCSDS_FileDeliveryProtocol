@@ -255,7 +255,7 @@ void *ssp_alloc(uint32_t n_memb, size_t size) {
     #ifdef POSIX_PORT
         void *mem = calloc(n_memb, size);
         if (mem == NULL)
-            ssp_printf("Memory failed to alloc!\n");
+            ssp_error("Memory failed to alloc!\n");
         return mem;
     #endif
 

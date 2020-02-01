@@ -180,7 +180,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->dest_cfdp_id = source_id;
 
-        error = get_header_from_mib2(&found_req->pdu_header, remote_entity, app->my_cfdp_id);
+        error = get_header_from_mib(&found_req->pdu_header, remote_entity, app->my_cfdp_id);
         if (error < 0) {
             ssp_printf("Couldn't make PDU HEADER IS NULL\n");
             return -1;

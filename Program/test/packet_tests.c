@@ -459,7 +459,7 @@ int packet_tests() {
     Remote_entity remote_entity;
 
     int error = get_remote_entity_from_json (&remote_entity, 1);
-    get_header_from_mib2(&pdu_header, remote_entity, 2);
+    get_header_from_mib(&pdu_header, remote_entity, 2);
 
     int data_start_index = test_build_pdu_header(packet, &pdu_header, sequence_number);
     /*

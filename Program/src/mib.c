@@ -13,7 +13,7 @@
 #include "stdio.h"
 
 
-int get_header_from_mib2 (Pdu_header *pdu_header, Remote_entity remote, uint32_t my_cfdp_id) {
+int get_header_from_mib(Pdu_header *pdu_header, Remote_entity remote, uint32_t my_cfdp_id) {
 
     pdu_header->reserved_bit_0 = 0;
     pdu_header->reserved_bit_1 = 0;
