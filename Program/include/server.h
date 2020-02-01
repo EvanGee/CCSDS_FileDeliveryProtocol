@@ -51,10 +51,10 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
     void (*onExit)(void *other),
     void *other);
 
-void connection_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
+void connection_client(char *hostname, char*port, int packet_len, void *params,
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *params),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
+    int (*checkExit)(void *params),
     void (*onExit)(void *params));
 
 /*-----------------------------CALLBACK onTimeOut-------------------------------
@@ -68,10 +68,10 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
 
 int *prepareSignalHandler(void);
 
-void connectionless_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
+void connectionless_client(char *hostname, char*port, int packet_len, void *params,
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *params),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
+    int (*checkExit)(void *params),
     void (*onExit)(void *params));
 
 //#ifdef CSP_NETWORK

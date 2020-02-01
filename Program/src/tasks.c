@@ -296,19 +296,15 @@ void *ssp_connectionless_client_task(void* params){
     char port[10];
 
     //convert int to char *
-    snprintf(port, 10, "%d", client->remote_entity.UT_port);
+    int error = snprintf(port, 10, "%d", client->remote_entity.UT_port);
     uint32_t ut_addr = htonl(client->remote_entity.UT_address);
 
     //convert uint id to char *
     inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
     
-
     connectionless_client(host_name, 
         port, 
         client->packet_len, 
-        client, 
-        client, 
-        client, 
         client, 
         on_send_client_callback, 
         on_recv_client_callback, 
@@ -357,10 +353,7 @@ void *ssp_connection_client_task(void *params) {
     connection_client(host_name, 
         port, 
         client->packet_len, 
-        client, 
-        client, 
-        client, 
-        client, 
+        client,
         on_send_client_callback, 
         on_recv_client_callback, 
         check_exit_client_callback, 

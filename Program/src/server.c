@@ -364,10 +364,10 @@ void connectionless_server(char* port, int initial_buff_size,
 
 
 //https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
-void connectionless_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
+void connectionless_client(char *hostname, char*port, int packet_len, void *params,
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *params),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
+    int (*checkExit)(void *params),
     void (*onExit)(void *params))
 {
 
@@ -392,14 +392,14 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
 
 
     for (;;) {
-        if (exit_now || checkExit(checkExitParams))
+        if (exit_now || checkExit(params))
              break;
         
         if(!resizeBuff(&buff, buff_size, &prev_buff_size)){
             ssp_error("packet too large, cannot resize buffer\n");
         }
 
-        if (onSend(sfd, addr, size_of_addr, onSendParams)) 
+        if (onSend(sfd, addr, size_of_addr, params)) 
             ssp_error("send failed\n");
 
         count = ssp_recvfrom(sfd, buff, packet_len, MSG_DONTWAIT, addr, &size_of_addr);
@@ -412,7 +412,7 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
             continue;
         }
         else{
-            if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, onRecvParams) == -1)
+            if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, params) == -1)
                 ssp_error("recv failed\n");
         }
         
@@ -422,15 +422,15 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *onSe
     free(buff_size);
     free(buff);
     ssp_close(sfd);
-    onExit(onExitParams);
+    onExit(params);
 }
 
 
 //https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
-void connection_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
+void connection_client(char *hostname, char*port, int packet_len, void *params,
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *params),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
+    int (*checkExit)(void *params),
     void (*onExit)(void *params))
 {
 
@@ -455,14 +455,14 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
 
     for (;;) {
         
-        if (exit_now || checkExit(checkExitParams))
+        if (exit_now || checkExit(params))
              break;
         
         if(!resizeBuff(&buff, buff_size, &prev_buff_size)){
             ssp_printf("packet too large, cannot resize buffer\n");
         }
 
-        if (onSend(sfd, addr, size_of_addr, onSendParams)) 
+        if (onSend(sfd, addr, size_of_addr, params)) 
             ssp_error("send failed here\n");
 
         count = ssp_recvfrom(sfd, buff, packet_len, MSG_DONTWAIT, NULL, &size_of_addr);
@@ -470,7 +470,7 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
         if (count < 0)
             continue;
 
-        if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, onRecvParams) == -1) {
+        if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, params) == -1) {
             ssp_error("recv failed\n");
             exit_now = 1;
         }
@@ -480,7 +480,7 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
     free(buff_size);
     free(buff);
     ssp_close(sfd);
-    onExit(onExitParams);
+    onExit(params);
 }
 
 /*------------------------------------------------------------------------------
@@ -493,9 +493,9 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
 
 //https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
 void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port,
-    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
+    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *params),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
+    int (*checkExit)(void *params),
     void (*onExit)(void *params),
     void *params) 
 {
