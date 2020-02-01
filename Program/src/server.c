@@ -271,7 +271,7 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
 
 
 //see header file
-void connectionless_server(char* port, int initial_buff_size, 
+void connectionless_server(char *host_name, char* port, int initial_buff_size, 
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
     int (*onStdIn)(void *other),
@@ -283,7 +283,7 @@ void connectionless_server(char* port, int initial_buff_size,
     uint32_t size_of_addr = 0;
     void *addr = ssp_init_sockaddr_struct((size_t*)&size_of_addr);
 
-    int sfd = prepareHost(NULL, addr, &size_of_addr, port, SOCK_DGRAM, 1);
+    int sfd = prepareHost(host_name, addr, &size_of_addr, port, SOCK_DGRAM, 1);
     if (sfd < 0)
         exit_now = 1;
 

@@ -264,20 +264,44 @@ static int on_stdin_callback(void *other) {
     Tasks
 
 ------------------------------------------------------------------------------*/
+
+
+
+static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port){
+    //convert int to char *
+    int error = snprintf(port, 10, "%d", remote_entity.UT_port);
+    if (error < 0) {
+        ssp_error("snprintf");
+        return -1;
+    }
+
+    uint32_t ut_addr = htonl(remote_entity.UT_address);
+
+    //convert uint id to char *
+    const char *ret = inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
+    if (ret == NULL) {
+        ssp_error("inet_ntop");
+        return -1;
+    }
+    return 0;
+}
+//------------------------------------------------------------------------------
+
+
 void *ssp_connectionless_server_task(void *params) {
     ssp_printf("starting posix connectionless server task\n");
     FTP* app = (FTP*) params;
     app->transaction_sequence_number = 1;
 
     char port[10];
-    //convert to a string for the connectionless_server function
-    int error = snprintf(port, 10, "%d",app->remote_entity.UT_port);
+    char host_name[INET_ADDRSTRLEN];
+
+    int error = get_ip_port(app->remote_entity, host_name, port);
     if (error < 0) {
-        ssp_cleanup_ftp(app);
         return NULL;
     }
 
-    connectionless_server(port, 
+    connectionless_server(host_name, port, 
         app->packet_len, 
         on_recv_server_callback, 
         on_time_out_callback_server, 
@@ -294,25 +318,14 @@ void *ssp_connectionless_client_task(void* params){
     ssp_printf("starting posix connectionless client task \n");
     Client *client = (Client *) params;
 
-    char host_name[INET_ADDRSTRLEN];
     char port[10];
+    char host_name[INET_ADDRSTRLEN];
 
-    //convert int to char *
-    int error = snprintf(port, 10, "%d", client->remote_entity.UT_port);
+    int error = get_ip_port(client->remote_entity, host_name, port);
     if (error < 0) {
-        ssp_cleanup_client(client);
         return NULL;
     }
 
-    uint32_t ut_addr = htonl(client->remote_entity.UT_address);
-
-    //convert uint id to char *
-    void *ret = inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
-    if (ret == NULL) {
-        ssp_error("inet_ntop");
-        return NULL;
-    }
-    
     connectionless_client(host_name, 
         port, 
         client->packet_len, 
@@ -331,7 +344,12 @@ void *ssp_connection_server_task(void *params) {
     app->transaction_sequence_number = 1;
 
     char port[10];
-    snprintf(port, 10, "%u",app->remote_entity.UT_port);
+    char host_name[INET_ADDRSTRLEN];
+
+    int error = get_ip_port(app->remote_entity, host_name, port);
+    if (error < 0) {
+        return NULL;
+    }
 
     //1024 is the connection max limit
     connection_server(port, 
@@ -351,21 +369,11 @@ void *ssp_connection_client_task(void *params) {
     ssp_printf("starting posix connection client\n");
     Client *client = (Client *) params;
 
-    char host_name[INET_ADDRSTRLEN];
     char port[10];
+    char host_name[INET_ADDRSTRLEN];
 
-    //convert int to char *
-    int error = snprintf(port, 10, "%d", client->remote_entity.UT_port);
+    int error = get_ip_port(client->remote_entity, host_name, port);
     if (error < 0) {
-        ssp_cleanup_client(client);
-        return NULL;
-    }
-
-    uint32_t ut_addr = htonl(client->remote_entity.UT_address);
-    //convert uint id to char *
-    void *ret = inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
-    if (ret == NULL) {
-        ssp_error("inet_ntop");
         return NULL;
     }
 
