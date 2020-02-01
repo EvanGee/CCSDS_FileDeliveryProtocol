@@ -37,16 +37,24 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     }
     
     FTP *app = ssp_alloc(sizeof(FTP), 1);
+    if (app == NULL) 
+        return NULL;
+    
     app->packet_len = PACKET_LEN;
     app->my_cfdp_id = my_cfdp_address;
     app->close = false;
     app->remote_entity = remote_entity;
+
     app->active_clients = linked_list();
+    if (app->active_clients == NULL) 
+        return NULL;
+
     app->request_list = linked_list();
+    if (app->request_list == NULL) 
+        return NULL;
+
     app->current_request = NULL;
-
     ssp_server(app);
-
     return app;
 }
 
@@ -70,16 +78,6 @@ void ssp_server(FTP *app) {
 
 Client *ssp_client(uint32_t cfdp_id, FTP *app) {
 
-    Client *client = ssp_alloc(sizeof(Client), 1);
-    if (checkAlloc(client) < 0)
-        return NULL;
-        
-    client->current_request = NULL;
-    client->request_list = linked_list();
-    client->packet_len = PACKET_LEN;
-
-    
-    //Remote_entity *remote_entity = ssp_alloc(1, sizeof(Remote_entity));
     Remote_entity remote_entity;
     int error = get_remote_entity_from_json(&remote_entity, cfdp_id);
     if (error < 0) {
@@ -87,8 +85,22 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
         return NULL;
     }
     
+    Client *client = ssp_alloc(sizeof(Client), 1);
+    if (client == NULL)
+        return NULL;
+        
+    client->current_request = NULL;
+    client->request_list = linked_list();
+    
+    if (client->request_list == NULL) {
+        ssp_free(client);
+        return NULL;
+    }
+
+    client->packet_len = PACKET_LEN;
     client->remote_entity = remote_entity;
-    get_header_from_mib2(&client->pdu_header, remote_entity, app->my_cfdp_id);
+
+    get_header_from_mib(&client->pdu_header, remote_entity, app->my_cfdp_id);
 
     client->app = app;
 
