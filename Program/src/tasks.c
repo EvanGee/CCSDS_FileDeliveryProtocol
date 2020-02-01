@@ -298,6 +298,7 @@ void *ssp_connectionless_server_task(void *params) {
 
     int error = get_ip_port(app->remote_entity, host_name, port);
     if (error < 0) {
+        ssp_cleanup_ftp(app);
         return NULL;
     }
 
@@ -323,6 +324,7 @@ void *ssp_connectionless_client_task(void* params){
 
     int error = get_ip_port(client->remote_entity, host_name, port);
     if (error < 0) {
+        ssp_cleanup_client(client);
         return NULL;
     }
 
@@ -348,6 +350,7 @@ void *ssp_connection_server_task(void *params) {
 
     int error = get_ip_port(app->remote_entity, host_name, port);
     if (error < 0) {
+        ssp_cleanup_ftp(app);
         return NULL;
     }
 
@@ -374,6 +377,7 @@ void *ssp_connection_client_task(void *params) {
 
     int error = get_ip_port(client->remote_entity, host_name, port);
     if (error < 0) {
+        ssp_cleanup_client(client);
         return NULL;
     }
 

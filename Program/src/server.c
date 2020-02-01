@@ -157,7 +157,7 @@ static int resizeBuff(char **buffer, uint32_t *newBufferSize, uint32_t *prev_buf
     return 1;
 }
 //see header file
-void connection_server(char* port, int initial_buff_size, int connection_limit, 
+void connection_server(char *host_name, char* port, int initial_buff_size, int connection_limit, 
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
     int (*onStdIn)(void *other),
@@ -168,7 +168,7 @@ void connection_server(char* port, int initial_buff_size, int connection_limit,
     uint32_t size_of_addr = 0;
     void *addr = ssp_init_sockaddr_struct((size_t*)&size_of_addr);
 
-    int sfd = prepareHost(NULL, addr, &size_of_addr, port, SOCK_STREAM, 1);
+    int sfd = prepareHost(host_name, addr, &size_of_addr, port, SOCK_STREAM, 1);
     if (sfd < 0)
         exit_now = 1;
 

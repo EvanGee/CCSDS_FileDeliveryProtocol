@@ -12,6 +12,7 @@ This file is the header file for server.c
 #include <netinet/in.h>
 
 
+int *prepareSignalHandler(void);
 /*------------------------------------------------------------------------------
     Purpose:    This function creates a udp select server on the socket sfd.
     Perameters: int sfd: The socket descriptor created by prepareUdpHost
@@ -35,6 +36,15 @@ This file is the header file for server.c
     Return:     None
 ------------------------------------------------------------------------------*/
 
+/*-----------------------------CALLBACK onTimeOut-------------------------------
+    Purpose:    This is a simple udp client 
+    Perameters: hostname is the name of an address eg, 127.0.0.1, port is the por
+                channel_size is the size of the channel in bytes
+    eg, 1111
+    Return:     None
+------------------------------------------------------------------------------*/
+
+
 void connectionless_server(char *host_name, char* port, int initial_buff_size, 
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
@@ -43,7 +53,7 @@ void connectionless_server(char *host_name, char* port, int initial_buff_size,
     void (*onExit)(void *other),
     void *other);
 
-void connection_server(char* port, int initial_buff_size, int connection_limit,
+void connection_server(char *host_name, char* port, int initial_buff_size, int connection_limit,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
     int (*onStdIn)(void *other),
@@ -56,17 +66,6 @@ void connection_client(char *hostname, char*port, int packet_len, void *params,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
     int (*checkExit)(void *params),
     void (*onExit)(void *params));
-
-/*-----------------------------CALLBACK onTimeOut-------------------------------
-    Purpose:    This is a simple udp client 
-    Perameters: hostname is the name of an address eg, 127.0.0.1, port is the por
-                channel_size is the size of the channel in bytes
-    eg, 1111
-    Return:     None
-------------------------------------------------------------------------------*/
-
-
-int *prepareSignalHandler(void);
 
 void connectionless_client(char *hostname, char*port, int packet_len, void *params,
     int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *params),
