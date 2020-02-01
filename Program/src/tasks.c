@@ -41,8 +41,6 @@ static void timeout(Request *req) {
     }
 }
 
-
-
 static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
 
     FTP *app = (FTP *) other;
