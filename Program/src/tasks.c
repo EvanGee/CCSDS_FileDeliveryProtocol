@@ -107,7 +107,6 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
 void remove_request_check(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     List *req_list = (List *) args;
-    //print_request_procedure(req);
 
     if (req->procedure == clean_up) {
         ssp_printf("removing request\n");
@@ -176,8 +175,7 @@ static void client_check_callback(Node *node, void *client, void *args) {
     if (c->close) {
         Client *remove_this = (Client *) list->removeNode(list, node);
         ssp_printf("removing client, from server \n");
-        ssp_thread_join(c->client_handle);
-        ssp_free(remove_this);
+        ssp_client_join(remove_this);
     }
 
 }
@@ -212,8 +210,7 @@ static int check_exit_client_callback(void *params) {
 }
 
 static void on_exit_client_callback (void *params) {
-    Client *client = (Client*) params;
-    ssp_cleanup_client(client);
+    
 }
 
 static void on_exit_server_callback (void *params) {
@@ -273,8 +270,13 @@ void *ssp_connectionless_server_task(void *params) {
     app->transaction_sequence_number = 1;
 
     char port[10];
-    snprintf(port, 10, "%d",app->remote_entity.UT_port);
-    
+    //convert to a string for the connectionless_server function
+    int error = snprintf(port, 10, "%d",app->remote_entity.UT_port);
+    if (error < 0) {
+        ssp_cleanup_ftp(app);
+        return NULL;
+    }
+
     connectionless_server(port, 
         app->packet_len, 
         on_recv_server_callback, 
@@ -297,6 +299,11 @@ void *ssp_connectionless_client_task(void* params){
 
     //convert int to char *
     int error = snprintf(port, 10, "%d", client->remote_entity.UT_port);
+    if (error < 0) {
+        ssp_cleanup_client(client);
+        return NULL;
+    }
+
     uint32_t ut_addr = htonl(client->remote_entity.UT_address);
 
     //convert uint id to char *
@@ -430,13 +437,14 @@ void *ssp_csp_connection_client_task(void *params) {
 
 ------------------------------------------------------------------------------*/
 
-static void ssp_client_join(Node *node, void *element, void*args) {
-    Client *client = (Client *) element;
-    ssp_thread_join(client->client_handle);    
+void ssp_cleanup_client(Client *client) {
+    client->request_list->free(client->request_list, ssp_cleanup_req);
+    ssp_free(client);
 }
+void ssp_client_join(Client *client) {
 
-void ssp_join_clients(List *clients) {
-    clients->iterate(clients, ssp_client_join, NULL);
+    ssp_thread_join(client->client_handle);
+    ssp_cleanup_client(client);
 }
 
 static void exit_client(Node *node, void *element, void *args) {
@@ -451,9 +459,4 @@ void ssp_cleanup_ftp(FTP *app) {
     app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
     app->active_clients->freeOnlyList(app->active_clients);
     ssp_free(app);
-}
-
-void ssp_cleanup_client(Client *client) {
-    client->request_list->free(client->request_list, ssp_cleanup_req);
-    
 }
