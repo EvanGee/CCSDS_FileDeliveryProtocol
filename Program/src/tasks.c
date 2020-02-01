@@ -307,7 +307,11 @@ void *ssp_connectionless_client_task(void* params){
     uint32_t ut_addr = htonl(client->remote_entity.UT_address);
 
     //convert uint id to char *
-    inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
+    void *ret = inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
+    if (ret == NULL) {
+        ssp_error("inet_ntop");
+        return NULL;
+    }
     
     connectionless_client(host_name, 
         port, 
@@ -351,11 +355,19 @@ void *ssp_connection_client_task(void *params) {
     char port[10];
 
     //convert int to char *
-    snprintf(port, 10, "%d", client->remote_entity.UT_port);
+    int error = snprintf(port, 10, "%d", client->remote_entity.UT_port);
+    if (error < 0) {
+        ssp_cleanup_client(client);
+        return NULL;
+    }
 
     uint32_t ut_addr = htonl(client->remote_entity.UT_address);
     //convert uint id to char *
-    inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
+    void *ret = inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
+    if (ret == NULL) {
+        ssp_error("inet_ntop");
+        return NULL;
+    }
 
     connection_client(host_name, 
         port, 
