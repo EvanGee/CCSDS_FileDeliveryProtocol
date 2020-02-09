@@ -18,21 +18,16 @@ to use for general functionality.
 #include "port.h"
 
 
-
 #define MAX_LEN 255
 #define ID_LEN 10
 
 //see header file
-int checkAlloc(void *mem, int notOkToFail)
+int checkAlloc(void *mem)
 {
-
-    if (mem == NULL && notOkToFail)
+    if (mem == NULL)
     {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-    else if(mem == NULL && !notOkToFail) {
-        return 0;
+        ssp_error("malloc");
+        return -1;
     }
     return 1;
 }
@@ -43,7 +38,9 @@ Config *configuration(int argc, char **argv)
 {
     int ch;
     Config *conf = calloc(sizeof(Config), 1);
-    checkAlloc(conf, 1);
+    if (checkAlloc(conf) < 0) 
+        return NULL;
+        
 
     conf->timer = 15;
     conf->verbose_level = 0;

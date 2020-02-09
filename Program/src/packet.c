@@ -35,7 +35,7 @@ uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uin
 
     //copy variable length src id
     memcpy(&packet[packet_index], 
-    pdu_header->source_id, 
+    &pdu_header->source_id, 
     pdu_header->length_of_entity_IDs);
     packet_index += pdu_header->length_of_entity_IDs;
 
@@ -47,7 +47,7 @@ uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uin
 
     //copy variable length destination id
     memcpy(&packet[packet_index],
-    pdu_header->destination_id,
+    &pdu_header->destination_id,
     pdu_header->length_of_entity_IDs);
     
     uint8_t total_bytes = PACKET_STATIC_HEADER_LEN 
@@ -166,10 +166,10 @@ uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Reques
 //length is the total size of the packet
 uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t length) {
 
-    if (file->next_offset_to_send > file->total_size){
-        ssp_error("cant send an offset past the file's length\n");
-        return 1;
+    if (file->next_offset_to_send >= file->total_size){
+        return 0;
     }
+
 
     Pdu_header *header = (Pdu_header *) packet;
     //set header to file directive 0 is directive, 1 is data

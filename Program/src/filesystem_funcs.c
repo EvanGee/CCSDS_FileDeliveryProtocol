@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "string.h"
 #include "list.h"
-
+#include "jsmn.h"
 
 uint32_t get_file_size(char *source_file_name) {
 
@@ -287,5 +287,56 @@ int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t 
     file->missing_offsets->push(file->missing_offsets, offset, file_size);
     file->is_temp = 0;
     file->total_size = file_size;
+    return 0;
+}
+
+int read_json(char *file_name, void (*callback)(char *key, char *value, void *params), void *params) {
+
+    jsmn_parser p;
+    int number_of_tokens = 255;
+    jsmntok_t tok[number_of_tokens];
+
+    jsmn_init(&p);
+
+    uint32_t total_size = get_file_size(file_name);
+    if (total_size == 0){
+        ssp_error("couldn't get file size\n");
+        return -1;
+    }
+
+    char buff[total_size];
+
+    int fd = ssp_open(file_name, O_RDWR);
+    
+    int r = read(fd, buff, sizeof(buff));
+    if (r < 0) {
+        ssp_error("read failed\n");
+        return -1;
+    }
+
+    r = jsmn_parse(&p, buff, total_size, tok, number_of_tokens);
+    if (r < 0) {
+        ssp_error("Failed to parse JSON\n");
+        return -1;
+    }
+    
+    for (int i = 1; i < r; i++) {
+
+            
+        int key_size = tok[i].end - tok[i].start;
+        int value_size = tok[i+1].end - tok[i+1].start;
+
+        char key[key_size + 1];
+        key[key_size] = '\0';
+        strncpy(key, &buff[tok[i].start], key_size);
+
+        char value[value_size + 1];
+        value[value_size] = '\0';
+        strncpy(value, &buff[tok[i+1].start], value_size);
+
+        callback(key, value, params);
+        i++;
+        
+    }
     return 0;
 }

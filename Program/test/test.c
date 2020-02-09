@@ -54,7 +54,7 @@ int assert_not_equals_int(char *file_name, int line_num,  char* description, int
 }
 
 
-int assert_equals_str(char *file_name, int line_num, char* description, char *val1,  char* val2, size_t size) {
+int assert_equals_str(char *file_name, int line_num, char* description, void *val1,  void* val2, size_t size) {
     
     test_num++;
     if (!memcmp(val1, val2, size)) {
@@ -74,7 +74,7 @@ int assert_equals_str(char *file_name, int line_num, char* description, char *va
     return 0;
 }
 
-int assert_not_equals_str(char *file_name, int line_num, char* description, char *val1,  char* val2, size_t size) {
+int assert_not_equals_str(char *file_name, int line_num, char* description, void *val1,  void* val2, size_t size) {
     
     test_num++;
     if (!memcmp(val1, val2, size)) {

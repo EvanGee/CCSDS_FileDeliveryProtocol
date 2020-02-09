@@ -25,13 +25,11 @@ typedef struct config
 
 
 /*------------------------------------------------------------------------------
-    Purpose:    This function checks to see if the memory is allocated,
-                it exits if ok = 1 and keeps running in ok == 0 
+    Purpose:    This function checks to see if the memory is allocated
     Perameters: void *mem: 
-                int notOkToFail: 
-    Return:     returns nothing
+    Return:     returns -1 on bad mem, and 1 on ok
 ------------------------------------------------------------------------------*/
-int checkAlloc(void *mem, int notOkToFail);
+int checkAlloc(void *mem);
 
 /*------------------------------------------------------------------------------
     Purpose:    This function is used to make a configuration struct from the

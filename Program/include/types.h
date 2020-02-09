@@ -8,7 +8,7 @@
 #include <stddef.h>
 
 
-
+#define MAX_PATH 255
 #define ACKNOWLEDGED_MODE 0
 #define UN_ACKNOWLEDGED_MODE 1
 /*-----------------------------------------------------------------------------
@@ -51,14 +51,15 @@ typedef struct pdu_header{
     //number of octets in sequence number, 0 is one octet
     unsigned int transaction_seq_num_len: 3; 
 
-    //variable in size, and will get memory allocated based on the length variables above
-    void *source_id;
+    //variable in size (for actual packet), and will get memory allocated based on the length variables above
+    uint32_t source_id;
 
-    //variable in size, and will get memory allocated based on the length variables above
+    //variable in size (for actual packet), and will get memory allocated based on the length variables above
     void *transaction_sequence_number;
 
-    //variable in size, and will get memory allocated based on the length variables above
-    void *destination_id;
+    //variable in size (for actual packet), and will get memory allocated based on the length variables above
+    uint32_t destination_id;
+
 } Pdu_header;  
 
 typedef struct originating_tranaction_id_message {
@@ -461,6 +462,8 @@ typedef struct local_entity {
 
     unsigned int Metadata_recv_indication: 1;
 
+    unsigned int Metadata_sent_indication: 1;
+    
     //function pointer to default handler?
     void *default_fault_handler;
 
@@ -573,8 +576,8 @@ typedef struct request {
     File *file;
     uint32_t file_size;
 
-    char *source_file_name;
-    char *destination_file_name;
+    char source_file_name[MAX_PATH];
+    char destination_file_name[MAX_PATH];
 
     uint32_t packet_data_len;
 
@@ -595,8 +598,8 @@ typedef struct request {
     //bool for sending first blast of data packets
    // uint8_t sent_first_data_round;
 
-    Remote_entity *remote_entity;
-    Local_entity *local_entity;
+    Remote_entity remote_entity;
+    Local_entity local_entity;
 
     List *messages_to_user;
     
@@ -607,7 +610,7 @@ typedef struct request {
     char* buff;
 
     //header for building response packets
-    Pdu_header *pdu_header;
+    Pdu_header pdu_header;
 
     //handler for sending responses back
     Response res;
@@ -617,8 +620,6 @@ typedef struct request {
 typedef struct ftp {
     uint32_t packet_len;
     void *server_handle;
-    MIB *mib;
-
     uint32_t my_cfdp_id;
     
     List* request_list; 
@@ -626,7 +627,7 @@ typedef struct ftp {
     Request *current_request;
 
     //underlying connection information 
-    Remote_entity *remote_entity;
+    Remote_entity remote_entity;
 
     List *active_clients;
 
@@ -647,15 +648,16 @@ typedef struct client {
     void *client_handle;
     //the maximum size of the packet
     uint32_t packet_len;
+    uint32_t cfdp_id;
     
     Request *current_request;
     List *request_list;
 
     //information about the remote_entity
-    Remote_entity *remote_entity;
+    Remote_entity remote_entity;
 
     //packet header, useful for copying into outgoing packets
-    Pdu_header *pdu_header;
+    Pdu_header pdu_header;
     
     FTP *app;    
 

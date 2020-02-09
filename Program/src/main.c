@@ -29,6 +29,7 @@ static int *exit_now;
 
 int main(int argc, char** argv) {
 
+
     //exit handler for the main thread;
     exit_now = prepareSignalHandler();
 
@@ -41,11 +42,13 @@ int main(int argc, char** argv) {
     }
 
     FTP *app = init_ftp(conf->my_cfdp_id);
+    if (app == NULL) {
+        return 1;
+    }
     
     //create a client
     if (conf->client_cfdp_id != 0){
 
-        //Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
         
         /*
         start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy.jpg", ACKNOWLEDGED_MODE, app));
@@ -54,7 +57,7 @@ int main(int argc, char** argv) {
         */
         //start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy4.jpg", ACKNOWLEDGED_MODE, app));
 
-        
+    
         Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
         add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy.jpg", req);
         start_request(req);
@@ -63,12 +66,25 @@ int main(int argc, char** argv) {
         add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy2.jpg", req);
         start_request(req);
 
-        
-        //if (req == NULL)
-        //    return -1;
 
-        //add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy.jpg", req);
-        //start_request(req);
+        req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
+        add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy3.jpg", req);
+        start_request(req);
+
+
+/*
+        Request *req;
+        for (int i=0; i < 4; i++) {
+            sleep(10);
+            req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
+            char filename[11] = {'p','r','o','x','y', (char) (48+i), '.', 'j', 'p', 'g', '\0'};
+
+
+            add_proxy_message_to_request(2, 1, "pic.jpeg", filename, req);
+            start_request(req);
+
+        }
+*/ 
 
     }
 

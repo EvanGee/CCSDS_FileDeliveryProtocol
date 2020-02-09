@@ -41,7 +41,7 @@ static int test_build_eof_packet(char *packet, int packet_start) {
     //need to set partialcheckus to checksum, because it gets set from reading in data
     file->partial_checksum = check_sum_file(file, 1000);
     
-    build_eof_packet(packet, packet_start, file);
+    build_eof_packet(packet, packet_start, file->total_size, file->partial_checksum);
 
     int packet_index = packet_start;
     Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
@@ -245,14 +245,16 @@ int test_build_pdu_header(char *packet, Pdu_header *header, uint64_t sequence_nu
     uint32_t packet_index = PACKET_STATIC_HEADER_LEN;
 
     ASSERT_EQUALS_INT("packet length: ", length, 9);
-    ASSERT_EQUALS_STR("packet source id ", &packet[packet_index], header->source_id, header->length_of_entity_IDs);
+    ASSERT_EQUALS_STR("packet source id ", &packet[packet_index], &header->source_id, header->length_of_entity_IDs);
+
+
     packet_index += header->length_of_entity_IDs;
 
     ASSERT_NOT_EQUALS_INT("transaction_sequence_number correctly placed ", packet[packet_index], sequence_number);
     packet_index += header->transaction_seq_num_len;
 
-    ASSERT_NOT_EQUALS_STR("packet destination not equal to source id ", &packet[packet_index], header->source_id, header->length_of_entity_IDs);
-    ASSERT_EQUALS_STR("packet destination id ", &packet[packet_index], header->destination_id, header->length_of_entity_IDs);
+    ASSERT_NOT_EQUALS_STR("packet destination not equal to source id ", &packet[packet_index], &header->source_id, header->length_of_entity_IDs);
+    ASSERT_EQUALS_STR("packet destination id ", &packet[packet_index], &header->destination_id, header->length_of_entity_IDs);
 
     packet_index += header->length_of_entity_IDs;
     Pdu_header *new_header = (Pdu_header *)packet;
@@ -444,31 +446,29 @@ int packet_tests() {
 
     printf("starting Packet Tests (creating and changing packet values)\n");
 
-    //Memory information base
-    MIB *mib = init_mib();
 
     //setting host name for testing
     char *host_name = "127.0.0.1";
     uint32_t addr[sizeof(uint32_t)];
     inet_pton(AF_INET, host_name, addr);
     
-    //adding new cfdp entities to management information base
-    add_new_cfdp_entity(mib, 1, *addr, 1111, posix, UN_ACKNOWLEDGED_MODE);
-    add_new_cfdp_entity(mib, 2, *addr, 1112, posix, UN_ACKNOWLEDGED_MODE);   
-    add_new_cfdp_entity(mib, 3, *addr, 1113, posix, ACKNOWLEDGED_MODE);   
-    add_new_cfdp_entity(mib, 4, *addr, 1114, posix, ACKNOWLEDGED_MODE);   
-
-    Pdu_header *pdu_header = get_header_from_mib(mib, 1, 2);
-
     char *packet = calloc(PACKET_TEST_SIZE, sizeof(char));
     uint64_t sequence_number = 12345663234;
-    int data_start_index = test_build_pdu_header(packet, pdu_header, sequence_number);
+
+    Pdu_header pdu_header;
+    Remote_entity remote_entity;
+
+    int error = get_remote_entity_from_json (&remote_entity, 1);
+    get_header_from_mib(&pdu_header, remote_entity, 2);
+
+    int data_start_index = test_build_pdu_header(packet, &pdu_header, sequence_number);
+    /*
     test_build_ack_eof_pdu(packet, data_start_index);
     test_build_nak_packet(packet, data_start_index);
     test_respond_to_naks(packet, data_start_index);
 
     memset(packet, 0, PACKET_TEST_SIZE);
-    data_start_index = test_build_pdu_header(packet, pdu_header, sequence_number);
+    data_start_index = test_build_pdu_header(packet, &pdu_header, sequence_number);
 
     test_build_data_packet(packet, data_start_index);
     test_build_metadata_packet(packet, data_start_index);
@@ -478,8 +478,8 @@ int packet_tests() {
     test_get_message_from_packet(packet, data_start_index);
     test_get_messages_from_packet(packet, data_start_index);
     
-    free_mib(mib);
-    ssp_cleanup_pdu_header(pdu_header);
+    */
+    ssp_cleanup_pdu_header(&pdu_header);
     ssp_free(packet);
     return 0;
 

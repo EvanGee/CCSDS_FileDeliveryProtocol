@@ -126,8 +126,10 @@ void ssp_sendto(Response res) {
             printf("sending outgoing packet (testing)\n");
         #endif
         #ifndef TEST
+      
             int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(*addr));
             if (err < 0) {
+                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(*addr));
                 ssp_error("ERROR in sendto");
             }
         #endif
@@ -234,7 +236,8 @@ void *ssp_init_sockaddr_struct(size_t *size_of_addr) {
 
         *size_of_addr = sizeof(struct sockaddr_storage);
         void *addr = ssp_alloc(1, sizeof(struct sockaddr_storage));
-        checkAlloc(addr, 1);
+        if (checkAlloc(addr) < 0)
+            return NULL;
 
 
     #endif
@@ -250,7 +253,10 @@ void *ssp_init_sockaddr_struct(size_t *size_of_addr) {
 void *ssp_alloc(uint32_t n_memb, size_t size) {
     
     #ifdef POSIX_PORT
-        return calloc(n_memb, size);
+        void *mem = calloc(n_memb, size);
+        if (mem == NULL)
+            ssp_error("Memory failed to alloc!\n");
+        return mem;
     #endif
 
     #ifdef FREE_RTOS_PORT
@@ -261,6 +267,9 @@ void *ssp_alloc(uint32_t n_memb, size_t size) {
 
 void ssp_free(void *pointer) {
 
+    if (pointer == NULL)
+        return;
+        
     #ifdef POSIX_PORT
         free(pointer);
     #endif
@@ -289,15 +298,21 @@ void ssp_printf( char *stuff, ...) {
 
 
 
-
+//returns seconds elapsed
 int ssp_time_count() {
 
     #ifdef POSIX_PORT
-        clock_t c = clock();
-        c = c / CLOCKS_PER_SEC;
-        return c;
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
 
+        //clock_t c = clock();
+        //c = c / CLOCKS_PER_SEC;
+        return ts.tv_sec;
     #endif
+
+
+
+
 
     #ifdef FREE_RTOS_PORT
         //some kind of ticks
@@ -315,10 +330,14 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 
     #ifdef POSIX_PORT
     pthread_t *handler = ssp_alloc(1,  sizeof(pthread_t));
-    checkAlloc(handler, 1);
+    if (checkAlloc(handler) < 0)
+        return NULL;
+
 
     pthread_attr_t *attr = ssp_alloc(1, sizeof(pthread_attr_t)); 
-    checkAlloc(attr, 1);
+    
+    if (checkAlloc(attr) < 0)
+        return NULL;
 
     int err = pthread_attr_init(attr);
     if (0 != err) 
@@ -328,7 +347,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     err = pthread_attr_setstacksize(attr, stack_size);
 
     if (0 != err)
-        perror("ERROR pthread_attr_setstacksize %d");
+        ssp_error("ERROR pthread_attr_setstacksize %d");
 
     if (EINVAL == err) {
         printf("the stack size is less that PTHREAD_STACK_MIN %d\n", PTHREAD_STACK_MIN);
@@ -363,6 +382,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     #endif
 
 }
+
 
 
 //not required for Free_rtos

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "port.h"
 
 /*------------------------------------------------------------------------------
     This function creates a new node to add into the linked list, returns the
@@ -13,7 +14,7 @@
 
 Node *createNode(void *element, uint32_t id)
 {
-    Node *newNode = calloc(sizeof(Node), 1);
+    Node *newNode = ssp_alloc(sizeof(Node), 1);
     if (newNode == NULL) {
         return NULL;
     }
@@ -33,7 +34,7 @@ Node *createNode(void *element, uint32_t id)
 
 static void freeNode(Node *node) {
     if (node != NULL)
-        free(node);    
+        ssp_free(node);    
 }
 
 static void *pop(List *list) {
@@ -113,7 +114,7 @@ static void iterate(List *list, void (*f)(Node *node, void *element, void *args)
 {
     Node *cur = list->head->next;
     Node *next;
-    while (cur->next != NULL)
+    while (cur->next != NULL && cur != list->tail)
     {
         next = cur->next;
         f(cur, cur->element, args);
@@ -123,6 +124,7 @@ static void iterate(List *list, void (*f)(Node *node, void *element, void *args)
 
 //deletes the node, and returns the object, (motifys the list)
 static void *removeNode(List *list, Node *node) {
+
 
     Node *previous = node->prev;
     Node *next = node->next;
@@ -184,9 +186,9 @@ static void freeList(List *list, void (*f)(void *element))
         f(n->element);
         freeNode(n);
     }
-    free(list->head);
-    free(list->tail);
-    free(list);
+    ssp_free(list->head);
+    ssp_free(list->tail);
+    ssp_free(list);
 }
 
 
@@ -200,9 +202,9 @@ static void freeNodes(List *list) {
         cur = cur->next;
         freeNode(n);
     }
-    free(list->head);
-    free(list->tail);
-    free(list);
+    ssp_free(list->head);
+    ssp_free(list->tail);
+    ssp_free(list);
 
 }
 
@@ -286,17 +288,22 @@ static Node *findNode(List *list, uint32_t id, int (*f)(void *element, void *arg
 
 List *linked_list()
 {
-    List *newList = calloc(sizeof(List), 1);
+    List *newList = ssp_alloc(sizeof(List), 1);
     if (newList == NULL) 
         return NULL;
 
     newList->head = createNode(NULL, 0);
-    if (newList->head == NULL) 
+    if (newList->head == NULL) {
+        ssp_free(newList);
         return NULL;
+    }
 
     newList->tail = createNode(NULL, 0);
-    if (newList->tail == NULL)
+    if (newList->tail == NULL) {
+        ssp_free(newList->head);
+        ssp_free(newList);
         return NULL;
+    }
     
     Node *tail = newList->tail;
     Node *head = newList->head;

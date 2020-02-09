@@ -42,8 +42,8 @@ MIB *mock_mib() {
 
 int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id) {
 
-    MIB *mib = mock_mib();
-    Pdu_header *pdu_header = get_header_from_mib(mib, dest_id, src_id);
+    Pdu_header pdu_header;
+    int error = get_header_from_mib2(pdu_header, remote_entity, src_id);
     int packet_index = build_pdu_header(packet, 1, 0, pdu_header);
 
     ssp_cleanup_pdu_header(pdu_header);

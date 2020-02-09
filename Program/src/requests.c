@@ -39,7 +39,6 @@ LV *create_lv(int size, void *value) {
     LV *lv = ssp_alloc(1, sizeof(LV));
     lv->value = ssp_alloc(size, sizeof(char));
     
-
     memcpy(lv->value, value, size);
     lv->length = size;
 
@@ -97,56 +96,87 @@ void ssp_cleanup_req(void *request) {
 
     if (req->file != NULL)
         free_file(req->file);
-    if (req->pdu_header != NULL)
-        ssp_cleanup_pdu_header(req->pdu_header);
-    if (req->source_file_name != NULL)  
-        ssp_free(req->source_file_name);
-    if (req->destination_file_name != NULL)
-        ssp_free(req->destination_file_name);
-    if (req->buff != NULL)
-        ssp_free(req->buff);
-    if (req->res.addr != NULL)
-        ssp_free(req->res.addr);
-    if (req->local_entity != NULL)
-        ssp_free(req->local_entity);
-
+    
     if (req->messages_to_user->count > 0)
         req->messages_to_user->free(req->messages_to_user, ssp_free_message);
     else 
         req->messages_to_user->freeOnlyList(req->messages_to_user);
 
-    if (req != NULL)
-        ssp_free(req);
+    ssp_free(req->buff);
+    ssp_free(req->res.addr);
+    ssp_free(req);
 
 }
+
 
 
 Request *init_request(uint32_t buff_len) {
 
     Request *req = ssp_alloc(1, sizeof(Request));
 
-    req->source_file_name = ssp_alloc(MAX_PATH, sizeof(char));
-    checkAlloc(req->source_file_name, 1);
-
-    req->destination_file_name = ssp_alloc(MAX_PATH, sizeof(char));
-    checkAlloc(req->destination_file_name,  1);
-
-    req->local_entity = ssp_alloc(1, sizeof(Local_entity));
     req->file = NULL;
     req->buff_len = buff_len;
     req->buff = ssp_alloc(buff_len, sizeof(char));
-    
+    if (req->buff == NULL)
+        return NULL;
+
     req->procedure = none;
     req->paused = true;
-
+    reset_timeout(&req->timeout);
+    
     req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();
-    checkAlloc(req->buff,  1);
+    if (req->messages_to_user == NULL) {
+        ssp_free(req->buff);
+        return NULL;
+    }
     return req;
 }
 
 
+/*
+Request *init_request_2(uint32_t buff_len, uint32_t transaction_id, Pdu_header *pdu_header, Remote_entity *remote_entity) {
+
+    Request *req = ssp_alloc(1, sizeof(Request));
+    checkAlloc(req, 1);
+
+
+    req->pdu_header = pdu_header;
+    req->remote_entity = remote_entity;
+    req->file = NULL;
+    req->buff_len = buff_len;
+    req->dest_cfdp_id = remote_entity->cfdp_id;
+    req->transaction_sequence_number = transaction_id;
+    req->procedure = none;
+    req->paused = true;
+
+    req->buff = ssp_alloc(buff_len, sizeof(char));
+    checkAlloc(req->buff,  1);
+
+    reset_timeout(&req->timeout);
+    
+    req->res.msg = req->buff;
+
+    req->messages_to_user = linked_list();
+    checkAlloc(req->messages_to_user,  1);
+    req->res.transmission_mode = remote_entity->default_transmission_mode;
+    req->res.type_of_network = remote_entity->type_of_network;
+    req->res.packet_len = buff_len;
+    
+    //req->res.addr = remote_entity.UT_address;
+
+    //using the hosts network transfer, should switch to client configuration
+    
+    //req->res.sfd = res.sfd;
+    
+
+    //req->paused = false;
+    //req->procedure = sending_put_metadata;
+
+    return req;
+}
+*/
 
 //starts a new client, adding it to app->active_clients, as well as 
 //starting a new request and adding it to the client, returns a pointer
@@ -157,16 +187,19 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
 
     if (client == NULL) {
+        ssp_printf("Spinning up a new client thread\n");
         client = ssp_client(dest_id, app);
         app->active_clients->insert(app->active_clients, client, dest_id);
+    } else {
+        ssp_printf("adding request to existing client thread\n");
     }
 
     Request *req = init_request(client->packet_len);
 
     //build a request 
     req->transaction_sequence_number = app->transaction_sequence_number++;
-    req->dest_cfdp_id = client->remote_entity->cfdp_id;
-    req->pdu_header = get_header_from_mib(app->mib, client->remote_entity->cfdp_id, app->my_cfdp_id);
+    req->dest_cfdp_id = client->remote_entity.cfdp_id;
+    req->pdu_header = client->pdu_header;
     req->res.packet_len = client->packet_len;
     req->packet_data_len = app->packet_len;
     
@@ -190,6 +223,7 @@ Request *put_request(
     Request *req;
     uint32_t file_size = 0;
 
+    ssp_printf("trying to start new request\n");
     if (source_file_name == NULL || destination_file_name == NULL) {
         req = start_new_client_request(app, dest_id);
         req->transmission_mode = transmission_mode;
@@ -248,3 +282,57 @@ int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id,
 }
 
 
+void print_request_state(Request *req) {
+
+    ssp_printf("----------------Transaction %d---------------\n", req->transaction_sequence_number);
+    ssp_printf("local_entity stats: \n");
+    ssp_printf("EOF_recv indication %d\n", req->local_entity.EOF_recv_indication);
+    ssp_printf("EOF_sent indication %d\n", req->local_entity.EOF_sent_indication);
+    ssp_printf("Metadata_recv indication %d\n", req->local_entity.Metadata_recv_indication);
+    ssp_printf("Metadata_sent indication %d\n", req->local_entity.Metadata_sent_indication);
+    
+    ssp_printf("Resume indication %d\n", req->local_entity.resumed_indication);
+    ssp_printf("Suspended indication %d\n", req->local_entity.suspended_indication);
+    ssp_printf("Transaction finished indication %d\n", req->local_entity.transaction_finished_indication);
+    print_request_procedure(req);
+    ssp_printf("---------------------------------------------\n");
+}
+
+
+void print_request_procedure(Request *req){
+
+    ssp_printf("current procedure: ");
+    switch (req->procedure)
+    {
+        case sending_eof: 
+            ssp_printf("sending_eof\n");
+            break;
+
+        case sending_data:
+            ssp_printf("sending_data\n");
+            break;
+
+        case sending_put_metadata:
+            ssp_printf("sending_put_metadata\n");
+            break;
+
+        case sending_finished:
+            ssp_printf("sending_finished\n");
+            break;
+
+        case sending_start:
+            ssp_printf("sending_start\n");
+            break;
+
+        case clean_up: // will close the request happens in the previous functions
+            ssp_printf("clean_up\n");
+            break;
+
+        case none:
+            ssp_printf("none\n");
+            break;
+
+        default:
+            break;
+    }
+}

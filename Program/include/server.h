@@ -12,6 +12,7 @@ This file is the header file for server.c
 #include <netinet/in.h>
 
 
+int *prepareSignalHandler(void);
 /*------------------------------------------------------------------------------
     Purpose:    This function creates a udp select server on the socket sfd.
     Perameters: int sfd: The socket descriptor created by prepareUdpHost
@@ -35,28 +36,6 @@ This file is the header file for server.c
     Return:     None
 ------------------------------------------------------------------------------*/
 
-void connectionless_server(char* port, int initial_buff_size, 
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
-    int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
-    int (*checkExit)(void *other),
-    void (*onExit)(void *other),
-    void *other);
-
-void connection_server(char* port, int initial_buff_size, int connection_limit,
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
-    int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
-    int (*checkExit)(void *other),
-    void (*onExit)(void *other),
-    void *other);
-
-void connection_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
-    void (*onExit)(void *params));
-
 /*-----------------------------CALLBACK onTimeOut-------------------------------
     Purpose:    This is a simple udp client 
     Perameters: hostname is the name of an address eg, 127.0.0.1, port is the por
@@ -66,12 +45,32 @@ void connection_client(char *hostname, char*port, int packet_len, void *onSendPa
 ------------------------------------------------------------------------------*/
 
 
-int *prepareSignalHandler(void);
+void connectionless_server(char *host_name, char* port, int initial_buff_size, 
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
+    int (*onTimeOut)(void *other),
+    int (*onStdIn)(void *other),
+    int (*checkExit)(void *other),
+    void (*onExit)(void *other),
+    void *other);
 
-void connectionless_client(char *hostname, char*port, int packet_len, void *onSendParams, void *onRecvParams, void *checkExitParams, void *onExitParams,
-    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
+void connection_server(char *host_name, char* port, int initial_buff_size, int connection_limit,
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
+    int (*onTimeOut)(void *other),
+    int (*onStdIn)(void *other),
+    int (*checkExit)(void *other),
+    void (*onExit)(void *other),
+    void *other);
+
+void connection_client(char *hostname, char*port, int packet_len, void *params,
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *params),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
+    int (*checkExit)(void *params),
+    void (*onExit)(void *params));
+
+void connectionless_client(char *hostname, char*port, int packet_len, void *params,
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *params),
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
+    int (*checkExit)(void *params),
     void (*onExit)(void *params));
 
 //#ifdef CSP_NETWORK
