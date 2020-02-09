@@ -267,6 +267,9 @@ void *ssp_alloc(uint32_t n_memb, size_t size) {
 
 void ssp_free(void *pointer) {
 
+    if (pointer == NULL)
+        return;
+        
     #ifdef POSIX_PORT
         free(pointer);
     #endif
@@ -379,6 +382,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     #endif
 
 }
+
 
 
 //not required for Free_rtos

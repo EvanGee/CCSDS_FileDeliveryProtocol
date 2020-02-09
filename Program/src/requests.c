@@ -96,18 +96,15 @@ void ssp_cleanup_req(void *request) {
 
     if (req->file != NULL)
         free_file(req->file);
-    if (req->buff != NULL)
-        ssp_free(req->buff);
-    if (req->res.addr != NULL)
-        ssp_free(req->res.addr);
     
     if (req->messages_to_user->count > 0)
         req->messages_to_user->free(req->messages_to_user, ssp_free_message);
     else 
         req->messages_to_user->freeOnlyList(req->messages_to_user);
 
-    if (req != NULL)
-        ssp_free(req);
+    ssp_free(req->buff);
+    ssp_free(req->res.addr);
+    ssp_free(req);
 
 }
 
@@ -120,7 +117,9 @@ Request *init_request(uint32_t buff_len) {
     req->file = NULL;
     req->buff_len = buff_len;
     req->buff = ssp_alloc(buff_len, sizeof(char));
-    
+    if (req->buff == NULL)
+        return NULL;
+
     req->procedure = none;
     req->paused = true;
     reset_timeout(&req->timeout);
@@ -128,8 +127,10 @@ Request *init_request(uint32_t buff_len) {
     req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();
-
-    checkAlloc(req->buff);
+    if (req->messages_to_user == NULL) {
+        ssp_free(req->buff);
+        return NULL;
+    }
     return req;
 }
 

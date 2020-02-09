@@ -6,7 +6,6 @@ Evan Giese 1689223
 This is my file for server.c. It develops a udp server for select.
 ------------------------------------------------------------------------------*/
 
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -19,19 +18,8 @@ This is my file for server.c. It develops a udp server for select.
 #include <sys/wait.h>
 #include <arpa/inet.h>
 #include <libgen.h>
-#include <sys/select.h>
-#include <sys/time.h>
 #include "utils.h"
 #include "server.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h> 
-#include <time.h>
 #include "port.h"
 
 #ifdef CSP_NETWORK
@@ -138,7 +126,7 @@ int *prepareSignalHandler()
 
     if (sigaction(SIGINT, &actionData, NULL) == -1)
     {
-        perror("sigaction sigint failed\n");
+        ssp_error("sigaction sigint failed\n");
         exit(EXIT_FAILURE);
     }
     return &exit_now;
@@ -187,13 +175,15 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
     ssp_fd_set(STDIN_FILENO, socket_set);
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
-    checkAlloc(buff_size);
+    if (buff_size == NULL)
+        exit_now = true;
 
     *buff_size = initial_buff_size;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(sizeof(char), *buff_size);
-    checkAlloc(buff);
+    if (buff_size == NULL)
+        exit_now = true;
 
     for (;;)
     {
@@ -297,16 +287,18 @@ void connectionless_server(char *host_name, char* port, int initial_buff_size,
     ssp_fd_set(STDIN_FILENO, socket_set);
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
-    checkAlloc(buff_size);
+    if (buff_size == NULL)
+        exit_now = true;
 
     *buff_size = initial_buff_size + 10;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(sizeof(char), *buff_size);
-    checkAlloc(buff);
+    if (buff == NULL)
+        exit_now = true;
 
-    for (;;)
-    {
+    for (;;) {
+
         if (exit_now || checkExit(other)){
             ssp_printf("exiting server thread\n");
             break;
@@ -381,14 +373,16 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *para
         exit_now = 1;
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
-    checkAlloc(buff_size);
+    if (buff_size == NULL)
+        exit_now = true;
 
     *buff_size = packet_len + 10;
 
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(sizeof(char), prev_buff_size);
-    checkAlloc(buff);
+    if (buff == NULL)
+        exit_now = true;
 
 
     for (;;) {
@@ -418,9 +412,9 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *para
         
     }
 
-    free(addr);
-    free(buff_size);
-    free(buff);
+    ssp_free(addr);
+    ssp_free(buff_size);
+    ssp_free(buff);
     ssp_close(sfd);
     onExit(params);
 }
@@ -444,13 +438,15 @@ void connection_client(char *hostname, char*port, int packet_len, void *params,
         exit_now = 1;
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
-    checkAlloc(buff_size);
+    if (buff_size == NULL)
+        exit_now = true;
 
     *buff_size = packet_len;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(prev_buff_size, sizeof(char));
-    checkAlloc(buff);
+    if (buff == NULL)
+        exit_now = true;
 
 
     for (;;) {
@@ -476,9 +472,9 @@ void connection_client(char *hostname, char*port, int packet_len, void *params,
         }
         
     }
-    free(addr);
-    free(buff_size);
-    free(buff);
+    ssp_free(addr);
+    ssp_free(buff_size);
+    ssp_free(buff);
     ssp_close(sfd);
     onExit(params);
 }
@@ -547,7 +543,7 @@ void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_p
             continue;
     
         else {
-            printf("CLIENT DATA Length: %d\n", packet_recieved->length);
+            ssp_printf("CLIENT DATA Length: %d\n", packet_recieved->length);
             if (onRecv(-1, (char *)packet_recieved->data, packet_recieved->length, NULL, packet_recieved, sizeof(packet_recieved), params) == -1)
                     ssp_printf("recv failed\n");
 
@@ -690,7 +686,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port,
 		conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 1000, CSP_O_NONE);
 		if (conn == NULL) {
 			/* Connect failed */
-			printf("Connection failed\n");
+			ssp_printf("Connection failed\n");
 			return;
 		}
      

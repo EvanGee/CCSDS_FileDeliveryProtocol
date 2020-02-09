@@ -110,6 +110,59 @@ Request *parse_pdu_header(char*packet, uint8_t is_server, Response res, Request 
 
 //------------------------------------------------------------------------------
 
+ Request *add_new_incomming_request(uint32_t source_id, 
+        uint32_t transmission_mode, 
+        uint32_t transaction_sequence_number,
+        Response res,
+        FTP *app) {
+
+        Remote_entity remote_entity;
+        int error = get_remote_entity_from_json(&remote_entity, source_id);
+        if (error < 0) {
+            ssp_error("could not get remote entity for incoming packet \n");
+            return NULL;
+        }
+        Pdu_header pdu_header;
+        error = get_header_from_mib(&pdu_header, remote_entity, app->my_cfdp_id);
+        if (error < 0) {
+            ssp_printf("Couldn't make PDU HEADER IS NULL\n");
+            return NULL;
+        }
+
+        Request *found_req = init_request(app->packet_len);
+        if (found_req == NULL) {
+            ssp_error("could not get allocate for new request \n");
+            return NULL;
+        }
+    
+        ssp_printf("incoming new request\n");
+
+        //Make new request and add it
+        found_req->transmission_mode = transmission_mode;
+        found_req->transaction_sequence_number = transaction_sequence_number;
+        found_req->dest_cfdp_id = source_id;
+        found_req->pdu_header = pdu_header;
+
+        found_req->remote_entity = remote_entity;
+        found_req->procedure = sending_put_metadata;
+
+        found_req->res.addr = ssp_alloc(1, res.size_of_addr);
+        
+        if (found_req == NULL) {
+            ssp_cleanup_req(found_req);
+            NULL;
+        }
+
+        memcpy(found_req->res.addr, res.addr, res.size_of_addr);
+
+        found_req->res.packet_len = app->packet_len;
+        found_req->res.sfd = res.sfd;
+        found_req->res.transmission_mode = app->remote_entity.default_transmission_mode;
+        found_req->res.type_of_network = app->remote_entity.type_of_network;
+        found_req->paused = false;
+        return found_req;
+}
+
 
 /*creates a request struct if there is none for the incomming request based on transaction sequence number or
 finds the correct request struct and replaces req with the new pointer. Returns the possition in the packet 
@@ -138,15 +191,13 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     }
 
     uint16_t len = get_data_length(packet);
-    int error = 0;
 
     //if packet is from the same request, don't' change current request
-    /*
-    if (request != NULL && request->transaction_sequence_number == transaction_sequence_number && request->dest_cfdp_id == source_id){ 
+    Request *current_req = (*req);
+    if (current_req != NULL && current_req->transaction_sequence_number == transaction_sequence_number && current_req->dest_cfdp_id == source_id){ 
         (*req)->packet_data_len = len;         
         return packet_index;
     }
-    */
 
     //look for active request in list
     struct request_search_params params = {
@@ -155,54 +206,27 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     };
 
     Request *found_req = (Request *) request_list->find(request_list, 0, find_request, &params);
-    Remote_entity remote_entity;
 
     //server side, receiving requests (this should be its own function)
     if (found_req == NULL && is_server) 
     {
-        
-        error = get_remote_entity_from_json(&remote_entity, source_id);
-        if (error < 0) {
-            ssp_error("could not get remote entity for incoming packet \n");
-            return -1;
-        }
+   
+        found_req = add_new_incomming_request(source_id, 
+            header->transmission_mode, 
+            transaction_sequence_number,
+            res,
+            app);
 
-        found_req = init_request(app->packet_len);
         if (found_req == NULL) {
-            ssp_error("could not get allocate for new request \n");
+            ssp_error("could not create request for incomming transmission");
             return -1;
         }
-    
-        ssp_printf("incoming new request\n");
 
-        //Make new request and add it
-        found_req->transmission_mode = header->transmission_mode;
-        found_req->transaction_sequence_number = transaction_sequence_number;
-        found_req->dest_cfdp_id = source_id;
-
-        error = get_header_from_mib(&found_req->pdu_header, remote_entity, app->my_cfdp_id);
-        if (error < 0) {
-            ssp_printf("Couldn't make PDU HEADER IS NULL\n");
-            return -1;
-        }
-            
-
-        found_req->remote_entity = remote_entity;
-        
-        found_req->procedure = sending_put_metadata;
-        found_req->res.addr = ssp_alloc(1, res.size_of_addr);
-
-        memcpy(found_req->res.addr, res.addr, res.size_of_addr);
-        found_req->res.packet_len = app->packet_len;
-        found_req->res.sfd = res.sfd;
-        found_req->res.transmission_mode = app->remote_entity.default_transmission_mode;
-        found_req->res.type_of_network = app->remote_entity.type_of_network;
-        found_req->paused = false;
-        request_list->push(request_list, found_req, transaction_sequence_number);
+        app->request_list->push(app->request_list, found_req, transaction_sequence_number);
     } 
 
     else if (found_req == NULL) {
-        ssp_printf("could not find request \n");
+        ssp_error("could not find request \n");
         return -1;
     }
 

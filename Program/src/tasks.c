@@ -52,14 +52,15 @@ static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, 
 
     Request **request_container = &app->current_request;
 
-    int packet_index = process_pdu_header(packet, 1, res, request_container, app->request_list, app);
-    Request *current_request = (*request_container);
-    app->current_request = current_request;
-
+    int packet_index = process_pdu_header(packet,true, res, request_container, app->request_list, app);
     if (packet_index < 0) {
         ssp_printf("error parsing header\n");
         return -1;
     }
+
+    Request *current_request = (*request_container);
+    app->current_request = current_request;
+
     
     parse_packet_server(packet, packet_index, app->current_request->res, current_request, app);
 
@@ -84,11 +85,12 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
 
     Request **request_container = &client->current_request;
 
-    int packet_index = process_pdu_header(packet, 0, res, request_container, client->request_list, client->app);
+    int packet_index = process_pdu_header(packet, false, res, request_container, client->request_list, client->app);
     if (packet_index < 0) {
         ssp_printf("error parsing header\n");
         return -1;
     }
+
     Request *current_request = (*request_container);
     res.msg = current_request->buff;
 
@@ -353,7 +355,8 @@ void *ssp_connection_server_task(void *params) {
     }
 
     //1024 is the connection max limit
-    connection_server(port, 
+    connection_server(host_name, 
+        port, 
         app->packet_len,
         10, 
         on_recv_server_callback, 
