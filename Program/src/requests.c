@@ -20,29 +20,24 @@
 
 
 //returns total space taken up in the packet from the added lv
-uint16_t copy_lv_to_buffer(char *buffer, LV *lv){
+uint16_t copy_lv_to_buffer(char *buffer, LV lv){
     uint16_t packet_index = 0;
-    buffer[packet_index] = lv->length;
+    buffer[packet_index] = lv.length;
     packet_index++;
-    memcpy(&buffer[packet_index], lv->value, lv->length);
-    packet_index += lv->length;
+    memcpy(&buffer[packet_index], lv.value, lv.length);
+    packet_index += lv.length;
     return packet_index;
 }
 
-void free_lv(LV *lv) {
-    ssp_free(lv->value);
-    ssp_free(lv);
+void free_lv(LV lv) {
+    ssp_free(lv.value);
 }
 
-LV *create_lv(int size, void *value) {
+void create_lv(LV *lv, int len, void *value) {
 
-    LV *lv = ssp_alloc(1, sizeof(LV));
-    lv->value = ssp_alloc(size, sizeof(char));
-    
-    memcpy(lv->value, value, size);
-    lv->length = size;
-
-    return lv;
+    lv->value = ssp_alloc(len, sizeof(char));
+    memcpy(lv->value, value, len);
+    lv->length = len;
 }
 
 Message *create_message(uint8_t type) {
@@ -57,9 +52,10 @@ Message *create_message(uint8_t type) {
 
 //lv is what we copy into, packet is the buffer, and start is where in the buffer
 //we start copying the lv to
-LV *copy_lv_from_buffer(char *packet, uint32_t start) {
+void copy_lv_from_buffer(LV *lv, char *packet, uint32_t start) {
     uint8_t len = packet[start];
-    return create_lv(len, &packet[start + 1]);
+    create_lv(lv, len, &packet[start + 1]);
+    return;
 }   
 
 
@@ -265,9 +261,9 @@ void start_request(Request *req){
 Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
 
     Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
-    proxy->destination_file_name = create_lv(strnlen(dest_name, MAX_PATH) + 1, dest_name);
-    proxy->source_file_name = create_lv(strnlen(source_name, MAX_PATH) + 1, source_name);
-    proxy->destination_id = create_lv(length_of_id, &beneficial_cfid);
+    create_lv(&proxy->destination_file_name, strnlen(dest_name, MAX_PATH) + 1, dest_name);
+    create_lv(&proxy->source_file_name, strnlen(source_name, MAX_PATH) + 1, source_name);
+    create_lv(&proxy->destination_id, length_of_id, &beneficial_cfid);
     return proxy;
 }
 

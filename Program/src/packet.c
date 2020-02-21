@@ -396,14 +396,14 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             m->value = ssp_alloc(1, sizeof(Message_put_proxy));
             put_proxy = (Message_put_proxy *) m->value;
 
-            put_proxy->destination_id = copy_lv_from_buffer(packet, message_start);
-            message_start += put_proxy->destination_id->length + 1;
+            copy_lv_from_buffer(&put_proxy->destination_id, packet, message_start);
+            message_start += put_proxy->destination_id.length + 1;
             
-            put_proxy->source_file_name = copy_lv_from_buffer(packet, message_start);
-            message_start += put_proxy->source_file_name->length + 1;
+            copy_lv_from_buffer(&put_proxy->source_file_name, packet, message_start);
+            message_start += put_proxy->source_file_name.length + 1;
 
-            put_proxy->destination_file_name = copy_lv_from_buffer(packet, message_start);
-            message_start += put_proxy->destination_file_name->length + 1;
+            copy_lv_from_buffer(&put_proxy->destination_file_name, packet, message_start);
+            message_start += put_proxy->destination_file_name.length + 1;
             break;
     
         default:

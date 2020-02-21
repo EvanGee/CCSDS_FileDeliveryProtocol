@@ -73,44 +73,7 @@ static int find_request(void *element, void *args) {
 }
 
 
-//------------------------------------TODO------------------------------------------
-/*
-Request *parse_pdu_header(char*packet, uint8_t is_server, Response res, Request **req, List *request_list, FTP *app) {
-
-    uint8_t packet_index = PACKET_STATIC_HEADER_LEN;
-    Pdu_header *header = (Pdu_header *) packet;
-
-    uint32_t source_id = 0;
-    memcpy(&source_id, &packet[packet_index], header->length_of_entity_IDs);
-    packet_index += header->length_of_entity_IDs;
-
-    uint32_t transaction_sequence_number = 0;
-    memcpy(&transaction_sequence_number, &packet[packet_index], header->transaction_seq_num_len);
-    packet_index += header->transaction_seq_num_len;
-
-    uint32_t dest_id = 0;
-    memcpy(&dest_id, &packet[packet_index], header->length_of_entity_IDs);
-    packet_index += header->length_of_entity_IDs;
-
-    if (app->my_cfdp_id != dest_id){
-        ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", app->my_cfdp_id, dest_id);
-        return -1;
-    }
-
-    struct request_search_params params = {
-        source_id,
-        transaction_sequence_number,
-    };
-
-    Request *found_req = (Request *) request_list->find(request_list, 0, find_request, &params);
-    return found_req;
-}
-*/
-
-
-//------------------------------------------------------------------------------
-
- Request *add_new_incomming_request(uint32_t source_id, 
+ Request *new_incomming_request(uint32_t source_id, 
         uint32_t transmission_mode, 
         uint32_t transaction_sequence_number,
         Response res,
@@ -195,7 +158,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     //if packet is from the same request, don't' change current request
     Request *current_req = (*req);
     if (current_req != NULL && current_req->transaction_sequence_number == transaction_sequence_number && current_req->dest_cfdp_id == source_id){ 
-        (*req)->packet_data_len = len;         
+        current_req->packet_data_len = len;         
         return packet_index;
     }
 
@@ -211,7 +174,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     if (found_req == NULL && is_server) 
     {
    
-        found_req = add_new_incomming_request(source_id, 
+        found_req = new_incomming_request(source_id, 
             header->transmission_mode, 
             transaction_sequence_number,
             res,
@@ -304,13 +267,13 @@ void process_messages(Request *req, FTP *app) {
         
         Message_put_proxy *p = (Message_put_proxy *) message->value;
         ssp_printf("received proxy request for source file name: %s dest file name %s, to id %d\n", 
-        (char *)p->source_file_name->value,
-        (char *)p->destination_file_name->value,
-        *(uint8_t*)p->destination_id->value);
+        (char *)p->source_file_name.value,
+        (char *)p->destination_file_name.value,
+        *(uint8_t*)p->destination_id.value);
 
-        start_request(put_request(*(uint8_t*)p->destination_id->value,
-        (char *)p->source_file_name->value, 
-        (char *)p->destination_file_name->value, ACKNOWLEDGED_MODE, app));
+        start_request(put_request(*(uint8_t*)p->destination_id.value,
+        (char *)p->source_file_name.value, 
+        (char *)p->destination_file_name.value, ACKNOWLEDGED_MODE, app));
         ssp_free_message(message);
 
     }   
