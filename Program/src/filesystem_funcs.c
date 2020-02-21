@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <unistd.h>
 #include "utils.h"
-#include "string.h"
+#include <string.h>
 #include "list.h"
 #include "jsmn.h"
 
@@ -307,8 +307,12 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
     char buff[total_size];
 
     int fd = ssp_open(file_name, O_RDWR);
+    if (fd < 0) {
+        ssp_error("couldn't open file\n");
+        return -1;
+    }
     
-    int r = read(fd, buff, sizeof(buff));
+    int r = ssp_read(fd, buff, sizeof(buff));
     if (r < 0) {
         ssp_error("read failed\n");
         return -1;
@@ -339,4 +343,109 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
         
     }
     return 0;
+}
+
+
+
+
+int write_lv(LV lv) {
+
+
+}
+
+void write_message_length(Node *node, void *element, void *fd) {
+    int fd = *(int*)fd;
+    Message *message = (Message *)element;
+    
+    //SEEK_END 2  SEEK_CUR 1  SEEK_SET 0 
+    int error = ssp_lseek(fd, 0, SEEK_END);
+    if (error < 0) 
+        ssp_error("failed to locate end\n");
+
+    error = ssp_write(fd, message->header.message_type, sizeof(uint32_t));
+    if (error < 0)
+        ssp_error("failed to append to end of file\n");
+
+    int error = ssp_lseek(fd, 0, SEEK_END);
+    if (error < 0) 
+        ssp_error("failed to locate end\n");
+
+
+    switch (message->header.message_type)
+    {
+        case PROXY_PUT_REQUEST:
+            break;
+    
+        default:
+            break;
+    }
+
+    //ssp_write(fd, )
+}
+
+
+
+#include <stdio.h>
+//work in progress
+int save_req_json(Request *req) {
+
+    char file_name[255];
+    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".json");
+
+    int fd = ssp_open(file_name, O_RDWR | O_CREAT);
+    if (fd < 0) {
+        ssp_error("couldn't open file\n");
+        return -1;
+    }
+
+    
+    int req_len = sizeof(Request);
+    int message_len = 0;
+
+    int message_count = req->messages_to_user->count; 
+    req->messages_to_user->iterate(req->messages_to_user, ,&message_len)
+    
+
+
+    char buff[req_len];
+    memcpy(buff, req, req_len);
+
+
+
+    int error = ssp_write(fd, buff, len);
+    if (error == -1) 
+        return -1;
+
+    //char listbuff[req->messages_to_user->count];
+    print_request_state(req);
+    
+    return 0;
+}
+
+
+
+int get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
+    
+    char file_name[255];
+    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".json");
+
+    int fd = ssp_open(file_name, O_RDWR | O_CREAT);
+    if (fd < 0) {
+        ssp_error("couldn't open file\n");
+        return -1;
+    }
+
+    int len = sizeof(Request);
+    char buff[len];
+    int error = ssp_read(fd, buff, len);
+    if (error == -1)
+        return -1;
+
+
+    Request *req = (Request *) buff;
+    print_request_state(req);
+
+
+    return 0;
+    
 }
