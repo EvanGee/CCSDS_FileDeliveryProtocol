@@ -25,11 +25,11 @@ Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t le
 void print_request_state(Request *req);
 //Frees a message struct
 void ssp_free_message(void *params);
-LV *create_lv(int size, void *value);
-uint16_t copy_lv_to_buffer(char *buffer, LV *lv);
-LV *copy_lv_from_buffer(char *packet, uint32_t start);
+uint16_t copy_lv_to_buffer(char *buffer, LV lv);
+void copy_lv_from_buffer(LV *lv, char *packet, uint32_t start);
 Message *create_message(uint8_t type);
-void free_lv(LV *lv);
+void create_lv(LV *lv, int len, void *value);
+void free_lv(LV lv);
 void print_request_procedure(Request *req);
 
 #endif

@@ -348,41 +348,49 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
 
 
 
-int write_lv(LV lv) {
+static struct params {
+    int error;
+    int fd;
+};
 
 
-}
+static void write_message_callback(Node *node, void *element, void *param) {
 
-void write_message_length(Node *node, void *element, void *fd) {
-    int fd = *(int*)fd;
+    struct params *p = (struct params *) param;
+    int fd = p->fd;
+
     Message *message = (Message *)element;
     
     //SEEK_END 2  SEEK_CUR 1  SEEK_SET 0 
     int error = ssp_lseek(fd, 0, SEEK_END);
-    if (error < 0) 
+    if (error < 0) {
+        p->error = error;
         ssp_error("failed to locate end\n");
-
-    error = ssp_write(fd, message->header.message_type, sizeof(uint32_t));
-    if (error < 0)
+        return;
+    }
+    error = ssp_write(fd, &message->header.message_type, sizeof(uint32_t));
+    if (error < 0) {
+        p->error = error;
         ssp_error("failed to append to end of file\n");
-
-    int error = ssp_lseek(fd, 0, SEEK_END);
-    if (error < 0) 
+        return;
+    }
+    error = ssp_lseek(fd, 0, SEEK_END);
+    if (error < 0) {
+        p->error = error;
         ssp_error("failed to locate end\n");
-
-
+        return;
+    }
+        
     switch (message->header.message_type)
     {
         case PROXY_PUT_REQUEST:
+            ssp_printf("writing put proxy message\n");
             break;
     
         default:
             break;
     }
-
-    //ssp_write(fd, )
 }
-
 
 
 #include <stdio.h>
@@ -397,28 +405,28 @@ int save_req_json(Request *req) {
         ssp_error("couldn't open file\n");
         return -1;
     }
-
     
     int req_len = sizeof(Request);
-    int message_len = 0;
-
-    int message_count = req->messages_to_user->count; 
-    req->messages_to_user->iterate(req->messages_to_user, ,&message_len)
-    
-
-
     char buff[req_len];
+
     memcpy(buff, req, req_len);
 
-
-
-    int error = ssp_write(fd, buff, len);
+    int error = ssp_write(fd, buff, req_len);
     if (error == -1) 
         return -1;
 
-    //char listbuff[req->messages_to_user->count];
-    print_request_state(req);
-    
+    struct params param = {
+        0,
+        fd
+    };
+
+    if (!req->messages_to_user->count)
+        return 0;
+
+    req->messages_to_user->iterate(req->messages_to_user, write_message_callback, &param);
+    if (param.fd < 0)
+        return -1;
+
     return 0;
 }
 

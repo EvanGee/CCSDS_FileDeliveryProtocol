@@ -138,22 +138,23 @@ int test_lv_functions() {
     char packet[100];
     
     char *str = "suphomie";
-    LV *lv = create_lv(strnlen(str, 100), str);
+    LV lv; 
+    create_lv(lv, strnlen(str, 100), str);
 
     uint32_t len = strnlen(str, 100);
 
-    ASSERT_EQUALS_INT("create_lv length works", lv->length, len);
-    ASSERT_EQUALS_STR("create_lv value works", str, lv->value, len);
+    ASSERT_EQUALS_INT("create_lv length works", lv.length, len);
+    ASSERT_EQUALS_STR("create_lv value works", str, lv.value, len);
 
     uint16_t packet_index = copy_lv_to_buffer(packet, lv);
-    ASSERT_EQUALS_INT("copy lv, length", packet[0], lv->length);
-    ASSERT_EQUALS_STR("copy lv, value", &packet[1], lv->value, lv->length);
+    ASSERT_EQUALS_INT("copy lv, length", packet[0], lv.length);
+    ASSERT_EQUALS_STR("copy lv, value", &packet[1], lv.value, lv.length);
 
     free_lv(lv);
 
-    lv = copy_lv_from_buffer(packet, 0);
-    ASSERT_EQUALS_INT("copy lv length from packet", lv->length, len);
-    ASSERT_EQUALS_STR("copy lv value from packet", str, lv->value, len);
+    copy_lv_from_buffer(lv, packet, 0);
+    ASSERT_EQUALS_INT("copy lv length from packet", lv.length, len);
+    ASSERT_EQUALS_STR("copy lv value from packet", str, lv.value, len);
     free_lv(lv);
     
 }
