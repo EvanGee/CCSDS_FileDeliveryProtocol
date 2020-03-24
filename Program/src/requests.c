@@ -277,6 +277,24 @@ int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id,
     return 1;
 }
 
+static void print_messages_callback(Node *node, void *element, void *args) {
+    
+    Message *m = (Message*) element;
+
+    ssp_printf("Message type: %s\n", m->header.message_type);
+    ssp_printf("id: %d\n", m->header.message_id_cfdp);
+    Message_put_proxy *proxy;
+
+    if (m->header.message_type == PROXY_PUT_REQUEST) {
+        proxy = (Message_put_proxy *)m->value;
+
+        ssp_printf("dest filename: %s\n", proxy->destination_file_name);
+        ssp_printf("source filename: %s\n", proxy->source_file_name);
+        ssp_printf("id: %s\n", proxy->destination_id);
+
+    }
+
+}
 
 void print_request_state(Request *req) {
 
@@ -291,6 +309,10 @@ void print_request_state(Request *req) {
     ssp_printf("Suspended indication %d\n", req->local_entity.suspended_indication);
     ssp_printf("Transaction finished indication %d\n", req->local_entity.transaction_finished_indication);
     print_request_procedure(req);
+    
+    ssp_printf("current messages: ");
+    req->messages_to_user->iterate(req->messages_to_user, print_messages_callback, NULL);
+    
     ssp_printf("---------------------------------------------\n");
 }
 

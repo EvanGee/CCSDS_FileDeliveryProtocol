@@ -51,17 +51,22 @@ int file_system_tests() {
     req->local_entity.EOF_recv_indication = 1;
     req->local_entity.EOF_sent_indication = 1;
     req->local_entity.suspended_indication = 1;
-    
-    req->messages_to_user->push(req->messages_to_user, create_message(PROXY_PUT_REQUEST), 0);
+    char *dest_file = "stuff";
+    char *src_file = "morestuff";
+
+    Message *m = create_message(PROXY_PUT_REQUEST);
+    m->value = create_message_put_proxy(1, 1, dest_file, src_file, req);
+
+    req->messages_to_user->push(req->messages_to_user, m, 0);
 
     printf("write test\n");
     error = save_req_json(req);
     if (error == -1)
         printf("failed to write\n");
 
-    error = get_req_json(1, 1);
-    if (error == -1)
-        return -1;
+    Request *got_req = get_req_json(1, 1);
+    
+    print_request_state(got_req);
     
     //ssp_cleanup_req(req);
     return error;

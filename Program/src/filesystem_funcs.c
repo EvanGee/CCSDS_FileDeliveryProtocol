@@ -354,10 +354,59 @@ static struct params {
 };
 
 
+static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy_message) {
+
+    char *error_message = "failed to write put proxy message\n";
+    int err = ssp_write(fd, &proxy_message->destination_file_name.length, sizeof(uint8_t));
+    if (err < 0) {
+        *error = err;
+        ssp_printf("1 ");
+        ssp_error(error_message);
+        return;
+    }
+    err = ssp_write(fd, &proxy_message->destination_file_name.value, proxy_message->destination_file_name.length);
+    if (err < 0) {
+        *error = err;
+        ssp_printf("2");
+        ssp_error(error_message);
+        return;
+    }
+    err = ssp_write(fd, &proxy_message->source_file_name.length, sizeof(uint8_t));
+    if (err < 0) {
+        *error = err;
+        ssp_printf("3");
+        ssp_error(error_message);
+        return;
+    }
+    err = ssp_write(fd, &proxy_message->source_file_name.value, proxy_message->source_file_name.length);
+    if (err < 0) {
+        *error = err;
+        ssp_printf("4");
+        ssp_error(error_message);
+        return;
+    }
+    err = ssp_write(fd, &proxy_message->destination_id.length, sizeof(uint8_t));
+    if (err < 0) {
+        *error = err;
+        ssp_error(error_message);
+        return;
+    }
+    err = ssp_write(fd, &proxy_message->destination_id.value, proxy_message->destination_id.length);
+    if (error < 0) {
+        *error = err;
+        ssp_error(error_message);
+        return;
+    }
+
+}
+
 static void write_message_callback(Node *node, void *element, void *param) {
 
     struct params *p = (struct params *) param;
     int fd = p->fd;
+    if (p->error < 0){
+        return;
+    }
 
     Message *message = (Message *)element;
     
@@ -368,23 +417,28 @@ static void write_message_callback(Node *node, void *element, void *param) {
         ssp_error("failed to locate end\n");
         return;
     }
+    //write type
     error = ssp_write(fd, &message->header.message_type, sizeof(uint32_t));
     if (error < 0) {
         p->error = error;
         ssp_error("failed to append to end of file\n");
         return;
     }
+    //move file end
     error = ssp_lseek(fd, 0, SEEK_END);
     if (error < 0) {
         p->error = error;
         ssp_error("failed to locate end\n");
         return;
     }
-        
+    Message_put_proxy *proxy_message;
+
     switch (message->header.message_type)
     {
         case PROXY_PUT_REQUEST:
+            proxy_message = (Message_put_proxy *)message->value;
             ssp_printf("writing put proxy message\n");
+            write_put_proxy_message(fd, &p->error, proxy_message);
             break;
     
         default:
@@ -424,7 +478,7 @@ int save_req_json(Request *req) {
         return 0;
 
     req->messages_to_user->iterate(req->messages_to_user, write_message_callback, &param);
-    if (param.fd < 0)
+    if (param.error < 0)
         return -1;
 
     return 0;
@@ -432,7 +486,7 @@ int save_req_json(Request *req) {
 
 
 
-int get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
+Request *get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     
     char file_name[255];
     snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".json");
@@ -440,20 +494,20 @@ int get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
-        return -1;
+        return NULL;
     }
 
     int len = sizeof(Request);
-    char buff[len];
-    int error = ssp_read(fd, buff, len);
-    if (error == -1)
-        return -1;
+    Request *req = ssp_alloc(1, sizeof(Request));
+    if (req == NULL)
+        return req;
 
+    int error = ssp_read(fd, (char *)req, len);
+    if (error == -1){
+        ssp_free(req);
+        req = NULL;
+    }
 
-    Request *req = (Request *) buff;
-    print_request_state(req);
-
-
-    return 0;
+    return req;
     
 }
