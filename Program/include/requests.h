@@ -20,7 +20,7 @@ Request *put_request(
 
 int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req);
 
-Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req);
+Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name);
 
 void print_request_state(Request *req);
 //Frees a message struct
@@ -31,5 +31,7 @@ Message *create_message(uint8_t type);
 void create_lv(LV *lv, int len, void *value);
 void free_lv(LV lv);
 void print_request_procedure(Request *req);
+void ssp_free_put_proxy_message(Message_put_proxy* proxy_request);
+
 
 #endif

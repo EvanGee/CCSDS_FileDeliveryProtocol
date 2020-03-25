@@ -22,7 +22,7 @@ typedef struct List
 {
     struct Node *head;
     struct Node *tail;
-    int count;
+    uint32_t count;
     int (*push)(struct List *list, void *element,  uint32_t id);
     void *(*remove)(struct List *list, uint32_t id, int (*f)(void *element, void *args), void *args);
     void (*iterate)(struct List *list, void (*f)(Node *node, void *element, void *args), void *args);

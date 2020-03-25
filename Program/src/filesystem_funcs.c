@@ -8,6 +8,7 @@
 #include <string.h>
 #include "list.h"
 #include "jsmn.h"
+#include "requests.h"
 
 uint32_t get_file_size(char *source_file_name) {
 
@@ -360,28 +361,24 @@ static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy
     int err = ssp_write(fd, &proxy_message->destination_file_name.length, sizeof(uint8_t));
     if (err < 0) {
         *error = err;
-        ssp_printf("1 ");
         ssp_error(error_message);
         return;
     }
-    err = ssp_write(fd, &proxy_message->destination_file_name.value, proxy_message->destination_file_name.length);
+    err = ssp_write(fd, proxy_message->destination_file_name.value, proxy_message->destination_file_name.length);
     if (err < 0) {
         *error = err;
-        ssp_printf("2");
         ssp_error(error_message);
         return;
     }
     err = ssp_write(fd, &proxy_message->source_file_name.length, sizeof(uint8_t));
     if (err < 0) {
         *error = err;
-        ssp_printf("3");
         ssp_error(error_message);
         return;
     }
-    err = ssp_write(fd, &proxy_message->source_file_name.value, proxy_message->source_file_name.length);
+    err = ssp_write(fd, proxy_message->source_file_name.value, proxy_message->source_file_name.length);
     if (err < 0) {
         *error = err;
-        ssp_printf("4");
         ssp_error(error_message);
         return;
     }
@@ -391,7 +388,7 @@ static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy
         ssp_error(error_message);
         return;
     }
-    err = ssp_write(fd, &proxy_message->destination_id.value, proxy_message->destination_id.length);
+    err = ssp_write(fd, proxy_message->destination_id.value, proxy_message->destination_id.length);
     if (error < 0) {
         *error = err;
         ssp_error(error_message);
@@ -418,7 +415,7 @@ static void write_message_callback(Node *node, void *element, void *param) {
         return;
     }
     //write type
-    error = ssp_write(fd, &message->header.message_type, sizeof(uint32_t));
+    error = ssp_write(fd, &message->header.message_type, sizeof(uint8_t));
     if (error < 0) {
         p->error = error;
         ssp_error("failed to append to end of file\n");
@@ -477,6 +474,10 @@ int save_req_json(Request *req) {
     if (!req->messages_to_user->count)
         return 0;
 
+    error = ssp_write(fd, &req->messages_to_user->count, sizeof(uint8_t));
+    if (error == -1) 
+        return -1;
+
     req->messages_to_user->iterate(req->messages_to_user, write_message_callback, &param);
     if (param.error < 0)
         return -1;
@@ -484,11 +485,70 @@ int save_req_json(Request *req) {
     return 0;
 }
 
+Message *read_in_proxy_message(int fd) {
 
+    uint8_t destination_file_name_len = 0;
+    char destination_file_name[255];
+    uint8_t src_file_name_len = 0;
+    char src_file_name[255];
+    uint8_t dest_id_len = 0;
+    uint32_t dest_id = 0;
+
+    char *error_message = "failed to read put proxy message\n";
+    int err = ssp_read(fd, &destination_file_name_len, sizeof(uint8_t));
+    if (err < 0) {
+        ssp_error(error_message);
+        return NULL;
+    }
+    printf("destination_file_name_len %d\n", destination_file_name_len);
+    
+    err = ssp_read(fd, destination_file_name, destination_file_name_len);
+    if (err < 0) {
+        ssp_error(error_message);
+        return NULL;
+    }
+    err = ssp_read(fd, &src_file_name_len, sizeof(uint8_t));
+    if (err < 0) {
+        ssp_error(error_message);
+        return NULL;
+    }
+    err = ssp_read(fd, src_file_name, src_file_name_len);
+    if (err < 0) {
+        ssp_error(error_message);
+        return NULL;
+    }
+    err = ssp_read(fd, &dest_id_len, sizeof(uint8_t));
+    if (err < 0) {
+        ssp_error(error_message);
+        return NULL;
+    }
+    err = ssp_read(fd, (char *)&dest_id, dest_id_len);
+    if (err < 0) {
+        ssp_error(error_message);
+        return NULL;
+    }
+
+    Message *message = create_message(PROXY_PUT_REQUEST);
+    if (message == NULL)
+        return NULL;
+
+    ssp_printf("src file name: %s dest file name %s\n", src_file_name, destination_file_name);
+
+    Message_put_proxy *proxy_message = create_message_put_proxy(dest_id, dest_id_len, src_file_name, destination_file_name);
+    if (proxy_message == NULL) {
+        ssp_free(message);
+        return NULL;
+    }
+
+    message->value = proxy_message;
+    return message;
+}
 
 Request *get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     
     char file_name[255];
+    uint8_t number_of_messages;
+
     snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".json");
 
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
@@ -498,16 +558,50 @@ Request *get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     }
 
     int len = sizeof(Request);
-    Request *req = ssp_alloc(1, sizeof(Request));
-    if (req == NULL)
-        return req;
-
-    int error = ssp_read(fd, (char *)req, len);
+    Request req;
+    //read in request static data
+    int error = ssp_read(fd, (char *)&req, len);
     if (error == -1){
-        ssp_free(req);
-        req = NULL;
+        return NULL;
     }
 
-    return req;
+    //read in count of messages
+    error = ssp_read(fd, &number_of_messages, sizeof(uint8_t));
+    if (error == -1){
+        return NULL;
+    }    
+    
+    if (number_of_messages > 0) {
+        
+        List *messages = linked_list();
+        if (messages == NULL)
+            return NULL;
+
+        for (int i = 0; i < number_of_messages; i++) {
+                
+            uint8_t message_type = 0;
+            error = ssp_read(fd, &message_type, sizeof(uint8_t));
+            if (error == -1)
+                return NULL;
+            
+            Message *message;
+            switch (message_type)
+            {
+                case PROXY_PUT_REQUEST:
+                    ssp_printf("reading put proxy message\n");
+                    message = read_in_proxy_message(fd);
+                    break;
+            
+                default:
+                    break;
+            }
+            messages->push(messages, message, -1);
+        }
+    }
+
+    Request *r = ssp_alloc(1, sizeof(Request));
+    memcpy(r, &req, sizeof(Request));
+
+    return r;
     
 }

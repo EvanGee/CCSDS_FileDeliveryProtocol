@@ -43,7 +43,7 @@ void create_lv(LV *lv, int len, void *value) {
 Message *create_message(uint8_t type) {
 
     Message *message = ssp_alloc(1, sizeof(Message));    
-    message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
+    //message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
     memcpy(message->header.message_id_cfdp, "cfdp", 5);
     message->header.message_type = type;
     return message;
@@ -58,6 +58,13 @@ void copy_lv_from_buffer(LV *lv, char *packet, uint32_t start) {
     return;
 }   
 
+void ssp_free_put_proxy_message(Message_put_proxy* proxy_request) {
+
+    free_lv(proxy_request->destination_file_name);
+    free_lv(proxy_request->source_file_name);
+    free_lv(proxy_request->destination_id);
+
+}
 
 void ssp_free_message(void *params) {
 
@@ -68,17 +75,12 @@ void ssp_free_message(void *params) {
     {
         case PROXY_PUT_REQUEST:
             proxy_request = (Message_put_proxy *) message->value;
-            free_lv(proxy_request->destination_file_name);
-            free_lv(proxy_request->source_file_name);
-            free_lv(proxy_request->destination_id);
-
+            ssp_free_put_proxy_message(proxy_request);
             break;
     
         default:
             break;
     }
-
-    ssp_free(message->header.message_id_cfdp);
     ssp_free(message->value);
     ssp_free(message);
 }
@@ -258,7 +260,7 @@ void start_request(Request *req){
 //data will be delivered
 
 
-Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
+Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name) {
 
     Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
     create_lv(&proxy->destination_file_name, strnlen(dest_name, MAX_PATH) + 1, dest_name);
@@ -271,7 +273,7 @@ Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t le
 int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
 
     Message *message = create_message(PROXY_PUT_REQUEST);
-    message->value = create_message_put_proxy(beneficial_cfid, length_of_id, source_name, dest_name, req);
+    message->value = create_message_put_proxy(beneficial_cfid, length_of_id, source_name, dest_name);
     req->messages_to_user->push(req->messages_to_user, message, 0);
 
     return 1;

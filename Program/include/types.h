@@ -128,7 +128,7 @@ typedef struct tlv {
 
 typedef struct message_header {
 
-    char *message_id_cfdp;
+    char message_id_cfdp[5];
     uint8_t message_type;
 
 } Message_header;
