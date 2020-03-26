@@ -327,7 +327,6 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
     
     for (int i = 1; i < r; i++) {
 
-            
         int key_size = tok[i].end - tok[i].start;
         int value_size = tok[i+1].end - tok[i+1].start;
 
@@ -346,14 +345,10 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
     return 0;
 }
 
-
-
-
 static struct params {
     int error;
     int fd;
 };
-
 
 static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy_message) {
 
@@ -446,10 +441,10 @@ static void write_message_callback(Node *node, void *element, void *param) {
 
 #include <stdio.h>
 //work in progress
-int save_req_json(Request *req) {
+int save_req(Request *req) {
 
     char file_name[255];
-    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".json");
+    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".binary");
 
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
@@ -482,6 +477,10 @@ int save_req_json(Request *req) {
     if (param.error < 0)
         return -1;
 
+    error = ssp_close(fd);
+    if (error < 0) {
+        ssp_error("couldn't close file descriptor\n");
+    }
     return 0;
 }
 
@@ -532,24 +531,22 @@ Message *read_in_proxy_message(int fd) {
     if (message == NULL)
         return NULL;
 
-    ssp_printf("src file name: %s dest file name %s\n", src_file_name, destination_file_name);
-
     Message_put_proxy *proxy_message = create_message_put_proxy(dest_id, dest_id_len, src_file_name, destination_file_name);
     if (proxy_message == NULL) {
         ssp_free(message);
         return NULL;
     }
-
+    
     message->value = proxy_message;
     return message;
 }
 
-Request *get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
+Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     
     char file_name[255];
     uint8_t number_of_messages;
 
-    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".json");
+    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
 
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
@@ -569,11 +566,12 @@ Request *get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     error = ssp_read(fd, &number_of_messages, sizeof(uint8_t));
     if (error == -1){
         return NULL;
-    }    
-    
+    }
+
+    List *messages = NULL;
     if (number_of_messages > 0) {
         
-        List *messages = linked_list();
+        messages = linked_list();
         if (messages == NULL)
             return NULL;
 
@@ -591,7 +589,7 @@ Request *get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
                     ssp_printf("reading put proxy message\n");
                     message = read_in_proxy_message(fd);
                     break;
-            
+
                 default:
                     break;
             }
@@ -601,6 +599,11 @@ Request *get_req_json(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
 
     Request *r = ssp_alloc(1, sizeof(Request));
     memcpy(r, &req, sizeof(Request));
+    r->messages_to_user = messages;
+    error = close(fd);
+    if (error < 0) {
+        ssp_error("couldn't close file descriptor \n");
+    }
 
     return r;
     
