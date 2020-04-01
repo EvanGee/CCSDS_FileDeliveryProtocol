@@ -350,6 +350,57 @@ static struct params {
     int fd;
 };
 
+static void save_file_callback(Node *node, void *element, void *param) {
+
+    char *error_message = "failed to write offset\n";
+
+    struct params *p = (struct params *) param;
+    int fd = p->fd;
+    if (p->error < 0){
+        return;
+    }
+
+    Offset *offset = (Offset *)element;
+    
+    int err = ssp_write(p->fd, offset, sizeof(Offset));
+    if (err < 0) {
+        ssp_error(error_message);
+        p->error = err;
+        return;
+    }
+}
+
+/*
+    first write file,
+    then length of offsets,
+    then offsets
+*/
+void save_file_meta_data(int fd, int *error, File *file) {
+
+    char *error_message = "failed to write file\n";
+    int err = ssp_write(fd, file, sizeof(File));
+    if (err < 0) {
+        ssp_error(error_message);
+        *error = err;
+        return;
+    }
+
+    err = ssp_write(fd, &file->missing_offsets->count, sizeof(uint32_t));
+    if (err < 0) {
+        ssp_error(error_message);
+        *error = err;
+        return;
+    }
+
+    struct params param = {
+        0,
+        fd
+    };
+
+    file->missing_offsets->iterate(file->missing_offsets, save_file_callback, &param);        
+
+}
+
 static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy_message) {
 
     char *error_message = "failed to write put proxy message\n";
@@ -391,7 +442,6 @@ static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy
     }
 
 }
-
 static void write_message_callback(Node *node, void *element, void *param) {
 
     struct params *p = (struct params *) param;
@@ -541,6 +591,7 @@ Message *read_in_proxy_message(int fd) {
     return message;
 }
 
+
 Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     
     char file_name[255];
@@ -593,6 +644,7 @@ Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
                 default:
                     break;
             }
+            message->header.message_type = message_type;
             messages->push(messages, message, -1);
         }
     }
@@ -600,6 +652,8 @@ Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     Request *r = ssp_alloc(1, sizeof(Request));
     memcpy(r, &req, sizeof(Request));
     r->messages_to_user = messages;
+
+    r->file = NULL;
     error = close(fd);
     if (error < 0) {
         ssp_error("couldn't close file descriptor \n");
