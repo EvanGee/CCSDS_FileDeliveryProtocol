@@ -23,7 +23,9 @@ File *create_temp_file(char *file_name, uint32_t size);
 int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t file_size, File *file);
 int read_json(char *file_name, void (*callback)(char *key, char *value, void *params), void *params);
 int save_req(Request *req);
-void save_file_meta_data(int fd, int *error, File *file);
+
+int save_file_meta_data(int fd, File *file);
+int read_file_meta_data(int fd, File *file);
 
 Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num);
 

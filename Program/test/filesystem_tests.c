@@ -51,24 +51,37 @@ int test_save_file() {
     }
     int *error = 0;
     File file;
+    memset(&file, 0, sizeof(File));
+
     file.missing_offsets = linked_list();
 
     Offset one = {
         0, 250
     };
     Offset two = {
-        0, 250
+        100, 250
     };
     Offset three = {
-        0, 250
+        250, 250
     };
     
     file.missing_offsets->push(file.missing_offsets, &one, -1);
     file.missing_offsets->push(file.missing_offsets, &two, -1);
     file.missing_offsets->push(file.missing_offsets, &three, -1);
 
-    save_file_meta_data(fd, error, &file);
 
+    save_file_meta_data(fd, &file);
+
+    File read;
+    memset(&read, 0, sizeof(File));
+
+    file.missing_offsets->freeOnlyList(file.missing_offsets);
+
+    ssp_lseek(fd, 0, 0);
+
+    read_file_meta_data(fd, &read);
+
+    read.missing_offsets->free(read.missing_offsets, ssp_free);
 }
 
 static int test_saving_request(){
