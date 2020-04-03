@@ -26,7 +26,6 @@ int save_req(Request *req);
 
 int save_file_meta_data(int fd, File *file);
 int read_file_meta_data(int fd, File *file);
-
-Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num);
+int get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req);
 
 #endif 

@@ -375,21 +375,20 @@ static void save_file_callback(Node *node, void *element, void *param) {
     then length of offsets,
     then offsets
 */
-void save_file_meta_data(int fd, int *error, File *file) {
+int save_file_meta_data(int fd, File *file) {
 
     char *error_message = "failed to write file\n";
+
     int err = ssp_write(fd, file, sizeof(File));
     if (err < 0) {
         ssp_error(error_message);
-        *error = err;
-        return;
+        return -1;
     }
 
     err = ssp_write(fd, &file->missing_offsets->count, sizeof(uint32_t));
     if (err < 0) {
         ssp_error(error_message);
-        *error = err;
-        return;
+        return -1;
     }
 
     struct params param = {
@@ -397,10 +396,61 @@ void save_file_meta_data(int fd, int *error, File *file) {
         fd
     };
 
-    file->missing_offsets->iterate(file->missing_offsets, save_file_callback, &param);        
-
+    file->missing_offsets->iterate(file->missing_offsets, save_file_callback, &param);      
+    return param.error;  
 }
 
+int read_file_meta_data(int fd, File *file) {
+
+    uint32_t length = 0;
+    char *error_msg = "read failed meta data\n";
+    int r = ssp_read(fd, (char *)file, sizeof(File));
+    if (r < 0) {
+        ssp_error(error_msg);
+        return -1;
+    }
+
+    r = ssp_read(fd, (char *)&length, sizeof(uint32_t));
+    if (r < 0) {
+        ssp_error(error_msg);
+        return -1;
+    }
+
+    Offset offset;
+    memset(&offset, 0, sizeof(Offset));
+
+    List *missing_offsets = linked_list();
+    if (missing_offsets == NULL) {
+        return -1;
+    }
+
+    for (int i = 0; i < length; i++) {
+
+        r = ssp_read(fd, (char*)&offset, sizeof(Offset));
+        
+        if (r < 0) {
+            ssp_error(error_msg);
+            return -1;
+        }
+
+        Offset *new_offset = ssp_alloc(1, sizeof(Offset));
+        if (new_offset == NULL) {
+            missing_offsets->free(missing_offsets, ssp_free);
+            return -1;
+        }
+
+        memcpy(new_offset, &offset, sizeof(Offset));
+        missing_offsets->push(missing_offsets, new_offset, -1);
+    }
+
+    file->missing_offsets = missing_offsets;
+    return 0;
+}
+
+//length
+//dest_file
+//length
+//src_file
 static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy_message) {
 
     char *error_message = "failed to write put proxy message\n";
@@ -479,7 +529,7 @@ static void write_message_callback(Node *node, void *element, void *param) {
     {
         case PROXY_PUT_REQUEST:
             proxy_message = (Message_put_proxy *)message->value;
-            ssp_printf("writing put proxy message\n");
+            //ssp_printf("writing put proxy message\n");
             write_put_proxy_message(fd, &p->error, proxy_message);
             break;
     
@@ -502,12 +552,8 @@ int save_req(Request *req) {
         return -1;
     }
     
-    int req_len = sizeof(Request);
-    char buff[req_len];
-
-    memcpy(buff, req, req_len);
-
-    int error = ssp_write(fd, buff, req_len);
+    //writing request struct
+    int error = ssp_write(fd, req, sizeof(Request));
     if (error == -1) 
         return -1;
 
@@ -519,6 +565,7 @@ int save_req(Request *req) {
     if (!req->messages_to_user->count)
         return 0;
 
+    //writing message count
     error = ssp_write(fd, &req->messages_to_user->count, sizeof(uint8_t));
     if (error == -1) 
         return -1;
@@ -549,8 +596,6 @@ Message *read_in_proxy_message(int fd) {
         ssp_error(error_message);
         return NULL;
     }
-    printf("destination_file_name_len %d\n", destination_file_name_len);
-    
     err = ssp_read(fd, destination_file_name, destination_file_name_len);
     if (err < 0) {
         ssp_error(error_message);
@@ -581,7 +626,9 @@ Message *read_in_proxy_message(int fd) {
     if (message == NULL)
         return NULL;
 
-    Message_put_proxy *proxy_message = create_message_put_proxy(dest_id, dest_id_len, src_file_name, destination_file_name);
+    //why does this not work?
+    
+    Message_put_proxy *proxy_message = create_message_put_proxy(dest_id, dest_id_len, destination_file_name, src_file_name);
     if (proxy_message == NULL) {
         ssp_free(message);
         return NULL;
@@ -592,7 +639,7 @@ Message *read_in_proxy_message(int fd) {
 }
 
 
-Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
+int get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req) {
     
     char file_name[255];
     uint8_t number_of_messages;
@@ -602,42 +649,40 @@ Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
-        return NULL;
+        return -1;
     }
 
-    int len = sizeof(Request);
-    Request req;
-    //read in request static data
-    int error = ssp_read(fd, (char *)&req, len);
+    //read in request struct
+    int error = ssp_read(fd, (char *)req, sizeof(Request));
     if (error == -1){
-        return NULL;
+        return -1;
     }
 
     //read in count of messages
     error = ssp_read(fd, &number_of_messages, sizeof(uint8_t));
     if (error == -1){
-        return NULL;
+        return -1;
     }
 
     List *messages = NULL;
+
     if (number_of_messages > 0) {
         
         messages = linked_list();
         if (messages == NULL)
-            return NULL;
+            return -1;
 
         for (int i = 0; i < number_of_messages; i++) {
                 
             uint8_t message_type = 0;
             error = ssp_read(fd, &message_type, sizeof(uint8_t));
             if (error == -1)
-                return NULL;
+                return -1;
             
             Message *message;
             switch (message_type)
             {
                 case PROXY_PUT_REQUEST:
-                    ssp_printf("reading put proxy message\n");
                     message = read_in_proxy_message(fd);
                     break;
 
@@ -649,16 +694,13 @@ Request *get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num) {
         }
     }
 
-    Request *r = ssp_alloc(1, sizeof(Request));
-    memcpy(r, &req, sizeof(Request));
-    r->messages_to_user = messages;
+    req->messages_to_user = messages;
+    req->file = NULL;
 
-    r->file = NULL;
     error = close(fd);
     if (error < 0) {
         ssp_error("couldn't close file descriptor \n");
     }
 
-    return r;
-    
+    return error;
 }
