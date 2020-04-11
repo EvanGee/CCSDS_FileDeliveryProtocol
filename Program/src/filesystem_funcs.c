@@ -597,7 +597,7 @@ int save_req_to_file(Request *req) {
     return 0;
 }
 
-Message *read_in_proxy_message(int fd) {
+static Message *read_in_proxy_message(int fd) {
 
     uint8_t destination_file_name_len = 0;
     char destination_file_name[255];
@@ -607,7 +607,7 @@ Message *read_in_proxy_message(int fd) {
     uint32_t dest_id = 0;
 
     char *error_message = "failed to read put proxy message\n";
-    int err = ssp_read(fd, &destination_file_name_len, sizeof(uint8_t));
+    int err = ssp_read(fd, (char*) &destination_file_name_len, sizeof(uint8_t));
     if (err < 0) {
         ssp_error(error_message);
         return NULL;
@@ -617,7 +617,7 @@ Message *read_in_proxy_message(int fd) {
         ssp_error(error_message);
         return NULL;
     }
-    err = ssp_read(fd, &src_file_name_len, sizeof(uint8_t));
+    err = ssp_read(fd, (char*) &src_file_name_len, sizeof(uint8_t));
     if (err < 0) {
         ssp_error(error_message);
         return NULL;
@@ -627,7 +627,7 @@ Message *read_in_proxy_message(int fd) {
         ssp_error(error_message);
         return NULL;
     }
-    err = ssp_read(fd, &dest_id_len, sizeof(uint8_t));
+    err = ssp_read(fd, (char*) &dest_id_len, sizeof(uint8_t));
     if (err < 0) {
         ssp_error(error_message);
         return NULL;
@@ -657,7 +657,7 @@ Message *read_in_proxy_message(int fd) {
 static int get_messages_from_file(int fd, List *messages){
 
     uint8_t number_of_messages;
-    int error = ssp_read(fd, &number_of_messages, sizeof(uint8_t));
+    int error = ssp_read(fd, (char *) &number_of_messages, sizeof(uint8_t));
     if (error == -1){
         return -1;
     }
@@ -666,7 +666,7 @@ static int get_messages_from_file(int fd, List *messages){
         for (int i = 0; i < number_of_messages; i++) {
                 
             uint8_t message_type = 0;
-            error = ssp_read(fd, &message_type, sizeof(uint8_t));
+            error = ssp_read(fd, (char *) &message_type, sizeof(uint8_t));
             if (error == -1)
                 return -1;
             
@@ -685,6 +685,7 @@ static int get_messages_from_file(int fd, List *messages){
             messages->push(messages, message, -1);
         }
     }
+    return 0;
 }
 
 //[REQ][IS_FILE_PRESENT][FILE][MESSAGE_LENGTH][MESSAGES]
