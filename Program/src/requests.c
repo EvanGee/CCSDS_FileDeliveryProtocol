@@ -20,35 +20,30 @@
 
 
 //returns total space taken up in the packet from the added lv
-uint16_t copy_lv_to_buffer(char *buffer, LV *lv){
+uint16_t copy_lv_to_buffer(char *buffer, LV lv){
     uint16_t packet_index = 0;
-    buffer[packet_index] = lv->length;
+    buffer[packet_index] = lv.length;
     packet_index++;
-    memcpy(&buffer[packet_index], lv->value, lv->length);
-    packet_index += lv->length;
+    memcpy(&buffer[packet_index], lv.value, lv.length);
+    packet_index += lv.length;
     return packet_index;
 }
 
-void free_lv(LV *lv) {
-    ssp_free(lv->value);
-    ssp_free(lv);
+void free_lv(LV lv) {
+    ssp_free(lv.value);
 }
 
-LV *create_lv(int size, void *value) {
+void create_lv(LV *lv, int len, void *value) {
 
-    LV *lv = ssp_alloc(1, sizeof(LV));
-    lv->value = ssp_alloc(size, sizeof(char));
-    
-    memcpy(lv->value, value, size);
-    lv->length = size;
-
-    return lv;
+    lv->value = ssp_alloc(len, sizeof(char));
+    memcpy(lv->value, value, len);
+    lv->length = len;
 }
 
 Message *create_message(uint8_t type) {
 
     Message *message = ssp_alloc(1, sizeof(Message));    
-    message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
+    //message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
     memcpy(message->header.message_id_cfdp, "cfdp", 5);
     message->header.message_type = type;
     return message;
@@ -57,11 +52,19 @@ Message *create_message(uint8_t type) {
 
 //lv is what we copy into, packet is the buffer, and start is where in the buffer
 //we start copying the lv to
-LV *copy_lv_from_buffer(char *packet, uint32_t start) {
+void copy_lv_from_buffer(LV *lv, char *packet, uint32_t start) {
     uint8_t len = packet[start];
-    return create_lv(len, &packet[start + 1]);
+    create_lv(lv, len, &packet[start + 1]);
+    return;
 }   
 
+void ssp_free_put_proxy_message(Message_put_proxy* proxy_request) {
+
+    free_lv(proxy_request->destination_file_name);
+    free_lv(proxy_request->source_file_name);
+    free_lv(proxy_request->destination_id);
+
+}
 
 void ssp_free_message(void *params) {
 
@@ -72,17 +75,12 @@ void ssp_free_message(void *params) {
     {
         case PROXY_PUT_REQUEST:
             proxy_request = (Message_put_proxy *) message->value;
-            free_lv(proxy_request->destination_file_name);
-            free_lv(proxy_request->source_file_name);
-            free_lv(proxy_request->destination_id);
-
+            ssp_free_put_proxy_message(proxy_request);
             break;
     
         default:
             break;
     }
-
-    ssp_free(message->header.message_id_cfdp);
     ssp_free(message->value);
     ssp_free(message);
 }
@@ -260,14 +258,12 @@ void start_request(Request *req){
 
 //Omission of source and destination filenames shall indicate that only Meta
 //data will be delivered
-
-
-Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
+Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name) {
 
     Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
-    proxy->destination_file_name = create_lv(strnlen(dest_name, MAX_PATH) + 1, dest_name);
-    proxy->source_file_name = create_lv(strnlen(source_name, MAX_PATH) + 1, source_name);
-    proxy->destination_id = create_lv(length_of_id, &beneficial_cfid);
+    create_lv(&proxy->destination_file_name, strnlen(dest_name, MAX_PATH) + 1, dest_name);
+    create_lv(&proxy->source_file_name, strnlen(source_name, MAX_PATH) + 1, source_name);
+    create_lv(&proxy->destination_id, length_of_id, &beneficial_cfid);
     return proxy;
 }
 
@@ -275,12 +271,31 @@ Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t le
 int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
 
     Message *message = create_message(PROXY_PUT_REQUEST);
-    message->value = create_message_put_proxy(beneficial_cfid, length_of_id, source_name, dest_name, req);
+    message->value = create_message_put_proxy(beneficial_cfid, length_of_id, source_name, dest_name);
     req->messages_to_user->push(req->messages_to_user, message, 0);
 
     return 1;
 }
 
+static void print_messages_callback(Node *node, void *element, void *args) {
+    
+    Message *m = (Message*) element;
+
+    ssp_printf("Message type: %d\n", m->header.message_type);
+    ssp_printf("id: %s\n", m->header.message_id_cfdp);
+    Message_put_proxy *proxy;
+
+    if (m->header.message_type == PROXY_PUT_REQUEST) {
+        proxy = (Message_put_proxy *)m->value;
+        ssp_printf("Message type: PROXY_PUT_REQUST\n");
+        ssp_printf("dest filename: %s\n", proxy->destination_file_name.value);
+        ssp_printf("source filename: %s\n", proxy->source_file_name.value);
+        ssp_printf("id lendth: %d\n", proxy->destination_id.length);
+        ssp_printf("id: %d\n", *(uint8_t*) proxy->destination_id.value);
+
+    }
+
+}
 
 void print_request_state(Request *req) {
 
@@ -295,6 +310,10 @@ void print_request_state(Request *req) {
     ssp_printf("Suspended indication %d\n", req->local_entity.suspended_indication);
     ssp_printf("Transaction finished indication %d\n", req->local_entity.transaction_finished_indication);
     print_request_procedure(req);
+    
+    ssp_printf("current messages: \n");
+    req->messages_to_user->iterate(req->messages_to_user, print_messages_callback, NULL);
+    
     ssp_printf("---------------------------------------------\n");
 }
 

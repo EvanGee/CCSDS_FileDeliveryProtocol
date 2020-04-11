@@ -2,13 +2,14 @@
 #include "unit_tests.h"
 #include "port.h"
 #include "mib.h"
+#include "requests.h"
+#include <fcntl.h>
+#include "test.h"
 
 static void nak_print(Node *node, void *element, void *args){
     Offset *offset = (Offset *)element;
     ssp_printf("start: %u end: %u\n", offset->start, offset->end);
 }
-
-
 
 static int receive_offset_tests(){
 
@@ -40,17 +41,145 @@ int read_json_file_test() {
     return 1;
 }
 
+int test_save_file() {
 
-int read_mib() {
-    Remote_entity *entity = get_remote_entity2(1);
 
+    DECLARE_NEW_TEST("test saving file");
+
+    char *file_name = "temp/test_file_save";
+    int fd = ssp_open(file_name, O_RDWR | O_CREAT);
+    if (fd < 0) {
+        ssp_error("couldn't open file\n");
+        return -1;
+    }
+    int *error = 0;
+    File file;
+    memset(&file, 0, sizeof(File));
+
+    file.missing_offsets = linked_list();
+
+    Offset one = {
+        0, 250
+    };
+    Offset two = {
+        100, 250
+    };
+    Offset three = {
+        250, 250
+    };
+    
+    file.missing_offsets->push(file.missing_offsets, &one, -1);
+    file.missing_offsets->push(file.missing_offsets, &two, -1);
+    file.missing_offsets->push(file.missing_offsets, &three, -1);
+
+
+    save_file_to_file(fd, &file);
+
+    File read;
+    memset(&read, 0, sizeof(File));
+
+    file.missing_offsets->freeOnlyList(file.missing_offsets);
+
+    ssp_lseek(fd, 0, 0);
+
+    get_file_from_file(fd, &read);
+
+    Offset *offset = read.missing_offsets->pop(read.missing_offsets);
+    ASSERT_EQUALS_INT("offset start should equal", three.start, offset->start);
+    ASSERT_EQUALS_INT("offset end should equal", three.end, offset->end);
+    ssp_free(offset);
+
+    offset = read.missing_offsets->pop(read.missing_offsets);
+    ASSERT_EQUALS_INT("offset start should equal", two.start, offset->start);
+    ASSERT_EQUALS_INT("offset end should equal", two.end, offset->end);
+    ssp_free(offset);
+    
+    offset = read.missing_offsets->pop(read.missing_offsets);
+    ASSERT_EQUALS_INT("offset start should equal", one.start, offset->start);
+    ASSERT_EQUALS_INT("offset end should equal", one.end, offset->end);
+    ssp_free(offset);
+
+    ASSERT_EQUALS_INT("File eof_checksum", file.eof_checksum, read.eof_checksum);
+    ASSERT_EQUALS_INT("File fd --should be ignored", file.fd, read.fd);
+    
+    ASSERT_EQUALS_INT("File is_temp", file.is_temp, read.is_temp);
+    ASSERT_EQUALS_INT("File next_offset_to_send", file.next_offset_to_send, read.next_offset_to_send);
+
+    ASSERT_EQUALS_INT("File partial_checksum", file.partial_checksum, read.partial_checksum);
+    ASSERT_EQUALS_INT("File total_size", file.total_size, read.total_size);
+
+    read.missing_offsets->free(read.missing_offsets, ssp_free);
 }
+
+static int test_saving_request(){
+
+    int error = 0;
+
+    DECLARE_NEW_TEST("test saving requests");
+
+    Request *req = init_request(1000);
+
+    req->dest_cfdp_id = 1;
+    req->transaction_sequence_number = 1;
+    req->local_entity.EOF_recv_indication = 1;
+    req->local_entity.EOF_sent_indication = 1;
+    req->local_entity.suspended_indication = 1;
+    char *dest_file = "stuff";
+    char *src_file = "morestuff";
+
+    Message *m = create_message(PROXY_PUT_REQUEST);
+    m->value = create_message_put_proxy(1, 1, src_file, dest_file);
+    req->messages_to_user->push(req->messages_to_user, m, 0);
+
+    m = create_message(PROXY_PUT_REQUEST);
+    m->value = create_message_put_proxy(1, 1, src_file, dest_file);
+    req->messages_to_user->push(req->messages_to_user, m, 0);
+
+    m = create_message(PROXY_PUT_REQUEST);
+    m->value = create_message_put_proxy(1, 1, src_file, dest_file);
+    req->messages_to_user->push(req->messages_to_user, m, 0);
+
+    error = save_req_to_file(req);
+    if (error == -1)
+        printf("failed to write\n");
+
+    //---------------------------GETTING REQUEST--------------------------------
+    Request got_req;
+    error = get_req_from_file(1, 1, &got_req);
+    if (error < 0)
+        printf("failed to write\n");
+    
+    Message *message = got_req.messages_to_user->pop(got_req.messages_to_user);
+    Message_put_proxy *proxy_message = (Message_put_proxy *) message->value;
+
+    ASSERT_EQUALS_STR("third message src file name", proxy_message->destination_file_name.value, dest_file, proxy_message->destination_file_name.length);
+    ASSERT_EQUALS_STR("third message src file name", proxy_message->source_file_name.value, src_file, proxy_message->source_file_name.length);
+    ASSERT_EQUALS_INT("third message id", *(uint8_t*)proxy_message->destination_id.value, req->dest_cfdp_id);
+
+    message = got_req.messages_to_user->pop(got_req.messages_to_user);
+    proxy_message = (Message_put_proxy *) message->value;
+    ASSERT_EQUALS_STR("second message src file name", proxy_message->destination_file_name.value, dest_file, sizeof(dest_file));
+    ASSERT_EQUALS_STR("second message src file name", proxy_message->source_file_name.value, src_file, sizeof(src_file));
+    ASSERT_EQUALS_INT("second message id", *(uint8_t*)proxy_message->destination_id.value, req->dest_cfdp_id);
+
+    message = got_req.messages_to_user->pop(got_req.messages_to_user);
+    proxy_message = (Message_put_proxy *) message->value;
+    ASSERT_EQUALS_STR("first message src file name", proxy_message->destination_file_name.value, dest_file, sizeof(dest_file));
+    ASSERT_EQUALS_STR("first message src file name", proxy_message->source_file_name.value, src_file, sizeof(src_file));
+    ASSERT_EQUALS_INT("first message id", *(uint8_t*)proxy_message->destination_id.value, req->dest_cfdp_id);
+
+    ssp_cleanup_req(req);
+    got_req.messages_to_user->free(got_req.messages_to_user, ssp_free_message);
+    
+    //need to free list
+    return error;
+}
+
 
 int file_system_tests() {
     int error = 0;
-    //error = receive_offset_tests();
-    error = read_json_file_test();
-    error = read_mib();
+    error = test_saving_request();
+    error = test_save_file();
     return error;
 }
 

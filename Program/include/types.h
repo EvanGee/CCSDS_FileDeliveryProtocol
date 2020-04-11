@@ -128,7 +128,7 @@ typedef struct tlv {
 
 typedef struct message_header {
 
-    char *message_id_cfdp;
+    char message_id_cfdp[5];
     uint8_t message_type;
 
 } Message_header;
@@ -137,9 +137,9 @@ typedef struct message_header {
 //type PROXY_PUT_REQUEST
 typedef struct message_put_proxy {
 
-    LV *destination_id;
-    LV *source_file_name;
-    LV *destination_file_name;
+    LV destination_id;
+    LV source_file_name;
+    LV destination_file_name;
 
 } Message_put_proxy;
 

@@ -23,4 +23,9 @@ File *create_temp_file(char *file_name, uint32_t size);
 int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t file_size, File *file);
 int read_json(char *file_name, void (*callback)(char *key, char *value, void *params), void *params);
 
+int save_req_to_file(Request *req);
+int save_file_to_file(int fd, File *file);
+int get_file_from_file(int fd, File *file);
+int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req);
+
 #endif 
