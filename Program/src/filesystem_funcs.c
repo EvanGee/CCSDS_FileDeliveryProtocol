@@ -9,6 +9,7 @@
 #include "list.h"
 #include "jsmn.h"
 #include "requests.h"
+#include <stdio.h>
 
 uint32_t get_file_size(char *source_file_name) {
 
@@ -355,7 +356,6 @@ static void save_file_callback(Node *node, void *element, void *param) {
     char *error_message = "failed to write offset\n";
 
     struct params *p = (struct params *) param;
-    int fd = p->fd;
     if (p->error < 0){
         return;
     }
@@ -375,7 +375,7 @@ static void save_file_callback(Node *node, void *element, void *param) {
     then length of offsets,
     then offsets
 */
-int save_file_meta_data(int fd, File *file) {
+int save_file_to_file(int fd, File *file) {
 
     char *error_message = "failed to write file\n";
 
@@ -400,7 +400,7 @@ int save_file_meta_data(int fd, File *file) {
     return param.error;  
 }
 
-int read_file_meta_data(int fd, File *file) {
+int get_file_from_file(int fd, File *file) {
 
     uint32_t length = 0;
     char *error_msg = "read failed meta data\n";
@@ -485,7 +485,7 @@ static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy
         return;
     }
     err = ssp_write(fd, proxy_message->destination_id.value, proxy_message->destination_id.length);
-    if (error < 0) {
+    if (err < 0) {
         *error = err;
         ssp_error(error_message);
         return;
@@ -502,25 +502,11 @@ static void write_message_callback(Node *node, void *element, void *param) {
 
     Message *message = (Message *)element;
     
-    //SEEK_END 2  SEEK_CUR 1  SEEK_SET 0 
-    int error = ssp_lseek(fd, 0, SEEK_END);
-    if (error < 0) {
-        p->error = error;
-        ssp_error("failed to locate end\n");
-        return;
-    }
     //write type
-    error = ssp_write(fd, &message->header.message_type, sizeof(uint8_t));
+    int error = ssp_write(fd, &message->header.message_type, sizeof(uint8_t));
     if (error < 0) {
         p->error = error;
         ssp_error("failed to append to end of file\n");
-        return;
-    }
-    //move file end
-    error = ssp_lseek(fd, 0, SEEK_END);
-    if (error < 0) {
-        p->error = error;
-        ssp_error("failed to locate end\n");
         return;
     }
     Message_put_proxy *proxy_message;
@@ -539,13 +525,30 @@ static void write_message_callback(Node *node, void *element, void *param) {
 }
 
 
-#include <stdio.h>
+static int write_file_present_bool(int fd, File *file) {
+    int error = 0;
+    bool file_is_present = true;
+    bool file_is_not_present = false;
+
+    if (file != NULL) {
+        error = ssp_write(fd, &file_is_present, sizeof(bool));
+        if (error == -1) 
+            return -1;
+    } else {
+        error = ssp_write(fd, &file_is_not_present, sizeof(bool));
+        if (error == -1) 
+            return -1;
+    }
+    return error;
+}
+
 //work in progress
-int save_req(Request *req) {
+//[REQ][IS_FILE_PRESENT][FILE][MESSAGE_LENGTH][MESSAGES]
+int save_req_to_file(Request *req) {
 
     char file_name[255];
     snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".binary");
-
+    
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
@@ -562,14 +565,27 @@ int save_req(Request *req) {
         fd
     };
 
-    if (!req->messages_to_user->count)
-        return 0;
+    //writing is file present
+    error = write_file_present_bool(fd, req->file);
+    if (error < 0)
+        return -1;
+        
+    //writing file
+    if (req->file != NULL) {
+        error = save_file_to_file(fd, req->file);
+        if (error < 0)
+            return -1;
+    }
 
     //writing message count
     error = ssp_write(fd, &req->messages_to_user->count, sizeof(uint8_t));
     if (error == -1) 
         return -1;
 
+    if (!req->messages_to_user->count)
+        return 0;
+
+    //writing messages
     req->messages_to_user->iterate(req->messages_to_user, write_message_callback, &param);
     if (param.error < 0)
         return -1;
@@ -628,7 +644,7 @@ Message *read_in_proxy_message(int fd) {
 
     //why does this not work?
     
-    Message_put_proxy *proxy_message = create_message_put_proxy(dest_id, dest_id_len, destination_file_name, src_file_name);
+    Message_put_proxy *proxy_message = create_message_put_proxy(dest_id, dest_id_len, src_file_name, destination_file_name);
     if (proxy_message == NULL) {
         ssp_free(message);
         return NULL;
@@ -638,40 +654,15 @@ Message *read_in_proxy_message(int fd) {
     return message;
 }
 
+static int get_messages_from_file(int fd, List *messages){
 
-int get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req) {
-    
-    char file_name[255];
     uint8_t number_of_messages;
-
-    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
-
-    int fd = ssp_open(file_name, O_RDWR | O_CREAT);
-    if (fd < 0) {
-        ssp_error("couldn't open file\n");
-        return -1;
-    }
-
-    //read in request struct
-    int error = ssp_read(fd, (char *)req, sizeof(Request));
+    int error = ssp_read(fd, &number_of_messages, sizeof(uint8_t));
     if (error == -1){
         return -1;
     }
-
-    //read in count of messages
-    error = ssp_read(fd, &number_of_messages, sizeof(uint8_t));
-    if (error == -1){
-        return -1;
-    }
-
-    List *messages = NULL;
 
     if (number_of_messages > 0) {
-        
-        messages = linked_list();
-        if (messages == NULL)
-            return -1;
-
         for (int i = 0; i < number_of_messages; i++) {
                 
             uint8_t message_type = 0;
@@ -684,6 +675,7 @@ int get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req) {
             {
                 case PROXY_PUT_REQUEST:
                     message = read_in_proxy_message(fd);
+
                     break;
 
                 default:
@@ -693,9 +685,50 @@ int get_req(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req) {
             messages->push(messages, message, -1);
         }
     }
+}
+
+//[REQ][IS_FILE_PRESENT][FILE][MESSAGE_LENGTH][MESSAGES]
+int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req) {
+    
+    char file_name[255];
+
+    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
+
+    int fd = ssp_open(file_name, O_RDWR | O_CREAT);
+    if (fd < 0) {
+        ssp_error("couldn't open file\n");
+        return -1;
+    }
+
+    //read in request struct
+    int error = ssp_read(fd, (char *)req, sizeof(Request));
+    if (error == -1)
+        return -1;
+    
+    //check to see if file is present
+    bool is_file_present = false;
+    error = ssp_read(fd, (char *)&is_file_present, sizeof(bool));
+    if (error == -1)
+        return -1;
+    
+    File *file;
+    if (is_file_present) {
+        file = ssp_alloc(1, sizeof(File));
+        if (file == NULL) {
+            return -1;
+        }
+        error = get_file_from_file(fd, file);
+    }
+
+    List *messages = linked_list();
+    if (messages == NULL)
+        return -1;
+
+    error = get_messages_from_file(fd, messages);
+    if (error == -1) 
+        return -1;
 
     req->messages_to_user = messages;
-    req->file = NULL;
 
     error = close(fd);
     if (error < 0) {

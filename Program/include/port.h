@@ -32,9 +32,7 @@
 
 
 void ssp_error( char *msg);
-
 void ssp_printf(char *stuff, ...);
-
 void *ssp_alloc(uint32_t u_memb, size_t size);
 void ssp_sendto(Response res);
 

@@ -15,7 +15,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
 uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t length);
 void process_pdu_eof(char *packet, Request *req, Response res);
 
- Request *add_new_incomming_request(uint32_t source_id, 
+ Request *new_incomming_request(uint32_t source_id, 
         uint32_t transmission_mode, 
         uint32_t transaction_sequence_number,
         Response res,

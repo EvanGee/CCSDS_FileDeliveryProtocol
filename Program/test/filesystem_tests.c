@@ -73,7 +73,7 @@ int test_save_file() {
     file.missing_offsets->push(file.missing_offsets, &three, -1);
 
 
-    save_file_meta_data(fd, &file);
+    save_file_to_file(fd, &file);
 
     File read;
     memset(&read, 0, sizeof(File));
@@ -82,7 +82,7 @@ int test_save_file() {
 
     ssp_lseek(fd, 0, 0);
 
-    read_file_meta_data(fd, &read);
+    get_file_from_file(fd, &read);
 
     Offset *offset = read.missing_offsets->pop(read.missing_offsets);
     ASSERT_EQUALS_INT("offset start should equal", three.start, offset->start);
@@ -118,6 +118,7 @@ static int test_saving_request(){
     DECLARE_NEW_TEST("test saving requests");
 
     Request *req = init_request(1000);
+
     req->dest_cfdp_id = 1;
     req->transaction_sequence_number = 1;
     req->local_entity.EOF_recv_indication = 1;
@@ -138,20 +139,18 @@ static int test_saving_request(){
     m->value = create_message_put_proxy(1, 1, src_file, dest_file);
     req->messages_to_user->push(req->messages_to_user, m, 0);
 
-    error = save_req(req);
+    error = save_req_to_file(req);
     if (error == -1)
         printf("failed to write\n");
-    
+
+    //---------------------------GETTING REQUEST--------------------------------
     Request got_req;
-    error = get_req(1, 1, &got_req);
-    
-    //print_request_state(&got_req);
+    error = get_req_from_file(1, 1, &got_req);
+    if (error < 0)
+        printf("failed to write\n");
     
     Message *message = got_req.messages_to_user->pop(got_req.messages_to_user);
     Message_put_proxy *proxy_message = (Message_put_proxy *) message->value;
-
-    ssp_printf("recv dest file name %s : suppose to be %s\n", proxy_message->destination_file_name.value, dest_file);    
-    ssp_printf("%d : %d\n", *(uint8_t*)proxy_message->destination_id.value, req->dest_cfdp_id);
 
     ASSERT_EQUALS_STR("third message src file name", proxy_message->destination_file_name.value, dest_file, proxy_message->destination_file_name.length);
     ASSERT_EQUALS_STR("third message src file name", proxy_message->source_file_name.value, src_file, proxy_message->source_file_name.length);
@@ -171,7 +170,7 @@ static int test_saving_request(){
 
     ssp_cleanup_req(req);
     got_req.messages_to_user->free(got_req.messages_to_user, ssp_free_message);
-
+    
     //need to free list
     return error;
 }
@@ -180,7 +179,7 @@ static int test_saving_request(){
 int file_system_tests() {
     int error = 0;
     error = test_saving_request();
-    //error = test_save_file();
+    error = test_save_file();
     return error;
 }
 
