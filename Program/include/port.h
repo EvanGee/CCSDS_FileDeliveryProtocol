@@ -2,21 +2,17 @@
 #ifndef PORT_H
 #define PORT_H
 
+
+/*
 #define STACK_ALLOCATION 16384
 
-
-
-
-#define POSIX_PORT
+//#define POSIX_PORT
+#define FREE_RTOS_PORT
 #define POSIX_FILESYSTEM
 #define POSIX_NETWORK
-
 #define CSP_NETWORK
-//#define FREE_RTOS_PORT
-
+*/
 #include "types.h"
-
-
 
 #ifdef CSP_NETWORK
     #include "csp.h"
@@ -29,7 +25,6 @@
 
     } csp_packet_wrapper;
 #endif
-
 
 void ssp_error( char *msg);
 void ssp_printf(char *stuff, ...);

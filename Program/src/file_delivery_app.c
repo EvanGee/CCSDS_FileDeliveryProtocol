@@ -10,6 +10,14 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include "utils.h"
+#include "config.h"
+
+
+#ifdef CSP_NETWORK
+    #include "csp.h"
+
+#endif
+
 
 
 FTP *init_ftp(uint32_t my_cfdp_address) {
@@ -30,7 +38,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
         csp_init(remote_entity.UT_address);
 
         /* Init buffer system with 10 packets of maximum PACKET_LEN bytes each */
-        csp_buffer_init(10, PACKET_LEN);
+        csp_buffer_init(1000, PACKET_LEN);
 
         /* Start router task with 500 word stack, OS task priority 1 */
         csp_route_start_task(500, 1);

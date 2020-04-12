@@ -11,6 +11,7 @@
 #include "types.h"
 #include "config.h"
 
+
 #ifdef POSIX_PORT
         #include <pthread.h>
         #include <sys/socket.h>
@@ -27,9 +28,6 @@
         #include <netdb.h> 
         #include <time.h>
 #endif
-
-
-
 
 #ifdef POSIX_FILESYSTEM
     #include <stdio.h>
@@ -121,18 +119,6 @@ void ssp_sendto(Response res) {
 
     if (res.type_of_network == posix && res.transmission_mode == UN_ACKNOWLEDGED_MODE) {
         struct sockaddr* addr = (struct sockaddr*) res.addr;
-     
-        #ifdef TEST 
-            printf("sending outgoing packet (testing)\n");
-        #endif
-        #ifndef TEST
-      
-            int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(*addr));
-            if (err < 0) {
-                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(*addr));
-                ssp_error("ERROR in sendto");
-            }
-        #endif
     }
     else if (res.type_of_network == posix && res.transmission_mode == ACKNOWLEDGED_MODE) {
     
@@ -284,6 +270,10 @@ void ssp_error(char *error){
     #ifdef POSIX_PORT
         perror(error);
     #endif
+    #ifdef FREE_RTOS_PORT
+        perror(error);
+    #endif
+
 }
 
 void ssp_printf( char *stuff, ...) {
@@ -294,6 +284,15 @@ void ssp_printf( char *stuff, ...) {
         va_end (args);
         fflush(stdout);
     #endif
+
+    #ifdef FREE_RTOS_PORT
+        va_list args;
+        va_start(args, stuff);
+        vfprintf(stdout, stuff, args);
+        va_end (args);
+        fflush(stdout);
+    #endif
+
 }
 
 
@@ -317,6 +316,7 @@ int ssp_time_count() {
     #ifdef FREE_RTOS_PORT
         //some kind of ticks
     #endif 
+    return -1;
 }
 
 
