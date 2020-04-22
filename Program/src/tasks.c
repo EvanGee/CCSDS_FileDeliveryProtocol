@@ -34,8 +34,9 @@ static void timeout(Request *req) {
         if (req->local_entity.transaction_finished_indication){
             ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
         } else {
-            ssp_printf("stopped early, an issue occured transaction: %d\n", req->transaction_sequence_number);
+            ssp_printf("stopped early, timed out without finishing transaction, saving req to be reopened later: %d\n", req->transaction_sequence_number);
             print_request_state(req);
+            save_req_to_file(req);
         }
         req->procedure = clean_up;
     }
@@ -52,7 +53,7 @@ static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, 
 
     Request **request_container = &app->current_request;
 
-    int packet_index = process_pdu_header(packet,true, res, request_container, app->request_list, app);
+    int packet_index = process_pdu_header(packet, true, res, request_container, app->request_list, app);
     if (packet_index < 0) {
         ssp_printf("error parsing header\n");
         return -1;
