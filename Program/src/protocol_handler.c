@@ -583,7 +583,7 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
         process_file_request_metadata(req);
     else {
         printf("just receiving messages, closing request\n");
-        req->local_entity.transaction_finished_indication = true;
+        //req->local_entity.transaction_finished_indication = true;
         req->local_entity.EOF_recv_indication = true;
         req->procedure = none;
     }
@@ -596,17 +596,16 @@ void on_server_time_out(Response res, Request *req) {
     if (req->paused)
         return;
 
-    if (req->procedure == none ||
-        req->transmission_mode == UN_ACKNOWLEDGED_MODE ||
+    if (req->transmission_mode == UN_ACKNOWLEDGED_MODE ||
         req->local_entity.transaction_finished_indication)
         return;
+
 
     if (req->resent_finished == RESEND_FINISHED_TIMES && req->local_entity.transaction_finished_indication) {
         req->procedure = clean_up;
         ssp_printf("file sent, closing request transaction: %d\n", req->transaction_sequence_number);
         return;
     }
-
     //send request for metadata
     if (!req->local_entity.Metadata_recv_indication) {
         request_metadata(req, res);
@@ -614,7 +613,7 @@ void on_server_time_out(Response res, Request *req) {
     }
 
     //receiving just messages, send back finished
-    if (req->file_size == 0) {
+    if (req->file_size == 0 && RESEND_FINISHED_TIMES != req->resent_finished) {
         resend_finished_pdu(req, res);
         return;
     }
