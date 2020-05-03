@@ -143,6 +143,14 @@ typedef struct message_put_proxy {
 
 } Message_put_proxy;
 
+typedef struct message_cont_part_request {
+    
+    LV destination_id;
+    LV originator_id;
+    LV transaction_id;
+
+} Message_cont_part_request;
+
 //can cast the message_value based on the message_type in the header;
 typedef struct message {
 

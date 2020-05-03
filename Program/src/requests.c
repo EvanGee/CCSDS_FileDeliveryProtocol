@@ -40,6 +40,15 @@ void create_lv(LV *lv, int len, void *value) {
     lv->length = len;
 }
 
+//lv is what we copy into, packet is the buffer, and start is where in the buffer
+//we start copying the lv to
+void copy_lv_from_buffer(LV *lv, char *packet, uint32_t start) {
+    uint8_t len = packet[start];
+    create_lv(lv, len, &packet[start + 1]);
+    return;
+}   
+
+
 Message *create_message(uint8_t type) {
 
     Message *message = ssp_alloc(1, sizeof(Message));    
@@ -49,14 +58,6 @@ Message *create_message(uint8_t type) {
     return message;
 }
 
-
-//lv is what we copy into, packet is the buffer, and start is where in the buffer
-//we start copying the lv to
-void copy_lv_from_buffer(LV *lv, char *packet, uint32_t start) {
-    uint8_t len = packet[start];
-    create_lv(lv, len, &packet[start + 1]);
-    return;
-}   
 
 void ssp_free_put_proxy_message(Message_put_proxy* proxy_request) {
 
@@ -84,6 +85,54 @@ void ssp_free_message(void *params) {
     ssp_free(message->value);
     ssp_free(message);
 }
+
+
+
+/*------------------------------------------------------------------------------
+        Messages (additional minor requests, things like mv files)
+------------------------------------------------------------------------------*/
+
+//Omission of source and destination filenames shall indicate that only Meta
+//data will be delivered
+Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name) {
+
+    Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
+    create_lv(&proxy->destination_file_name, strnlen(dest_name, MAX_PATH) + 1, dest_name);
+    create_lv(&proxy->source_file_name, strnlen(source_name, MAX_PATH) + 1, source_name);
+    create_lv(&proxy->destination_id, length_of_id, &beneficial_cfid);
+    return proxy;
+}
+
+//beneficial_cfid is the destination id that the proxy will send to, length_of_id is in octets (or bytes)
+int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
+
+    Message *message = create_message(PROXY_PUT_REQUEST);
+    message->value = create_message_put_proxy(beneficial_cfid, length_of_id, source_name, dest_name);
+    req->messages_to_user->push(req->messages_to_user, message, 0);
+
+    return 1;
+}
+
+Message_cont_part_request *create_message_put_proxy(uint32_t beneficial_cfid, 
+                                                    uint8_t length_of_id, 
+                                                    uint32_t originator_id,
+                                                    uint8_t originator_id_length,
+                                                    uint32_t transaction_id,
+                                                    uint8_t transaction_id_length) {
+
+
+    Message_cont_part_request *message = ssp_alloc(1, sizeof(Message_put_proxy));
+    create_lv(&message->destination_id, length_of_id, beneficial_cfid);
+    create_lv(&message->originator_id, originator_id_length, originator_id);
+    create_lv(&message->transaction_id, transaction_id_length, transaction_id);
+    return message;
+}
+
+
+
+/*------------------------------------------------------------------------------
+        Requests (major functions to initialize requests
+------------------------------------------------------------------------------*/
 
 void ssp_cleanup_req(void *request) {
 
@@ -254,27 +303,6 @@ Request *put_request(
 
 void start_request(Request *req){
     req->paused = false;
-}
-
-//Omission of source and destination filenames shall indicate that only Meta
-//data will be delivered
-Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name) {
-
-    Message_put_proxy *proxy = ssp_alloc(1, sizeof(Message_put_proxy));
-    create_lv(&proxy->destination_file_name, strnlen(dest_name, MAX_PATH) + 1, dest_name);
-    create_lv(&proxy->source_file_name, strnlen(source_name, MAX_PATH) + 1, source_name);
-    create_lv(&proxy->destination_id, length_of_id, &beneficial_cfid);
-    return proxy;
-}
-
-//beneficial_cfid is the destination id that the proxy will send to, length_of_id is in octets (or bytes)
-int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req) {
-
-    Message *message = create_message(PROXY_PUT_REQUEST);
-    message->value = create_message_put_proxy(beneficial_cfid, length_of_id, source_name, dest_name);
-    req->messages_to_user->push(req->messages_to_user, message, 0);
-
-    return 1;
 }
 
 static void print_messages_callback(Node *node, void *element, void *args) {

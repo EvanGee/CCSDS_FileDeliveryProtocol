@@ -21,6 +21,8 @@ Request *put_request(
 int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req);
 
 Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name);
+Message_cont_part_request *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, uint32_t originator_id, uint32_t transaction_id);
+
 
 void print_request_state(Request *req);
 //Frees a message struct
