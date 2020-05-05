@@ -8,7 +8,7 @@
 #include "file_delivery_app.h"
 #include "unit_tests.h"
 
-static void list_print_id(void *element, void *args) {
+static void list_print_id(Node *node, void *element, void *args) {
     Request *req = (Request *) element;
     printf("id: %d trans number: %llu\n", req->dest_cfdp_id, req->transaction_sequence_number);
 }
@@ -28,7 +28,7 @@ static int find_request(void *element, void *args) {
     return 0;
 }
 
-static void list_print(void *element, void *args) {
+static void list_print(Node *node, void *element, void *args) {
 
     Request *req = (Request *) element;
     ssp_printf("%s\n", req->source_file_name);
@@ -121,9 +121,9 @@ static int add_proxy_message() {
     ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
 
     Message_put_proxy *proxy = (Message_put_proxy *) message->value;
-    ASSERT_EQUALS_STR("proxy dest_id should equal 2", proxy->destination_id->value, &id, len);
-    ASSERT_EQUALS_STR("proxy src file", proxy->source_file_name->value, src,  proxy->source_file_name->length);
-    ASSERT_EQUALS_STR("proxy dest file", proxy->destination_file_name->value, dest,  proxy->destination_file_name->length);
+    ASSERT_EQUALS_STR("proxy dest_id should equal 2", proxy->destination_id.value, &id, len);
+    ASSERT_EQUALS_STR("proxy src file", proxy->source_file_name.value, src,  proxy->source_file_name.length);
+    ASSERT_EQUALS_STR("proxy dest file", proxy->destination_file_name.value, dest,  proxy->destination_file_name.length);
 
     ssp_free_message(message);
     ssp_cleanup_req(req);
@@ -131,6 +131,38 @@ static int add_proxy_message() {
 
 }
 
+static int add_continue_partial_message() {
+    int error = 0;
+    Request *req = init_request(5000);
+
+    uint32_t src_id = 1;
+    uint32_t dest_id = 1;
+    uint32_t transaction_id = 4444;
+
+    uint8_t len = 1;
+
+    error = add_cont_partial_message_to_request(
+        dest_id,
+        len,
+        src_id,
+        len,
+        transaction_id,
+        4,
+        req);
+
+    Message *message = req->messages_to_user->pop(req->messages_to_user);
+    ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
+
+    Message_cont_part_request *proxy = (Message_cont_part_request *) message->value;
+    ASSERT_EQUALS_STR("proxy dest_id should equal 1", proxy->destination_id.value, &dest_id, proxy->destination_id.length);
+    ASSERT_EQUALS_STR("proxy originator id should equal 1", proxy->originator_id.value, &src_id,  proxy->originator_id.length);
+    ASSERT_EQUALS_STR("proxy transaction id should equal 4444", proxy->transaction_id.value, &transaction_id,  proxy->transaction_id.length);
+    
+    ssp_free_message(message);
+    ssp_cleanup_req(req);
+
+    return error;
+}
 
 
 int test_lv_functions() {
@@ -139,7 +171,7 @@ int test_lv_functions() {
     
     char *str = "suphomie";
     LV lv; 
-    create_lv(lv, strnlen(str, 100), str);
+    create_lv(&lv, strnlen(str, 100), str);
 
     uint32_t len = strnlen(str, 100);
 
@@ -152,7 +184,7 @@ int test_lv_functions() {
 
     free_lv(lv);
 
-    copy_lv_from_buffer(lv, packet, 0);
+    copy_lv_from_buffer(&lv, packet, 0);
     ASSERT_EQUALS_INT("copy lv length from packet", lv.length, len);
     ASSERT_EQUALS_STR("copy lv value from packet", str, lv.value, len);
     free_lv(lv);
@@ -164,11 +196,7 @@ int request_user_input_tests() {
 
     FTP *app = init_ftp(1);
     put_request(2, "", "", 0, app);
-
     put_request(2, NULL, NULL, 0, app);
-
-
-
     app->close = true;
     ssp_thread_join(app->server_handle);
 }
@@ -180,6 +208,7 @@ int request_tests() {
     error = request_user_input_tests();
     error = add_proxy_message();
     error = test_lv_functions();
-    
+    error = add_continue_partial_message();
+
     return error;
 }

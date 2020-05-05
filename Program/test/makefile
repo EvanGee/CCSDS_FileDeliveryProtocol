@@ -27,10 +27,10 @@ CFILES += $(PROJDIR)/src/list.c
 CFILES += $(PROJDIR)/src/packet.c
 
 
-CFILES += $(PROJDIR)/test/packet_tests.c
+#CFILES += $(PROJDIR)/test/packet_tests.c
 CFILES += $(PROJDIR)/test/test.c
 #CFILES += $(PROJDIR)/test/mock.c
-#CFILES += $(PROJDIR)/test/request_tests.c
+CFILES += $(PROJDIR)/test/request_tests.c
 #CFILES += $(PROJDIR)/test/tasks_tests.c
 #CFILES += $(PROJDIR)/test/list_tests.c
 

@@ -124,7 +124,8 @@ typedef struct tlv {
 #define PROXY_FILESTORE_RESPONSE 08
 #define PROXY_PUT_CANCEL 09
 
-
+//custom
+#define PROXY_CONTINUE_PARTIAL 10
 
 typedef struct message_header {
 

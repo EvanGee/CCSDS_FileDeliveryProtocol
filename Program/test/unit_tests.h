@@ -18,7 +18,8 @@
 File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *file_name);
     Request *mock_request();
     int file_system_tests();
-
+    int request_tests();
+    
     #define TEMP_FILESIZE 1000
 
     //int server_tests(int client   );
