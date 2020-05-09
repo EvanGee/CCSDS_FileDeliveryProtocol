@@ -46,7 +46,7 @@ enum {
     PARSE_prompt_transmission_interval,
     PARSE_disposition_of_incomplete,
     PARSE_CRC_required,
-    PARSE_max_file_segment_len,
+    PARSE_mtu,
     PARSE_keep_alive_discrepancy_limit,
     PARSE_positive_ack_timer_expiration_limit,
     PARSE_nak_timer_expiration_limit,
@@ -69,9 +69,9 @@ static char *parse_list[PARSE_TOTAL] = {
     "immediate_nak_mode_enabled" ,
     "prompt_transmission_interval" ,
     "disposition_of_incomplete" ,
-    
+
     "CRC_required" ,
-    "max_file_segment_len" ,
+    "MTU" ,
     "keep_alive_discrepancy_limit" ,
     "positive_ack_timer_expiration_limit" ,
     "nak_timer_expiration_limit" ,
@@ -134,8 +134,8 @@ static void parse_mib(char *key, char *value, void *params) {
             case PARSE_CRC_required: 
                 remote->CRC_required = atol(value);
                 break;
-            case PARSE_max_file_segment_len: 
-                remote->max_file_segment_len = atol(value);
+            case PARSE_mtu: 
+                remote->mtu = atol(value);
                 break;
             case PARSE_keep_alive_discrepancy_limit:
                 remote->keep_alive_discrepancy_limit = atol(value); 
@@ -152,10 +152,7 @@ static void parse_mib(char *key, char *value, void *params) {
             default:
                 break;
         }
-            
-        
     }
-  
 }
 
 int get_remote_entity_from_json (Remote_entity *remote, uint32_t cfdp_id) {
