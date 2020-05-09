@@ -118,7 +118,7 @@ static int find_request(void *element, void *args) {
 
         memcpy(found_req->res.addr, res.addr, res.size_of_addr);
 
-        found_req->res.packet_len = app->packet_len;
+        found_req->res.packet_len = remote_entity.mtu;
         found_req->res.sfd = res.sfd;
         found_req->res.transmission_mode = app->remote_entity.default_transmission_mode;
         found_req->res.type_of_network = app->remote_entity.type_of_network;
@@ -148,17 +148,24 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     memcpy(&dest_id, &packet[packet_index], header->length_of_entity_IDs);
     packet_index += header->length_of_entity_IDs;
 
+    /*
     if (app->my_cfdp_id != dest_id){
         ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", app->my_cfdp_id, dest_id);
         return -1;
     }
-
-    uint16_t len = get_data_length(packet);
+    */
 
     //if packet is from the same request, don't' change current request
     Request *current_req = (*req);
-    if (current_req != NULL && current_req->transaction_sequence_number == transaction_sequence_number && current_req->dest_cfdp_id == source_id){ 
-        current_req->packet_data_len = len;         
+
+    uint16_t len = get_data_length(packet);
+
+    if (len > app->packet_len){
+        ssp_printf("packet received %d that was too big for our buffer %d\n", len, app->packet_len);
+        return -1;
+    }
+
+    if (current_req != NULL && current_req->transaction_sequence_number == transaction_sequence_number && current_req->dest_cfdp_id == source_id){        
         return packet_index;
     }
 
@@ -193,7 +200,6 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
         return -1;
     }
 
-    found_req->packet_data_len = len;
     *req = found_req;
     return packet_index;
 
@@ -628,13 +634,12 @@ void on_server_time_out(Response res, Request *req) {
         resend_eof_ack(req, res);
     }
 
-
+    
     //if have not received metadata for a file tranaction, this should not ever trigger //TODO add asert
     if (req->file == NULL) {
         ssp_printf("file is null, not sending data naks");
         return;
     }
-
     //send missing NAKS
     if (req->file->missing_offsets->count > 0) {
         request_data(req, res);

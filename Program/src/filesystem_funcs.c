@@ -346,10 +346,7 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
     return 0;
 }
 
-static struct params {
-    int error;
-    int fd;
-};
+
 
 static void save_file_callback(Node *node, void *element, void *param) {
 

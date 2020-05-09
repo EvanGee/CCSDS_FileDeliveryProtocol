@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 #include "utils.h"
 
-
 FTP *init_ftp(uint32_t my_cfdp_address) {
 
     
@@ -30,7 +29,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
         csp_init(remote_entity.UT_address);
 
         /* Init buffer system with 10 packets of maximum PACKET_LEN bytes each */
-        csp_buffer_init(10, PACKET_LEN);
+        csp_buffer_init(10, remote_entity.mtu);
 
         /* Start router task with 500 word stack, OS task priority 1 */
         csp_route_start_task(500, 1);
@@ -40,7 +39,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     if (app == NULL) 
         return NULL;
     
-    app->packet_len = PACKET_LEN;
+    app->packet_len = remote_entity.mtu;
     app->my_cfdp_id = my_cfdp_address;
     app->close = false;
     app->remote_entity = remote_entity;
@@ -97,7 +96,7 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
         return NULL;
     }
 
-    client->packet_len = PACKET_LEN;
+    client->packet_len = remote_entity.mtu;
     client->remote_entity = remote_entity;
 
     get_header_from_mib(&client->pdu_header, remote_entity, app->my_cfdp_id);

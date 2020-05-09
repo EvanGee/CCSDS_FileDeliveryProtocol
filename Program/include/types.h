@@ -516,7 +516,7 @@ typedef struct remote_entity {
 
     unsigned int CRC_required : 1;
     //in octets
-    unsigned int max_file_segment_len;
+    unsigned int mtu;
     //in octets
     unsigned int keep_alive_discrepancy_limit;
 
@@ -587,8 +587,6 @@ typedef struct request {
 
     char source_file_name[MAX_PATH];
     char destination_file_name[MAX_PATH];
-
-    uint32_t packet_data_len;
 
     //previous timeout time in seconds
     int timeout;

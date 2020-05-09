@@ -314,7 +314,6 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     req->dest_cfdp_id = client->remote_entity.cfdp_id;
     req->pdu_header = client->pdu_header;
     req->res.packet_len = client->packet_len;
-    req->packet_data_len = app->packet_len;
     
     client->request_list->insert(client->request_list, req, 0);
 
