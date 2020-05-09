@@ -82,17 +82,6 @@ static void test_build_data_packet(char *packet, uint32_t packet_index){
     ASSERT_EQUALS_INT("test proper datapacket offset set", (uint64_t)packet[packet_index], 0);
     ASSERT_EQUALS_STR("test proper datapacket creation", &packet[packet_index + 4], "tempfileyo", 10);
     
-    ASSERT_EQUALS_INT("should equal 100", packet_index + 87 + 4, 100);
-
-    build_data_packet(packet, packet_index, file, 1000);
-    
-    uint32_t offset_in_packet = 0;
-    memcpy(&offset_in_packet, &packet[packet_index], 4);
-    
-    printf("%d\n", offset_in_packet);
-
-    ASSERT_EQUALS_INT("test proper datapacket offset set", offset_in_packet, 10);
-
     free_file(file);
 }
 
@@ -338,22 +327,22 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
     packet_index = start + 6;
     copy_lv_from_buffer(&dest_id, packet, packet_index);
     ASSERT_EQUALS_INT("dest_id.length", dest_id.length, 1);
-    ASSERT_EQUALS_INT("dest_id.value", *(uint8_t*) (dest_id.value), id);
+    ASSERT_EQUALS_INT("dest_id.value", *(uint8_t*) (dest_id.value), 1);
     packet_index += dest_id.length + 1;
     free_lv(dest_id);
 
     
-    copy_lv_from_buffer(&src_file, packet, packet_index);
-    ASSERT_EQUALS_INT("src_file.length", src_file.length, strnlen(src, 100) + 1);
-    ASSERT_EQUALS_STR("src_file.value", src, (char *) src_file.value, src_file.length);
-    packet_index += src_file.length + 1;
-    free_lv(src_file);
+    copy_lv_from_buffer(&original_id, packet, packet_index);
+    ASSERT_EQUALS_INT("original_id.length", original_id.length, 1);
+    ASSERT_EQUALS_INT("original_id.value",  *(uint8_t*)original_id.value, 1);
+    packet_index += original_id.length + 1;
+    free_lv(original_id);
     
 
-    copy_lv_from_buffer(&dest_file, packet, packet_index);
-    ASSERT_EQUALS_INT("dest_file.length", dest_file.length, strnlen(dest, 100) + 1);
-    ASSERT_EQUALS_STR("dest_file.value", dest, (char *)dest_file.value, dest_file.length);
-    free_lv(dest_file);
+    copy_lv_from_buffer(&transaction_id, packet, packet_index);
+    ASSERT_EQUALS_INT("dest_file.length", transaction_id.length, 1);
+    ASSERT_EQUALS_INT("dest_file.value", *(uint8_t*)transaction_id.value, transaction_id.length);
+    free_lv(transaction_id);
 
     ssp_cleanup_req(req);
 }
@@ -515,7 +504,6 @@ int packet_tests() {
     test_respond_to_naks(packet, data_start_index);
 
     memset(packet, 0, PACKET_TEST_SIZE);
-    data_start_index = test_build_pdu_header(packet, &pdu_header, sequence_number);
 
     test_build_data_packet(packet, data_start_index);
     test_build_metadata_packet(packet, data_start_index);

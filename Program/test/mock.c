@@ -14,41 +14,40 @@
 #include <stdlib.h>
 
 
+void mock_mock_remote_entity(Remote_entity *remote_entity, uint32_t cfdp_id) {
 
-MIB *mock_mib() {
+    remote_entity->UT_address = 1;
+    remote_entity->UT_port = 1;
+    remote_entity->type_of_network = 1;
+    remote_entity->one_way_light_time = 1;
+    remote_entity->total_round_trip_allowance = 1;
+    remote_entity->async_NAK_interval = 1;
+    remote_entity->async_keep_alive_interval = 1;
+    remote_entity->async_report_interval= 1;
+    remote_entity->immediate_nak_mode_enabled= 1;
+    remote_entity->prompt_transmission_interval= 1;
+    remote_entity->default_transmission_mode= 1;
+    remote_entity->disposition_of_incomplete= 1;
+    remote_entity->CRC_required= 1;
+    remote_entity->mtu= 1500;
+    remote_entity->keep_alive_discrepancy_limit= 1;
+    remote_entity->positive_ack_timer_expiration_limit= 1;
+    remote_entity->nak_timer_expiration_limit= 1;
+    remote_entity->transaction_inactivity_limit= 1;
+    remote_entity->cfdp_id = cfdp_id;
 
-    //Memory information base
-    MIB *mib = init_mib();
-
-    //setting host name for testing
-    char *host_name = "127.0.0.1";
-    uint32_t addr[sizeof(uint32_t)];
-    inet_pton(AF_INET, host_name, addr);
-    
-    //adding new cfdp entities to management information base
-    add_new_cfdp_entity(mib, 1, *addr, 1111, posix, UN_ACKNOWLEDGED_MODE);
-    add_new_cfdp_entity(mib, 2, *addr, 1112, posix, UN_ACKNOWLEDGED_MODE); 
-    add_new_cfdp_entity(mib, 7, *addr, 1113, posix, UN_ACKNOWLEDGED_MODE); 
-
-    //add_new_cfdp_entity(mib, 3, 1, 1, csp, UN_ACKNOWLEDGED_MODE);   
-    //add_new_cfdp_entity(mib, 4, 2, 2, csp, UN_ACKNOWLEDGED_MODE);   
-
-    //add_new_cfdp_entity(mib, 5, 3, 3, csp, ACKNOWLEDGED_MODE);   
-    //add_new_cfdp_entity(mib, 6, 4, 4, csp, ACKNOWLEDGED_MODE);
-
-    return mib;
 }
-
 
 int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id) {
 
     Pdu_header pdu_header;
-    int error = get_header_from_mib2(pdu_header, remote_entity, src_id);
-    int packet_index = build_pdu_header(packet, 1, 0, pdu_header);
+    Remote_entity remote_entity;
 
-    ssp_cleanup_pdu_header(pdu_header);
-    free_mib(mib);
-    
+    mock_mock_remote_entity(&remote_entity, src_id);    
+
+    int error = get_header_from_mib(&pdu_header, remote_entity, dest_id);
+    int packet_index = build_pdu_header(packet, 1, 0, &pdu_header);
+
     return packet_index;
 }
 
@@ -56,23 +55,18 @@ File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *fil
     
     int packet_index = mock_packet(packet, dest_id, src_id);
     File *file = create_file(file_name, false);
-    file->partial_checksum = check_sum_file(file, 1000);
-    build_eof_packet(packet, packet_index, file);
+    build_eof_packet(packet, packet_index, file->total_size, check_sum_file(file, 1000));
 
     return file;
 }
 
-void mock_metadata_packet() {
-
-
-}
 
 Response *mock_response() {
     Response *res = calloc(1, sizeof(Response));
     int addr = 16;
     res->addr = &addr;
     res->sfd = 1;
-    res->packet_len = 2000;
+    res->packet_len = 1500;
     res->size_of_addr = 16;
     res->type_of_network = posix;
     res->transmission_mode = UN_ACKNOWLEDGED_MODE;
@@ -80,11 +74,8 @@ Response *mock_response() {
 }
 
 
-
-
 Request *mock_request() {
     Request *req = init_request(5000);
-    MIB *mib = mock_mib();
 
     char *dest = "dest";
     char *src = "src";
@@ -95,8 +86,9 @@ Request *mock_request() {
     memcpy (req->source_file_name, dest, strnlen(dest, 255)); 
     memcpy (req->destination_file_name, src, strnlen(src, 255));
 
-    req->pdu_header = get_header_from_mib(mib, id, 2);
-    req->remote_entity = get_remote_entity(mib, 1);
+    
+    mock_mock_remote_entity(&req->remote_entity, id);
+    get_header_from_mib(&req->pdu_header, req->remote_entity, 1);
 
     int addr = 16;
     req->res.addr = malloc(5);
@@ -108,7 +100,6 @@ Request *mock_request() {
     req->res.transmission_mode = UN_ACKNOWLEDGED_MODE;
     req->res.msg = req->buff;
 
-    free_mib(mib);
 
     return req;
 }   
