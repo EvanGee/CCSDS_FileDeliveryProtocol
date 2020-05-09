@@ -134,9 +134,6 @@ uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Reques
         return 1;
     }
 
-    Pdu_header *header = (Pdu_header *) packet;
-    header->PDU_type = DATA;
-
     uint16_t packet_index = start;
     File_data_pdu_contents *packet_offset = (File_data_pdu_contents *) &packet[packet_index];
     packet_offset->offset = offset;
@@ -152,7 +149,7 @@ uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Reques
     }
     
     uint16_t data_len = bytes + 4;
-    set_data_length(packet, data_len);
+    set_packet_header(packet, data_len, DATA);
 
     if (bytes <  data_size)
         return 1;
@@ -169,11 +166,6 @@ uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t len
     if (file->next_offset_to_send >= file->total_size){
         return 0;
     }
-
-
-    Pdu_header *header = (Pdu_header *) packet;
-    //set header to file directive 0 is directive, 1 is data
-    header->PDU_type = 1;
 
     uint16_t packet_index = start;
     File_data_pdu_contents *packet_offset = (File_data_pdu_contents *) &packet[packet_index];
@@ -198,8 +190,7 @@ uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t len
 
     //add bytes read, and the packet offset to the data_field length
     uint16_t data_len = bytes + 4;
-    set_data_length(packet, data_len);
-
+    set_packet_header(packet, data_len, DATA);
     if (bytes <  data_size)
         return 1;
 
@@ -234,9 +225,8 @@ void build_eof_packet(char *packet, uint32_t start, uint32_t file_size, uint32_t
     packet_index += 4;
 
     //TODO addTLV fault_location
-    uint16_t data_len = htons(packet_index - start);
-    set_data_length(packet, data_len);
-
+    uint16_t data_len = packet_index - start;
+    set_packet_header(packet, data_len, DIRECTIVE);
 }
 
 //this is a callback for building nak_array server side
@@ -282,7 +272,7 @@ uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
     packet_index += sizeof(Offset) * count;
 
     uint16_t data_len = packet_index - start;
-    set_data_length(packet, data_len);
+    set_packet_header(packet, data_len, DIRECTIVE);
 
     return data_len;
 }
@@ -297,8 +287,7 @@ uint8_t build_ack(char*packet, uint32_t start, uint8_t type) {
     pdu_ack->condition_code = COND_NO_ERROR;
     packet_index += 2;
     uint16_t data_len = packet_index - start;
-    set_data_length(packet, data_len);
-
+    set_packet_header(packet, data_len, DIRECTIVE);
     return data_len;
 }
 
@@ -307,7 +296,7 @@ uint8_t build_nak_directive(char *packet, uint32_t start, uint8_t directive) {
     packet[start] = NAK_DIRECTIVE;
     packet[start + 1] = directive;
     
-    set_data_length(packet, data_len);
+    set_packet_header(packet, data_len, DIRECTIVE);
     return data_len;
 }
 
