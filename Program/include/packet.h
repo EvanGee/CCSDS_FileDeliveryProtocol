@@ -2,12 +2,7 @@
 
 #ifndef PACKET_H
 #define PACKET_H
-#define PACKET_HEADER_LEN 224
-// PACKET_HEADER_LEN + data max size = (65536 * 8)
-#define PACKET_MAX_LEN 524512
 
-//#define PACKET_LEN 1024 + 224 // 1248 limiting the data portion to 56 bytes
-#define PACKET_LEN 252
 //dont change this
 #define PACKET_STATIC_HEADER_LEN 4 //in bytes
 

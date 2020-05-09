@@ -7,6 +7,10 @@
 
 #define TEMP_FILESIZE 1000
 
+struct params {
+    int error;
+    int fd;
+};
 
 uint32_t get_file_size(char *source_file_name);
 
