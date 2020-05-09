@@ -321,10 +321,6 @@ uint16_t get_data_length(char*packet) {
     return ntohs(header->PDU_data_field_len);
 }
 
-
-
-
-
 struct packet_callback_params {
     char *packet;
     uint32_t *packet_index;
@@ -345,18 +341,25 @@ static void add_messages_callback(Node *node, void *element, void *args) {
     memcpy(&packet[packet_index], &message->header.message_type, 1);
     packet_index += 1;
 
-    Message_put_proxy *proxy;
+    Message_put_proxy *proxy_put;
+    Message_cont_part_request *proxy_cont_part;
 
     switch (message->header.message_type)
     {
         case PROXY_PUT_REQUEST:
-            proxy = (Message_put_proxy *) message->value;
-            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->destination_id);
-            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->source_file_name);
-            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy->destination_file_name);
-
+            proxy_put = (Message_put_proxy *) message->value;
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_put->destination_id);
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_put->source_file_name);
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_put->destination_file_name);
             break;
-    
+
+        case PROXY_CONTINUE_PARTIAL:
+            proxy_cont_part = (Message_cont_part_request *) message->value;
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_cont_part->destination_id);
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_cont_part->originator_id);
+            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_cont_part->transaction_id);
+            break;
+
         default:
             break;
     }
@@ -384,7 +387,8 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
     }
 
     Message *m;
-    Message_put_proxy *put_proxy;
+    Message_put_proxy *proxy_put;
+    Message_cont_part_request *proxy_cont_part;
 
     uint32_t message_start = start + 6;
 
@@ -394,18 +398,34 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             m = create_message(PROXY_PUT_REQUEST);
             
             m->value = ssp_alloc(1, sizeof(Message_put_proxy));
-            put_proxy = (Message_put_proxy *) m->value;
+            proxy_put = (Message_put_proxy *) m->value;
 
-            copy_lv_from_buffer(&put_proxy->destination_id, packet, message_start);
-            message_start += put_proxy->destination_id.length + 1;
+            copy_lv_from_buffer(&proxy_put->destination_id, packet, message_start);
+            message_start += proxy_put->destination_id.length + 1;
             
-            copy_lv_from_buffer(&put_proxy->source_file_name, packet, message_start);
-            message_start += put_proxy->source_file_name.length + 1;
+            copy_lv_from_buffer(&proxy_put->source_file_name, packet, message_start);
+            message_start += proxy_put->source_file_name.length + 1;
 
-            copy_lv_from_buffer(&put_proxy->destination_file_name, packet, message_start);
-            message_start += put_proxy->destination_file_name.length + 1;
+            copy_lv_from_buffer(&proxy_put->destination_file_name, packet, message_start);
+            message_start += proxy_put->destination_file_name.length + 1;
             break;
-    
+
+        case PROXY_CONTINUE_PARTIAL:
+            m = create_message(PROXY_CONTINUE_PARTIAL);
+            
+            m->value = ssp_alloc(1, sizeof(Message_cont_part_request));
+            proxy_cont_part = (Message_cont_part_request *) m->value;
+
+            copy_lv_from_buffer(&proxy_cont_part->destination_id, packet, message_start);
+            message_start += proxy_cont_part->destination_id.length + 1;
+            
+            copy_lv_from_buffer(&proxy_cont_part->originator_id, packet, message_start);
+            message_start += proxy_cont_part->originator_id.length + 1;
+
+            copy_lv_from_buffer(&proxy_cont_part->transaction_id, packet, message_start);
+            message_start += proxy_cont_part->transaction_id.length + 1;
+
+
         default:
             break;
     }

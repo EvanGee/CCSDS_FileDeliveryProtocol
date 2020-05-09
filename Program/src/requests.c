@@ -336,6 +336,12 @@ Request *put_request(
     Request *req;
     uint32_t file_size = 0;
 
+    bool exists = does_file_exist(source_file_name);
+    if (exists == false) {
+        ssp_printf("ERROR: File does not exist\n");
+        return NULL;
+    }
+
     ssp_printf("trying to start new request\n");
     if (source_file_name == NULL || destination_file_name == NULL) {
         req = start_new_client_request(app, dest_id);
@@ -368,6 +374,11 @@ Request *put_request(
 }
 
 void start_request(Request *req){
+    if (req == NULL) {
+        ssp_printf("ERROR: couldn't start request\n");
+        return;
+    }
+    ssp_printf("started request\n");
     req->paused = false;
 }
 

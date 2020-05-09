@@ -55,18 +55,23 @@ int main(int argc, char** argv) {
         start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy2.jpg", ACKNOWLEDGED_MODE, app));
         start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy3.jpg", ACKNOWLEDGED_MODE, app));
         */
-        //start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy4.jpg", ACKNOWLEDGED_MODE, app));
-
-    
-        Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
-        add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy.jpg", req);
+        Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy4.jpg", ACKNOWLEDGED_MODE, app);
         start_request(req);
-    
+
+        /*
+        req = put_request(conf->client_cfdp_id, NULL, NULL, UN_ACKNOWLEDGED_MODE, app);
+        if (req != NULL)
+            add_proxy_message_to_request(2, 1, "pictures/pic.jpeg", "pictures/Proxy.jpg", req);
+
+        start_request(req);
+        */
+       
+        /*
         req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
         add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy2.jpg", req);
         start_request(req);
 
-
+        
         req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
         add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy3.jpg", req);
         start_request(req);
