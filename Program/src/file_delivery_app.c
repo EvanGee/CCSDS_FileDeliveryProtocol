@@ -11,6 +11,42 @@
 #include <arpa/inet.h>
 #include "utils.h"
 
+
+
+static void create_ssp_server_drivers(FTP *app) {
+
+    if (app->remote_entity.type_of_network == posix && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, app);
+
+    } else if(app->remote_entity.type_of_network == posix && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
+
+    } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
+
+    } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
+    }
+}
+
+static void create_ssp_client_drivers(Client *client) {
+    Remote_entity remote_entity = client->remote_entity;
+
+    if (remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
+
+    } else if(remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
+
+    } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
+
+    } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
+    }
+
+}
+
 FTP *init_ftp(uint32_t my_cfdp_address) {
 
     
@@ -38,42 +74,39 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     FTP *app = ssp_alloc(sizeof(FTP), 1);
     if (app == NULL) 
         return NULL;
-    
+
     app->packet_len = remote_entity.mtu;
+    app->buff = ssp_alloc(1, app->packet_len);
+    if (app->buff == NULL) {
+        ssp_free(app);
+        return NULL;
+    }
+
     app->my_cfdp_id = my_cfdp_address;
     app->close = false;
     app->remote_entity = remote_entity;
 
     app->active_clients = linked_list();
-    if (app->active_clients == NULL) 
+    if (app->active_clients == NULL) {
+        ssp_free(app->buff);
+        ssp_free(app);
         return NULL;
+    }
 
     app->request_list = linked_list();
-    if (app->request_list == NULL) 
+    if (app->request_list == NULL){
+        ssp_free(app->buff);
+        ssp_free(app);
+        app->active_clients->freeOnlyList(app->active_clients);
         return NULL;
+    }
 
     app->current_request = NULL;
-    ssp_server(app);
+    create_ssp_server_drivers(app);
     return app;
 }
 
 
-
-void ssp_server(FTP *app) {
-
-    if (app->remote_entity.type_of_network == posix && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, app);
-
-    } else if(app->remote_entity.type_of_network == posix && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
-
-    } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
-
-    } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
-    }
-}
 
 Client *ssp_client(uint32_t cfdp_id, FTP *app) {
 
@@ -87,35 +120,27 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
     Client *client = ssp_alloc(sizeof(Client), 1);
     if (client == NULL)
         return NULL;
-        
-    client->current_request = NULL;
+
     client->request_list = linked_list();
-    
     if (client->request_list == NULL) {
         ssp_free(client);
         return NULL;
     }
 
     client->packet_len = remote_entity.mtu;
-    client->remote_entity = remote_entity;
-
-    get_header_from_mib(&client->pdu_header, remote_entity, app->my_cfdp_id);
-
-    client->app = app;
-
-    if (remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
-
-    } else if(remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
-
-    } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
-
-    } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
+    client->buff = ssp_alloc(1, remote_entity.mtu);
+    if (client->buff == NULL){
+        ssp_free(client);
+        client->request_list->freeOnlyList(client->request_list);
+        return NULL;
     }
 
+    client->remote_entity = remote_entity;
+    get_header_from_mib(&client->pdu_header, remote_entity, app->my_cfdp_id);
+    
+    client->current_request = NULL;
+    client->app = app;
+    create_ssp_client_drivers(client);
 
     return client;
 }
