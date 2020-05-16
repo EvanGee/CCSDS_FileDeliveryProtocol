@@ -42,17 +42,22 @@ static void timeout(Request *req) {
     }
 }
 
-static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
+
+static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
+
 
     FTP *app = (FTP *) other;
+    if (packet_len > app->packet_len) {
+        ssp_printf("packet received is too big for app\n");
+        return -1;
+    }
+
     Response res;
     res.addr = addr;
     res.sfd = sfd;
-    res.packet_len = app->packet_len;
     res.size_of_addr = size_of_addr;
 
     Request **request_container = &app->current_request;
-
     int packet_index = process_pdu_header(packet, true, res, request_container, app->request_list, app);
     if (packet_index < 0) {
         ssp_printf("error parsing header\n");
@@ -61,29 +66,32 @@ static int on_recv_server_callback(int sfd, char *packet,  uint32_t packet_len, 
 
     Request *current_request = (*request_container);
     app->current_request = current_request;
-
     
     parse_packet_server(packet, packet_index, app->current_request->res, current_request, app);
 
     reset_timeout(&current_request->timeout);
 
-    memset(packet, 0, res.packet_len);
+    memset(packet, 0, packet_len);
     return 0;
 
 }
 
+
 static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
     
     Client *client = (Client *) other;
+    if (packet_len > client->app->packet_len) {
+        ssp_printf("packet received is too big for app\n");
+        return -1;
+    }
 
     Response res;
     res.addr = addr;
     res.sfd = sfd;
-    res.packet_len = client->packet_len;
     res.type_of_network = client->remote_entity.type_of_network;
     res.size_of_addr = size_of_addr;
     res.transmission_mode = client->remote_entity.default_transmission_mode;
-
+    
     Request **request_container = &client->current_request;
 
     int packet_index = process_pdu_header(packet, false, res, request_container, client->request_list, client->app);
@@ -99,7 +107,7 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
 
     reset_timeout(&current_request->timeout);
 
-    memset(packet, 0, res.packet_len);
+    memset(packet, 0, packet_len);
     
     return 0;
     
@@ -133,7 +141,7 @@ static void user_request_check(Node *node, void *request, void *args) {
     
     remove_request_check(node, request, params->client->request_list);
 }
-
+//TODO can getrid of res here I think, well at least the addr
 static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, void *other) {
 
     Response res;    
@@ -143,7 +151,7 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
         client->close = true;
         return 0;
     }
-        
+
     res.sfd = sfd;
     res.packet_len = client->packet_len;
     res.addr = addr;
@@ -465,6 +473,7 @@ void *ssp_csp_connection_client_task(void *params) {
 
 void ssp_cleanup_client(Client *client) {
     client->request_list->free(client->request_list, ssp_cleanup_req);
+    ssp_free(client->buff);
     ssp_free(client);
 }
 void ssp_client_join(Client *client) {
@@ -481,8 +490,8 @@ static void exit_client(Node *node, void *element, void *args) {
 void ssp_cleanup_ftp(FTP *app) {
     app->request_list->free(app->request_list, ssp_cleanup_req);
     app->active_clients->iterate(app->active_clients, exit_client, NULL);
-
     app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
     app->active_clients->freeOnlyList(app->active_clients);
+    ssp_free(app->buff);
     ssp_free(app);
 }
