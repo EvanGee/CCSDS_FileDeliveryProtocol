@@ -92,12 +92,12 @@ static int find_request(void *element, void *args) {
             return NULL;
         }
 
-        Request *found_req = init_request(app->packet_len);
+        Request *found_req = init_request(app->buff, app->packet_len);
         if (found_req == NULL) {
             ssp_error("could not get allocate for new request \n");
             return NULL;
         }
-    
+        
         ssp_printf("incoming new request\n");
 
         //Make new request and add it
@@ -111,9 +111,9 @@ static int find_request(void *element, void *args) {
 
         found_req->res.addr = ssp_alloc(1, res.size_of_addr);
         
-        if (found_req == NULL) {
+        if (found_req->res.addr == NULL) {
             ssp_cleanup_req(found_req);
-            NULL;
+            return NULL;
         }
 
         memcpy(found_req->res.addr, res.addr, res.size_of_addr);
@@ -122,6 +122,8 @@ static int find_request(void *element, void *args) {
         found_req->res.sfd = res.sfd;
         found_req->res.transmission_mode = app->remote_entity.default_transmission_mode;
         found_req->res.type_of_network = app->remote_entity.type_of_network;
+        found_req->res.msg = found_req->buff;
+
         found_req->paused = false;
         return found_req;
 }
@@ -148,18 +150,15 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     memcpy(&dest_id, &packet[packet_index], header->length_of_entity_IDs);
     packet_index += header->length_of_entity_IDs;
 
-    /*
     if (app->my_cfdp_id != dest_id){
         ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", app->my_cfdp_id, dest_id);
         return -1;
     }
-    */
 
     //if packet is from the same request, don't' change current request
     Request *current_req = (*req);
 
     uint16_t len = get_data_length(packet);
-
     if (len > app->packet_len){
         ssp_printf("packet received %d that was too big for our buffer %d\n", len, app->packet_len);
         return -1;
@@ -177,7 +176,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
 
     Request *found_req = (Request *) request_list->find(request_list, 0, find_request, &params);
 
-    //server side, receiving requests (this should be its own function)
+    //if server, create new request
     if (found_req == NULL && is_server) 
     {
    

@@ -215,7 +215,6 @@ void ssp_cleanup_req(void *request) {
     else 
         req->messages_to_user->freeOnlyList(req->messages_to_user);
 
-    ssp_free(req->buff);
     ssp_free(req->res.addr);
     ssp_free(req);
 
@@ -223,16 +222,15 @@ void ssp_cleanup_req(void *request) {
 
 
 
-Request *init_request(uint32_t buff_len) {
+Request *init_request(char *buff, uint32_t buff_len) {
 
     Request *req = ssp_alloc(1, sizeof(Request));
+    if (req == NULL)
+        return NULL;
 
     req->file = NULL;
     req->buff_len = buff_len;
-    req->buff = ssp_alloc(buff_len, sizeof(char));
-    if (req->buff == NULL)
-        return NULL;
-
+    req->buff = buff;
     req->procedure = none;
     req->paused = true;
     reset_timeout(&req->timeout);
@@ -246,50 +244,6 @@ Request *init_request(uint32_t buff_len) {
     }
     return req;
 }
-
-
-/*
-Request *init_request_2(uint32_t buff_len, uint32_t transaction_id, Pdu_header *pdu_header, Remote_entity *remote_entity) {
-
-    Request *req = ssp_alloc(1, sizeof(Request));
-    checkAlloc(req, 1);
-
-
-    req->pdu_header = pdu_header;
-    req->remote_entity = remote_entity;
-    req->file = NULL;
-    req->buff_len = buff_len;
-    req->dest_cfdp_id = remote_entity->cfdp_id;
-    req->transaction_sequence_number = transaction_id;
-    req->procedure = none;
-    req->paused = true;
-
-    req->buff = ssp_alloc(buff_len, sizeof(char));
-    checkAlloc(req->buff,  1);
-
-    reset_timeout(&req->timeout);
-    
-    req->res.msg = req->buff;
-
-    req->messages_to_user = linked_list();
-    checkAlloc(req->messages_to_user,  1);
-    req->res.transmission_mode = remote_entity->default_transmission_mode;
-    req->res.type_of_network = remote_entity->type_of_network;
-    req->res.packet_len = buff_len;
-    
-    //req->res.addr = remote_entity.UT_address;
-
-    //using the hosts network transfer, should switch to client configuration
-    
-    //req->res.sfd = res.sfd;
-    
-
-    //req->paused = false;
-    //req->procedure = sending_put_metadata;
-
-    return req;
-}
-*/
 
 //starts a new client, adding it to app->active_clients, as well as 
 //starting a new request and adding it to the client, returns a pointer
@@ -307,8 +261,8 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
         ssp_printf("adding request to existing client thread\n");
     }
 
-    Request *req = init_request(client->packet_len);
-
+    Request *req = init_request(client->buff, client->packet_len);
+    
     //build a request 
     req->transaction_sequence_number = app->transaction_sequence_number++;
     req->dest_cfdp_id = client->remote_entity.cfdp_id;

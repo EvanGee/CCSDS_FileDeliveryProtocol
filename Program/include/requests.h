@@ -7,7 +7,7 @@
 #include "types.h"
 
 void ssp_cleanup_req(void *request);
-Request *init_request(uint32_t buff_len);
+Request *init_request(char *buff, uint32_t buff_len);
 void start_request(Request *req);
 
 Request *put_request(
