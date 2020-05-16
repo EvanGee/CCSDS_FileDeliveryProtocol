@@ -67,12 +67,13 @@ static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, u
     Request *current_request = (*request_container);
     app->current_request = current_request;
     
-    parse_packet_server(packet, packet_index, app->current_request->res, current_request, app);
+    int count = parse_packet_server(packet, packet_index, app->current_request->res, current_request, app);
 
     reset_timeout(&current_request->timeout);
 
-    memset(packet, 0, packet_len);
-    return 0;
+    memset(packet, 0, count);
+
+    return count;
 
 }
 
@@ -91,7 +92,8 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
     res.type_of_network = client->remote_entity.type_of_network;
     res.size_of_addr = size_of_addr;
     res.transmission_mode = client->remote_entity.default_transmission_mode;
-    
+    res.msg = client->buff;
+
     Request **request_container = &client->current_request;
 
     int packet_index = process_pdu_header(packet, false, res, request_container, client->request_list, client->app);
@@ -101,7 +103,6 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
     }
 
     Request *current_request = (*request_container);
-    res.msg = current_request->buff;
 
     parse_packet_client(packet, packet_index, res, current_request, client);
 
@@ -133,7 +134,6 @@ static void user_request_check(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     struct user_request_check_params* params = (struct user_request_check_params *) args;
     
-    params->res.msg = req->buff;
     memset(params->res.msg, 0, params->client->packet_len);
 
     user_request_handler(params->res, req, params->client);
@@ -158,6 +158,7 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
     res.size_of_addr = size_of_addr;
     res.type_of_network = client->remote_entity.type_of_network;
     res.transmission_mode = client->remote_entity.default_transmission_mode;
+    res.msg = client->buff;
 
     struct user_request_check_params params = {
         res,
