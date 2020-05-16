@@ -184,7 +184,7 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
     char *buff = ssp_alloc(sizeof(char), *buff_size);
     if (buff_size == NULL)
         exit_now = true;
-
+    
     for (;;)
     {
         
@@ -230,21 +230,30 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
                     break;
                 }
 
-                int count = ssp_recvfrom(i, buff, *buff_size, 0, NULL, NULL);
-
-                if (count < 0) {
-                    ssp_error("recv failed server");
-                    ssp_close(i);
-                    ssp_fd_clr(i, socket_set);
-                }
-
-                else {
-                    if (onRecv(i, buff, count, buff_size, addr, size_of_addr, other) == -1) {
-                        ssp_printf("recv failed, closing socket\n");
+                int count = 0;
+                while (count < *buff_size) {
+                    count += ssp_recvfrom(i, &buff[count], *buff_size - count, 0, NULL, NULL);    
+                    if (count < 0) {
+                        ssp_error("recv failed server");
+                        break;
+                    }
+                    else if (count == 0) {
+                        ssp_error("connection finished");
                         ssp_fd_clr(i, socket_set);
                         ssp_close(i);
-                    }
+                        break;
+                    } 
+                }              
+
+                if (count <= 0)
+                    continue;
+
+                int bytes_parsed = onRecv(i, buff, count, buff_size, addr, size_of_addr, other);
+                if (bytes_parsed == -1) {
+                    ssp_printf("recv failed somewhere in parsing\n");
                 }
+                
+            
             }
         }
     }

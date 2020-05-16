@@ -28,6 +28,8 @@ static void build_temperary_file(Request *req, uint32_t size) {
 
 
 static void send_ack(Request *req, Response res, unsigned int type){
+    if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
+        return;
 
     uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
     build_ack(req->buff, start, type);
@@ -35,7 +37,9 @@ static void send_ack(Request *req, Response res, unsigned int type){
 }
 
 static void send_nak(Request *req, Response res, unsigned int type) {
-
+    if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
+        return;
+    
     uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
     build_nak_directive(req->buff, start, type);
     ssp_sendto(res);
@@ -659,12 +663,14 @@ void on_server_time_out(Response res, Request *req) {
 }
 
 //fills the current_request struct for the server, incomming requests
-void parse_packet_server(char *packet, uint32_t packet_index, Response res, Request *req, FTP *app) {
+int parse_packet_server(char *packet, uint32_t packet_index, Response res, Request *req, FTP *app) {
 
     if (packet_index == 0)
-        return;
+        return -1;
         
     Pdu_header *header = (Pdu_header *) packet;
+    uint16_t data_len = get_data_length(packet);
+    uint32_t packet_len = packet_index + data_len;
 
     //process file data
     if (header->PDU_type == 1) {
@@ -674,9 +680,9 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
                 build_temperary_file(req, TEMP_FILESIZE);
             }
         }
-        uint16_t data_len = get_data_length(packet);
         write_packet_data_to_file(&packet[packet_index], data_len, req->file);
-        return;
+        ssp_printf("received data packet transaction: %d\n", req->transaction_sequence_number);
+        return packet_len;
     }
     
 
@@ -716,5 +722,7 @@ void parse_packet_server(char *packet, uint32_t packet_index, Response res, Requ
         default:
             break;
     }
+
+    return packet_len;
 }
 

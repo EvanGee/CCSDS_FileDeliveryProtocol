@@ -119,28 +119,14 @@ int ssp_close(int fd) {
 void ssp_sendto(Response res) {
 
 
-    if (res.type_of_network == posix_connection_less) {
+    if (res.type_of_network == posix_connection_less || res.type_of_network == posix_connection) {
         struct sockaddr* addr = (struct sockaddr*) res.addr;
-     
-        #ifdef TEST 
-            printf("sending outgoing packet (testing)\n");
-        #endif
-        #ifndef TEST
 
-            int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
-            if (err < 0) {
-                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(struct sockaddr));
-                ssp_error("ERROR in sendto");
-            }
-        #endif
-    }
-    else if (res.type_of_network == posix_connection) {
-    
-        int err = ssp_write(res.sfd, res.msg, res.packet_len);
+        int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
         if (err < 0) {
-            ssp_error("ERROR in write");
+            ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(struct sockaddr));
+            ssp_error("ERROR in sendto");
         }
-        
     }
     else if (res.type_of_network == csp /*&& res.transmission_mode == UN_ACKNOWLEDGED_MODE*/) {
 
