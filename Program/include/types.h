@@ -483,9 +483,9 @@ typedef struct local_entity {
 
 
 typedef enum Network_type {
-    csp,
-    //free_rtos,
-    posix,
+    posix_connection_less,
+    posix_connection,
+    csp
 
 } Network_type;
 
@@ -625,7 +625,13 @@ typedef struct request {
 
 //add "client" in here to represent local entity
 typedef struct ftp {
+
+    //the maximum size of the packet
     uint32_t packet_len;
+
+    //buffer for making packets, is length of packet_len
+    char* buff;
+    
     void *server_handle;
     uint32_t my_cfdp_id;
     
@@ -655,6 +661,10 @@ typedef struct client {
     void *client_handle;
     //the maximum size of the packet
     uint32_t packet_len;
+
+    //buffer for making packets, is length of packet_len
+    char* buff;
+
     uint32_t cfdp_id;
     
     Request *current_request;
@@ -665,7 +675,7 @@ typedef struct client {
 
     //packet header, useful for copying into outgoing packets
     Pdu_header pdu_header;
-    
+
     FTP *app;    
 
     //bool for exiting the client thread
