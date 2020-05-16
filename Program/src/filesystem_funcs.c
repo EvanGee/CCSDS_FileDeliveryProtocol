@@ -544,7 +544,7 @@ static int write_file_present_bool(int fd, File *file) {
 int save_req_to_file(Request *req) {
 
     char file_name[255];
-    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".binary");
+    snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".binary");
     
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
@@ -690,7 +690,7 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Reque
     
     char file_name[255];
 
-    snprintf(file_name, 255, "%s%u%s%llu%s", "pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
+    snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
 
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
