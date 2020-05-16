@@ -15,10 +15,10 @@
 
 static void create_ssp_server_drivers(FTP *app) {
 
-    if (app->remote_entity.type_of_network == posix && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+    if (app->remote_entity.type_of_network == posix_connection_less) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, app);
 
-    } else if(app->remote_entity.type_of_network == posix && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
+    } else if(app->remote_entity.type_of_network == posix_connection) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
 
     } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
@@ -32,10 +32,10 @@ static void create_ssp_server_drivers(FTP *app) {
 static void create_ssp_client_drivers(Client *client) {
     Remote_entity remote_entity = client->remote_entity;
 
-    if (remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+    if (remote_entity.type_of_network == posix_connection_less) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
 
-    } else if(remote_entity.type_of_network == posix && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
+    } else if(remote_entity.type_of_network == posix_connection) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
 
     } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
