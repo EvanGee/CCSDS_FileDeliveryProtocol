@@ -19,17 +19,76 @@ This is my file for server.c. It develops a udp server for select.
 #include <arpa/inet.h>
 #include <libgen.h>
 #include "utils.h"
-#include "server.h"
+#include "posix_server_provider.h"
 #include "port.h"
+#include <sys/select.h>
 
-#ifdef CSP_NETWORK
-    #include "csp.h"
-#endif
+
 
 static int exit_now;
  
+
+static int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len) {
+    int count = 0;
+    count = recvfrom(sfd, buff, packet_len, flags, (struct sockaddr*)server_addr, (socklen_t*)server_addr_len);
+    return count;
+}
+
+static void *ssp_init_socket_set(size_t *size) {
  
+    fd_set *socket_set = ssp_alloc(1, sizeof(fd_set));
+    *size = sizeof(fd_set);
+    return (void *)socket_set;
+}
+
+
+static void ssp_fd_zero(void *socket_set){
+
+    FD_ZERO((fd_set*) socket_set);
  
+}
+
+static void ssp_fd_set(int sfd, void *socket_set) {
+
+    FD_SET(sfd, (fd_set*) socket_set);
+
+}
+
+static int ssp_fd_is_set(int sfd, void *socket_set){
+    int is_set = 0;
+    is_set = FD_ISSET(sfd, (fd_set*) socket_set);
+    return is_set;
+}
+
+static void ssp_fd_clr(int sfd, void *socket_set) {
+
+    FD_CLR(sfd, (fd_set *) socket_set);
+
+}
+
+static int ssp_select(int sfd, void *read_socket_set, void *write_socket_set, void *restrict_socket_set, uint32_t timeout_in_usec) {
+
+    struct timeval timeout = {
+        .tv_sec = 0,
+        .tv_usec = timeout_in_usec
+    };
+
+    int nrdy = select(sfd + 1, (fd_set *) read_socket_set, (fd_set *) write_socket_set, (fd_set *) restrict_socket_set, &timeout);
+
+    return nrdy;
+}
+
+static void *ssp_init_sockaddr_struct(size_t *size_of_addr) {
+
+        *size_of_addr = sizeof(struct sockaddr_storage);
+        void *addr = ssp_alloc(1, sizeof(struct sockaddr_storage));
+        if (checkAlloc(addr) < 0)
+            return NULL;
+
+    return addr;
+}
+
+
 //if conn_typ == 1, tcp/ bind_to_host == 1 for binding local, 2 for connect
 static int prepareHost(char *host_name, void *addr, size_t *size_of_addr, char *port, int conn_type, int bind_to_host)
 {
@@ -487,239 +546,3 @@ void connection_client(char *hostname, char*port, int packet_len, void *params,
     ssp_close(sfd);
     onExit(params);
 }
-
-/*------------------------------------------------------------------------------
-                                    
-                                    CSP STUFF!
-
-------------------------------------------------------------------------------*/
-
-//#ifdef CSP_NETWORK
-
-//https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
-void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port,
-    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *params),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
-    int (*checkExit)(void *params),
-    void (*onExit)(void *params),
-    void *params) 
-{
-
-    int err = 0;
-    uint8_t src_id = csp_get_address();
-
-    //csp_socket_t *socket = csp_socket(CSP_SO_XTEAREQ | CSP_SO_HMACREQ | CSP_SO_CRC32REQ);
-    csp_socket_t *soc = csp_socket(CSP_SO_CONN_LESS);
-
-
-    err = csp_bind(soc, CSP_ANY);
-    if (err < 0) {
-        ssp_error("ERROR: couldn't bind csp\n");
-        return; 
-    }
-
-    csp_packet_t *packet_sending;
-    csp_packet_t *packet_recieved;
-
-
-    if (csp_buffer_remaining() != 0) {
-
-        packet_sending = csp_buffer_get(1);
-        packet_sending->id.dst = dest_id;
-        packet_sending->id.dport = dest_port;
-        packet_sending->id.src = src_id;
-        packet_sending->id.sport = src_port;
-        
-    }
-    else {
-        ssp_error("couldn't get new packet for sending!\n");
-        exit_now = 1;
-    }
-
-    for (;;) {
-
-        if (exit_now || checkExit(params)){
-            ssp_printf("exiting server thread\n");
-            break;
-        }
-
-        onSend(-1, packet_sending, sizeof(*packet_sending), params);
-        
-        packet_recieved = csp_recvfrom(soc, 10);
-        
-        //timout
-        if (packet_recieved == NULL)
-            continue;
-    
-        else {
-            ssp_printf("CLIENT DATA Length: %d\n", packet_recieved->length);
-            if (onRecv(-1, (char *)packet_recieved->data, packet_recieved->length, NULL, packet_recieved, sizeof(packet_recieved), params) == -1)
-                    ssp_printf("recv failed\n");
-
-            csp_buffer_free(packet_recieved);
-        }
-        
-    }
-    csp_buffer_free(packet_sending);
-}
-
-
-
-void csp_connectionless_server(uint8_t my_port,
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
-    int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
-    int (*checkExit)(void *other),
-    void (*onExit)(void *other),
-    void *other)
-{
-
-    //csp_socket_t *socket = csp_socket(CSP_SO_XTEAREQ | CSP_SO_HMACREQ | CSP_SO_CRC32REQ);
-    csp_socket_t *soc = csp_socket(CSP_SO_CONN_LESS);
-    
-    int err = csp_bind(soc, my_port);
-
-    if (err < 0) {
-        ssp_error("ERROR: couldn't bind csp\n");
-        return; 
-    }
-
-    for (;;) {
-
-        if (exit_now || checkExit(other)){
-            ssp_printf("exiting server thread\n");
-            break;
-        }
-    
-        csp_packet_t *packet = csp_recvfrom(soc, 10);
-        
-        //timout
-        if (packet == NULL) {
-            onTimeOut(other);
-        }
-        else {
-
-            if (onRecv(-1, (char *)packet->data, packet->length, NULL, packet, sizeof(packet), other) == -1)
-                    ssp_printf("recv failed\n");
-
-            csp_buffer_free(packet);
-        }
-        
-    }
-}
-
-//This doesn't work because it can't have multiple connections, maybe revisit?
-void csp_connection_server(uint8_t my_port,
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
-    int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
-    int (*checkExit)(void *other),
-    void (*onExit)(void *other),
-    void *other)
-{
-
-	/* Create socket without any socket options */
-	csp_socket_t *sock = csp_socket(CSP_SO_NONE);
-
-	/* Bind all ports to socket */
-	csp_bind(sock, my_port);
-
-	/* Create 10 connections backlog queue */
-	csp_listen(sock, 10);
-
-	/* Pointer to current connection and packet */
-	csp_conn_t *conn;
-	csp_packet_t *packet;
-
-	/* Process incoming connections */
-	for (;;) {
-
-        if (exit_now || checkExit(other)){
-            ssp_printf("exiting serv thread\n");
-            break;
-        }
-        
-		/* Wait for connection, 1000 ms timeout */
-		if ((conn = csp_accept(sock, 1000)) == NULL) {
-            onTimeOut(other);
-            continue;
-        }
-
-        for (;;) {
-            
-            if (exit_now || checkExit(other))
-                break;
-
-            onTimeOut(other);
-
-            while ((packet = csp_read(conn, 100)) != NULL) {
-                if (onRecv(-1, (char *)packet->data, packet->length, NULL, conn, sizeof(conn), other) == -1)
-                        ssp_printf("recv failed\n");
-
-                csp_buffer_free(packet);
-
-            }
-        }
-
-        csp_close(conn);
-        onExit(other);
-
-	}
-
-    /* Close current connection, and handle next */
-	csp_close(conn);
-}
-
-
-void csp_connection_client(uint8_t dest_id, uint8_t dest_port,
-    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
-    void (*onExit)(void *params),
-    void *params)
-{
-
-	csp_packet_t * packet;
-	csp_conn_t * conn;
-
-
-	while (1) {
-
-
-        if (exit_now || checkExit(params)){
-            ssp_printf("exiting client thread\n");
-            break;
-        }
-        
-		/* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
-		conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 1000, CSP_O_NONE);
-		if (conn == NULL) {
-			/* Connect failed */
-			ssp_printf("Connection failed\n");
-			return;
-		}
-     
-        for (;;) {
-
-            if (exit_now || checkExit(params)){
-                ssp_printf("exiting client thread\n");
-                break;
-            }
-
-            onSend(-1, conn, sizeof(conn), params);
-
-            while ((packet = csp_read(conn, 100)) != NULL) {
-                if (onRecv(-1, (char *)packet->data, packet->length, NULL, conn, sizeof(conn), params) == -1)
-                        ssp_printf("recv failed\n");
-
-                csp_buffer_free(packet);
-
-            }
-        }
-        
-		/* Close connection */
-		csp_close(conn);
-        onExit(params);
-	}
-}
-

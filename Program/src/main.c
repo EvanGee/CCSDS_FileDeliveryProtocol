@@ -19,7 +19,7 @@
 //for main app
 #include "file_delivery_app.h"
 //for signal handler, because its nice
-#include "server.h"
+#include "posix_server_provider.h"
 //for ssp_thread_join, can use p_thread join on linux
 #include "port.h"
 #include "tasks.h"
@@ -50,12 +50,11 @@ int main(int argc, char** argv) {
     if (conf->client_cfdp_id != 0){
 
         
-        /*
-        start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy.jpg", ACKNOWLEDGED_MODE, app));
-        start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy2.jpg", ACKNOWLEDGED_MODE, app));
-        start_request(put_request(conf->client_cfdp_id, "pic.jpeg", "noProxy3.jpg", ACKNOWLEDGED_MODE, app));
-        */
-        Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy4.jpg", ACKNOWLEDGED_MODE, app);
+        
+        start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy.jpg", ACKNOWLEDGED_MODE, app));
+        //start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy2.jpg", UN_ACKNOWLEDGED_MODE, app));
+        //start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy3.jpg", UN_ACKNOWLEDGED_MODE, app));
+        Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/tcp.jpg", ACKNOWLEDGED_MODE, app);
         start_request(req);
 
         /*
@@ -76,8 +75,6 @@ int main(int argc, char** argv) {
         add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy3.jpg", req);
         start_request(req);
 
-
-/*
         Request *req;
         for (int i=0; i < 4; i++) {
             sleep(10);

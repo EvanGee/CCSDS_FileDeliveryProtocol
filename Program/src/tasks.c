@@ -3,7 +3,6 @@
 
 #include "protocol_handler.h"
 #include "tasks.h"
-#include "server.h"
 #include "port.h"
 #include <string.h>
 #include "mib.h"
@@ -13,6 +12,8 @@
 #include "utils.h"
 #include <arpa/inet.h>
 
+#include "posix_server_provider.h"
+#include "csp_server_provider.h"
 
 //snprintf
 #include <stdio.h>

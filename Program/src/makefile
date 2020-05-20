@@ -26,12 +26,13 @@ CC = gcc
 #---------------------------File Names---------------------------
 CFILES += port.c 
 CFILES += utils.c
-CFILES += server.c  #used for poxix port
+CFILES += tasks.c
+CFILES += posix_server_provider.c  #used for poxix port
+CFILES += csp_server_provider.c
 CFILES += protocol_handler.c
 CFILES += mib.c
 CFILES += filesystem_funcs.c
 CFILES += requests.c
-CFILES += tasks.c
 CFILES += file_delivery_app.c
 CFILES += list.c
 CFILES += packet.c
@@ -85,11 +86,12 @@ CFLAGS += $(INCLUDE) $(CWARNS)
 #---------------------------Build---------------------------
 OBJS_FILES = $(patsubst %.c, %.o, $(CFILES))
 
-all: $(MAIN) 
+all: $(MAIN)
 
 .PHONY: clean lib
 
 $(MAIN): $(OBJS_FILES) $(STATIC_FILES)
+#	mv *.o obj
 
 lib:  $(OBJS_FILES)
 	ar -rsc file_delivery_app.a $(OBJS_FILES)

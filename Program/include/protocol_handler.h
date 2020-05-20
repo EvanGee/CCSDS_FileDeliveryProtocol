@@ -7,7 +7,7 @@
 #define RESEND_FINISHED_TIMES 3
 #define TIMEOUT_BEFORE_CANCEL_REQUEST 10
 
-void parse_packet_server(char* buff, uint32_t packet_index, Response res, Request *req, FTP *app);
+int parse_packet_server(char* buff, uint32_t packet_index, Response res, Request *req, FTP *app);
 void user_request_handler(Response res, Request *req, Client *client);
 void parse_packet_client(char* buff, uint32_t packet_index, Response res, Request *req, Client *client);
 void on_server_time_out(Response res, Request *current_request);

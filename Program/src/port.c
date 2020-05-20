@@ -1,6 +1,5 @@
 
 #include "packet.h"
-#include "server.h"
 #include "port.h"
 #include <stdlib.h>
 #include <string.h>
@@ -28,21 +27,11 @@
         #include <time.h>
 #endif
 
-
-
-
 #ifdef POSIX_FILESYSTEM
     #include <stdio.h>
     #include <unistd.h>
-
 #endif
 
-
-#ifdef POSIX_NETWORK
-    #include <unistd.h>
-    #include <sys/select.h>
-
-#endif
 
 #ifdef FREE_RTOS_PORT 
     #include "FreeRTOS.h"
@@ -58,7 +47,6 @@
 
 #ifdef CSP_NETWORK
     #include "csp.h"
-
 #endif
 
 
@@ -119,16 +107,8 @@ int ssp_close(int fd) {
 void ssp_sendto(Response res) {
 
 
-    if (res.type_of_network == posix_connection_less || res.type_of_network == posix_connection) {
-        struct sockaddr* addr = (struct sockaddr*) res.addr;
 
-        int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
-        if (err < 0) {
-            ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(struct sockaddr));
-            ssp_error("ERROR in sendto");
-        }
-    }
-    else if (res.type_of_network == csp /*&& res.transmission_mode == UN_ACKNOWLEDGED_MODE*/) {
+    if (res.type_of_network == csp /*&& res.transmission_mode == UN_ACKNOWLEDGED_MODE*/) {
 
         csp_packet_t *packet = (csp_packet_t *) res.addr;
         csp_packet_t *packet_sending;
@@ -148,86 +128,17 @@ void ssp_sendto(Response res) {
         else 
             ssp_error("couldn't get new packet for sending!\n");
   
+    } else {
+
+        struct sockaddr* addr = (struct sockaddr*) res.addr;
+
+        int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
+        if (err < 0) {
+            ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(struct sockaddr));
+            ssp_error("ERROR in sendto");
+        }
     }
        
-}
-
-int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len) {
-    int count = 0;
-    #ifdef POSIX_NETWORK
-        count = recvfrom(sfd, buff, packet_len, flags, (struct sockaddr*)server_addr, (socklen_t*)server_addr_len);
-    #endif
-
-    return count;
-}
-
-void *ssp_init_socket_set(size_t *size) {
-
-    #ifdef POSIX_NETWORK
-        fd_set *socket_set = ssp_alloc(1, sizeof(fd_set));
-        *size = sizeof(fd_set);
-    #endif
-    return (void *)socket_set;
-}
-
-
-void ssp_fd_zero(void *socket_set){
-
-    #ifdef POSIX_NETWORK
-        FD_ZERO((fd_set*) socket_set);
-    #endif
-}
-
-void ssp_fd_set(int sfd, void *socket_set) {
-    #ifdef POSIX_NETWORK
-        FD_SET(sfd, (fd_set*) socket_set);
-    #endif
-}
-
-int ssp_fd_is_set(int sfd, void *socket_set){
-    int is_set = 0;
-    #ifdef POSIX_NETWORK
-        is_set = FD_ISSET(sfd, (fd_set*) socket_set);
-        
-    #endif
-    return is_set;
-}
-
-void ssp_fd_clr(int sfd, void *socket_set) {
-
-    #ifdef POSIX_NETWORK
-        FD_CLR(sfd, (fd_set *) socket_set);
-
-    #endif 
-}
-
-int ssp_select(int sfd, void *read_socket_set, void *write_socket_set, void *restrict_socket_set, uint32_t timeout_in_usec) {
-
-    #ifdef POSIX_NETWORK
-
-    struct timeval timeout = {
-        .tv_sec = 0,
-        .tv_usec = timeout_in_usec
-    };
-
-    int nrdy = select(sfd + 1, (fd_set *) read_socket_set, (fd_set *) write_socket_set, (fd_set *) restrict_socket_set, &timeout);
-    #endif
-
-    return nrdy;
-}
-
-void *ssp_init_sockaddr_struct(size_t *size_of_addr) {
-
-    #ifdef POSIX_NETWORK
-
-        *size_of_addr = sizeof(struct sockaddr_storage);
-        void *addr = ssp_alloc(1, sizeof(struct sockaddr_storage));
-        if (checkAlloc(addr) < 0)
-            return NULL;
-
-
-    #endif
-    return addr;
 }
 
 

@@ -1,17 +1,8 @@
-/*------------------------------------------------------------------------------
-CMPT-361-AS50(1) - 2017 Fall - Introduction to Networks
-Assignment #1
-Evan Giese 1689223
+#ifndef POSIX_SERVER_H
+#define POSIX_SERVER_H
 
-This file is the header file for server.c 
-------------------------------------------------------------------------------*/
-#ifndef SERVER_H
-#define SERVER_H
 
-//figure out what to inlcude for types ask nick
 #include <netinet/in.h>
-
-
 int *prepareSignalHandler(void);
 /*------------------------------------------------------------------------------
     Purpose:    This function creates a udp select server on the socket sfd.
@@ -73,40 +64,4 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *para
     int (*checkExit)(void *params),
     void (*onExit)(void *params));
 
-//#ifdef CSP_NETWORK
-void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port,
-    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
-    void (*onExit)(void *params),
-    void *params);
-
-void csp_connectionless_server(uint8_t my_port,
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
-    int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
-    int (*checkExit)(void *other),
-    void (*onExit)(void *other),
-    void *other);
-
-void csp_connection_server(uint8_t my_port,
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
-    int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
-    int (*checkExit)(void *other),
-    void (*onExit)(void *other),
-    void *other);
-
-void csp_connection_client(uint8_t dest_id, uint8_t dest_port,
-    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
-    int (*checkExit)(void *checkExitParams),
-    void (*onExit)(void *params),
-    void *params);
-
-
-//#endif
-
-
-
-#endif //SERVER_H
+#endif
