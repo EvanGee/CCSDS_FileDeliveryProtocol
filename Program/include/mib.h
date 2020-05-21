@@ -6,8 +6,6 @@
 #ifndef MIB_H
 #define MIB_H
 
-#include <stdint.h>
-#include "packet.h"
 #include "types.h"
 
 int get_header_from_mib(Pdu_header *pdu_header, Remote_entity remote, uint32_t my_cfdp_id);

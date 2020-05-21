@@ -6,24 +6,14 @@ Evan Giese 1689223
 This is my file for server.c. It develops a udp server for select.
 ------------------------------------------------------------------------------*/
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <netdb.h>
-#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
-#include <sys/wait.h>
-#include <arpa/inet.h>
-#include <libgen.h>
-#include "utils.h"
 #include "posix_server_provider.h"
 #include "port.h"
 #include <sys/select.h>
-
-
 
 static int exit_now;
  
@@ -82,7 +72,7 @@ static void *ssp_init_sockaddr_struct(size_t *size_of_addr) {
 
         *size_of_addr = sizeof(struct sockaddr_storage);
         void *addr = ssp_alloc(1, sizeof(struct sockaddr_storage));
-        if (checkAlloc(addr) < 0)
+        if (addr == NULL)
             return NULL;
 
     return addr;
@@ -195,8 +185,7 @@ static int resizeBuff(char **buffer, uint32_t *newBufferSize, uint32_t *prev_buf
 
      if (*newBufferSize != *prev_buff_size) {
             *buffer = realloc(*buffer, *newBufferSize);
-
-            if(checkAlloc(*buffer) < 0){
+            if (buffer == NULL) {
                 return 1;
             } 
             return 0;

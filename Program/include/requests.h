@@ -2,8 +2,6 @@
 #ifndef REQUESTS_H
 #define REQUESTS_H
 
-#include "stdint.h"
-#include "protocol_handler.h"
 #include "types.h"
 
 void ssp_cleanup_req(void *request);

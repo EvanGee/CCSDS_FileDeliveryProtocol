@@ -1,10 +1,6 @@
 
 
 #include "list.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "port.h"
 
 /*------------------------------------------------------------------------------
@@ -22,9 +18,6 @@ Node *createNode(void *element, uint32_t id)
     newNode->id = id;
     return newNode;
 }
-
-
-
 
 /*------------------------------------------------------------------------------
     This function creates a new node to add into the linked list, returns the

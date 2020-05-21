@@ -1,35 +1,24 @@
 
 #include "packet.h"
 #include "port.h"
-#include <stdlib.h>
-#include <string.h>
 #include "utils.h"
 #include "mib.h"
 #include "filesystem_funcs.h"
-#include <fcntl.h>
 #include "types.h"
 #include "config.h"
 
 #ifdef POSIX_PORT
-        #include <pthread.h>
-        #include <sys/socket.h>
-        #include <stdio.h>
-        #include <errno.h>
-        #include <limits.h>
-        #include <stdarg.h>
-        #include <sys/select.h>
-        #include <netinet/in.h>
-        #include <signal.h>
-        #include <sys/wait.h>
-        #include <arpa/inet.h>
-        #include <libgen.h>
-        #include <netdb.h> 
-        #include <time.h>
+    #include <pthread.h>
+    #include <errno.h>
+    #include <limits.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <arpa/inet.h>
 #endif
 
 #ifdef POSIX_FILESYSTEM
-    #include <stdio.h>
     #include <unistd.h>
+    #include <fcntl.h>
 #endif
 
 
@@ -48,10 +37,6 @@
 #ifdef CSP_NETWORK
     #include "csp.h"
 #endif
-
-
-
-
 
 
 /*------------------------------------------------------------------------------

@@ -3,7 +3,6 @@
 #define SSP_TASKS_H
 
 #include "types.h"
-#include "list.h"
 
 void ssp_cleanup_client(Client *client);
 void ssp_cleanup_req(void *request);

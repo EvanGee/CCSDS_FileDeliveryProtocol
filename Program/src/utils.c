@@ -17,6 +17,7 @@ to use for general functionality.
 #include <libgen.h>
 #include "port.h"
 
+#include <arpa/inet.h>
 
 #define MAX_LEN 255
 #define ID_LEN 10

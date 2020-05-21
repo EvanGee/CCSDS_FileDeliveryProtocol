@@ -25,6 +25,7 @@ CC = gcc
 
 #---------------------------File Names---------------------------
 CFILES += port.c 
+CFILES += file_delivery_app.c
 CFILES += utils.c
 CFILES += tasks.c
 CFILES += posix_server_provider.c  #used for poxix port
@@ -33,7 +34,6 @@ CFILES += protocol_handler.c
 CFILES += mib.c
 CFILES += filesystem_funcs.c
 CFILES += requests.c
-CFILES += file_delivery_app.c
 CFILES += list.c
 CFILES += packet.c
 #----------------------------test files-------------------------
@@ -91,7 +91,7 @@ all: $(MAIN)
 .PHONY: clean lib
 
 $(MAIN): $(OBJS_FILES) $(STATIC_FILES)
-#	mv *.o obj
+	mv *.o obj
 
 lib:  $(OBJS_FILES)
 	ar -rsc file_delivery_app.a $(OBJS_FILES)

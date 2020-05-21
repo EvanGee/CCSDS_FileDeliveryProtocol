@@ -7,7 +7,6 @@
 #define PACKET_STATIC_HEADER_LEN 4 //in bytes
 
 #include "types.h"
-#include <stdint.h>
 #include "list.h"
 
 uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_t transmission_mode, Pdu_header *pdu_header);

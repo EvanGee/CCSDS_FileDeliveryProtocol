@@ -1,8 +1,7 @@
 #ifndef POSIX_SERVER_H
 #define POSIX_SERVER_H
 
-
-#include <netinet/in.h>
+#include <stdint.h>
 int *prepareSignalHandler(void);
 /*------------------------------------------------------------------------------
     Purpose:    This function creates a udp select server on the socket sfd.

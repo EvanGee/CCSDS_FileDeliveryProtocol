@@ -1,8 +1,6 @@
 
 #ifndef FILESYSTEM_FUNCS_H
 #define FILESYSTEM_FUNCS_H
-#include <stdint.h>
-#include "list.h"
 #include "types.h"
 
 #define TEMP_FILESIZE 1000

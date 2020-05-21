@@ -1,9 +1,8 @@
 #ifndef SSP_TYPES_H
 #define SSP_TYPES_H
 
-#include "stdint.h"
+#include <stdint.h>
 #include "list.h"
-
 #include <stdbool.h>
 #include <stddef.h>
 

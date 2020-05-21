@@ -8,10 +8,10 @@
 #include "requests.h"
 #include "types.h"
 #include "utils.h"
+#include <arpa/inet.h>
 
 //snprintf
 #include <stdio.h>
-
 /*------------------------------------------------------------------------------
 
                                     bundled requests

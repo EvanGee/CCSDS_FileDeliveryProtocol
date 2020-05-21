@@ -6,7 +6,8 @@
 #include "port.h"
 #include "filesystem_funcs.h"
 #include "requests.h"
-
+ #include <arpa/inet.h>
+ 
 /*------------------------------------------------------------------------------
 
                                     creating packets

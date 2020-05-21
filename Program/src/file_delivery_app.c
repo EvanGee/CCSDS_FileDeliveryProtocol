@@ -1,17 +1,8 @@
 
 #include "mib.h"
-#include "protocol_handler.h"
 #include "port.h"
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
 #include "file_delivery_app.h"
 #include "tasks.h"
-#include <stdio.h>
-#include <arpa/inet.h>
-#include "utils.h"
-
-
 
 static void create_ssp_server_drivers(FTP *app) {
 
@@ -59,7 +50,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
 
     if (remote_entity.type_of_network == csp) {
         
-        printf("Initialising CSP\r\n");
+        ssp_printf("Initialising CSP\r\n");
 
         /* Init CSP with address MY_ADDRESS */
         csp_init(remote_entity.UT_address);

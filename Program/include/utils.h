@@ -9,7 +9,6 @@ This file is the header file for utils.c
 #define UTILS_H
 
 #include <stdint.h>
-#include <arpa/inet.h>
 
 /*------------------------------------------------------------------------------
     Purpose: This struct if our configuration for this program, these elements
