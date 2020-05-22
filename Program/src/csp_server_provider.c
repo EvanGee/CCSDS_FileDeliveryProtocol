@@ -1,11 +1,3 @@
-/*------------------------------------------------------------------------------
-CMPT-361-AS50(1) - 2017 Fall - Introduction to Networks
-Assignment #2
-Evan Giese 1689223
-
-This is my file for server.c. It develops a udp server for select.
-------------------------------------------------------------------------------*/
-
 #include "csp.h"
 #include "csp_server_provider.h"
 #include "port.h"
@@ -16,8 +8,6 @@ static int exit_now;
                                     CSP STUFF!
 
 ------------------------------------------------------------------------------*/
-
-//#ifdef CSP_NETWORK
 
 //https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
 void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port,

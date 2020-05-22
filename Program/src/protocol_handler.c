@@ -13,11 +13,7 @@
 
 //snprintf
 #include <stdio.h>
-/*------------------------------------------------------------------------------
 
-                                    bundled requests
-
-------------------------------------------------------------------------------*/
 
 
 static void build_temperary_file(Request *req, uint32_t size) {
@@ -58,8 +54,6 @@ static void resend_eof_ack(Request *req, Response res) {
                                     Processing Packets
 
 ------------------------------------------------------------------------------*/
-
-
 
 //for finding the struct in the list
 struct request_search_params {

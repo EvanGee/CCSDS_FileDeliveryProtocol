@@ -18,10 +18,6 @@
     #include "FreeRTOS.h"
     #include "task.h"
     #include "portable.h"
-
-    #ifdef FREE_RTOS_PLUS
-        #include ""
-    #endif
 #endif
 
 #ifdef CSP_NETWORK
@@ -167,8 +163,6 @@ void ssp_printf( char *stuff, ...) {
         fflush(stdout);
     #endif
 }
-
-
 
 //returns seconds elapsed
 int ssp_time_count() {

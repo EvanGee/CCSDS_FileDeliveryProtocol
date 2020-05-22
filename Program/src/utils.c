@@ -1,13 +1,3 @@
-
-/*------------------------------------------------------------------------------
-CMPT-361-AS50(1) - 2017 Fall - Introduction to Networks
-Assignment #2
-Evan Giese 1689223
-
-This is my utils.c file, it contains useful function and abstract data types
-to use for general functionality. 
-------------------------------------------------------------------------------*/
-
 #include "port.h"
 #include "utils.h"
 //size is the number of bytes we want to print

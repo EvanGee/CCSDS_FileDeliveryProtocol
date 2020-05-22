@@ -1,23 +1,16 @@
-
-
-
 #include "protocol_handler.h"
 #include "tasks.h"
 #include "port.h"
-#include <string.h>
 #include "mib.h"
 #include "filesystem_funcs.h"
 
 #include "types.h"
-#include "utils.h"
-#include <arpa/inet.h>
 
 #include "posix_server_provider.h"
 #include "csp_server_provider.h"
 
 //snprintf
 #include <stdio.h>
-
 
 //for print_request_state
 #include "requests.h"
@@ -320,7 +313,7 @@ static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port)
     uint32_t ut_addr = htonl(remote_entity.UT_address);
 
     //convert uint id to char *
-    const char *ret = inet_ntop(AF_INET, &ut_addr, host_name, INET_ADDRSTRLEN);
+    const char *ret = inet_ntop(AF_INET, &ut_addr, host_name, SSP_INET_ADDRSTRLEN);
     if (ret == NULL) {
         ssp_error("inet_ntop");
         return -1;
@@ -336,7 +329,7 @@ void *ssp_connectionless_server_task(void *params) {
     app->transaction_sequence_number = 1;
 
     char port[10];
-    char host_name[INET_ADDRSTRLEN];
+    char host_name[SSP_INET_ADDRSTRLEN];
 
     int error = get_ip_port(app->remote_entity, host_name, port);
     if (error < 0) {
@@ -362,7 +355,7 @@ void *ssp_connectionless_client_task(void* params){
     Client *client = (Client *) params;
 
     char port[10];
-    char host_name[INET_ADDRSTRLEN];
+    char host_name[SSP_INET_ADDRSTRLEN];
 
     int error = get_ip_port(client->remote_entity, host_name, port);
     if (error < 0) {
@@ -388,7 +381,7 @@ void *ssp_connection_server_task(void *params) {
     app->transaction_sequence_number = 1;
 
     char port[10];
-    char host_name[INET_ADDRSTRLEN];
+    char host_name[SSP_INET_ADDRSTRLEN];
 
     int error = get_ip_port(app->remote_entity, host_name, port);
     if (error < 0) {
@@ -416,7 +409,7 @@ void *ssp_connection_client_task(void *params) {
     Client *client = (Client *) params;
 
     char port[10];
-    char host_name[INET_ADDRSTRLEN];
+    char host_name[SSP_INET_ADDRSTRLEN];
 
     int error = get_ip_port(client->remote_entity, host_name, port);
     if (error < 0) {

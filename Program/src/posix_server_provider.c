@@ -1,11 +1,3 @@
-/*------------------------------------------------------------------------------
-CMPT-361-AS50(1) - 2017 Fall - Introduction to Networks
-Assignment #2
-Evan Giese 1689223
-
-This is my file for server.c. It develops a udp server for select.
-------------------------------------------------------------------------------*/
-
 #include <netdb.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,7 +9,6 @@ This is my file for server.c. It develops a udp server for select.
 
 static int exit_now;
  
-
 static int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len) {
     int count = 0;
     count = recvfrom(sfd, buff, packet_len, flags, (struct sockaddr*)server_addr, (socklen_t*)server_addr_len);

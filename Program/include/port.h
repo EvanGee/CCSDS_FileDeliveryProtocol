@@ -4,9 +4,6 @@
 
 #define STACK_ALLOCATION 16384
 
-
-
-
 #define POSIX_PORT
 #define POSIX_FILESYSTEM
 #define CSP_NETWORK
@@ -26,6 +23,19 @@
     } csp_packet_wrapper;
 #endif
 
+#ifdef POSIX_FILESYSTEM
+    #include <fcntl.h>
+    
+    #define SSP_O_RDWR O_RDWR
+    #define SSP_O_CREAT O_CREAT
+    #define SSP_O_TRUNC O_TRUNC
+    #define SSP_SEEK_SET SEEK_SET
+#endif
+
+#ifdef POSIX_PORT
+    #include <arpa/inet.h>
+    #define SSP_INET_ADDRSTRLEN INET_ADDRSTRLEN
+#endif
 
 
 void ssp_error( char *msg);
@@ -35,17 +45,6 @@ void ssp_sendto(Response res);
 
 void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void *params);
 int ssp_time_count(void);
-
-
-#ifdef POSIX_FILESYSTEM
-    #include <fcntl.h>
-    
-    #define SSP_O_RDWR O_RDWR
-    #define SSP_O_CREAT O_CREAT
-    #define SSP_O_TRUNC O_TRUNC
-    #define SSP_SEEK_SET SEEK_SET
-
-#endif
 
 int ssp_open(char *pathname, int flags);
 int ssp_read(int fd, char* buff, size_t size);
