@@ -21,11 +21,43 @@
 
 //for print_request_state
 #include "requests.h"
+
+/*
+//usefull for cpu clocks
+static int is_negative(int number) {
+    int negative_mask = 0x80000000;
+    int is_negative = number & negative_mask;
+    return is_negative;
+}
+*/
+
+static void reset_timeout(int *prevtime) {
+    *prevtime = ssp_time_count();
+}
+
+static int check_timeout(int *prevtime, uint32_t timeout) {
+
+    int prev = *prevtime;
+    int current_time = ssp_time_count();
+    int time_out = prev + timeout;
+
+    if (current_time >= time_out) {
+        *prevtime = current_time;
+        return 1;
+    }
+    //wrap around the overflow condition
+    else if (current_time < prev) {
+        *prevtime = current_time;
+    }
+    return 0; 
+}
+
 /*------------------------------------------------------------------------------
     
     Callbacks for the tasks bellow
 
 ------------------------------------------------------------------------------*/
+
 
 //sets request procedure as clean_up if ttl passed
 static void timeout(Request *req) {
@@ -266,7 +298,6 @@ static int on_stdin_callback(void *other) {
    }
    */
     return 0;
-
 }
 
 

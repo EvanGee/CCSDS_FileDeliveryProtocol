@@ -1,14 +1,9 @@
 #include <stdint.h>
 #include "port.h"
 #include "filesystem_funcs.h"
-#include <fcntl.h>
-#include <stddef.h>
-#include <unistd.h>
-#include "utils.h"
-#include <string.h>
-#include "list.h"
 #include "jsmn.h"
 #include "requests.h"
+//snprintf
 #include <stdio.h>
 
 uint32_t get_file_size(char *source_file_name) {
@@ -39,13 +34,13 @@ File *create_file(char *source_file_name, int clear_file_contents) {
 
     int fd = 0;
     if (clear_file_contents){
-        fd = ssp_open(source_file_name, O_RDWR | O_CREAT | O_TRUNC);
+        fd = ssp_open(source_file_name, SSP_O_RDWR | SSP_O_CREAT | SSP_O_TRUNC);
     }else {
-        fd = ssp_open(source_file_name, O_RDWR | O_CREAT);
+        fd = ssp_open(source_file_name, SSP_O_RDWR | SSP_O_CREAT);
     }   
     if (fd == -1){
         ssp_error("couldn't create file\n");
-        fd = ssp_open(source_file_name, O_RDWR);
+        fd = ssp_open(source_file_name, SSP_O_RDWR);
         if (fd == -1) {
             ssp_error("count not open file\n");
             return NULL;
@@ -75,7 +70,7 @@ File *create_file(char *source_file_name, int clear_file_contents) {
 
 int does_file_exist(char *source_file_name) {
 
-    int fd = ssp_open(source_file_name, O_RDWR);
+    int fd = ssp_open(source_file_name, SSP_O_RDWR);
     if (fd == -1){
         return 0;
     }
@@ -94,7 +89,7 @@ int get_offset(File *file, void *buff, uint32_t buf_size, int offset) {
         return -1;
     }
 
-    if (ssp_lseek(file->fd, offset, SEEK_SET) == -1){
+    if (ssp_lseek(file->fd, offset, SSP_SEEK_SET) == -1){
         ssp_error("could'nt set offset\n");
     }
 
@@ -114,7 +109,7 @@ int write_offset(File *file, void *buff, uint32_t size, uint32_t offset) {
         return -1;
     }
 
-    ssp_lseek(file->fd, (int) offset, SEEK_SET);
+    ssp_lseek(file->fd, (int) offset, SSP_SEEK_SET);
     int bytes = ssp_write(file->fd, buff, (size_t) size);
 
     if (bytes == -1){
@@ -728,7 +723,7 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Reque
 
     req->messages_to_user = messages;
 
-    error = close(fd);
+    error = ssp_close(fd);
     if (error < 0) {
         ssp_error("couldn't close file descriptor \n");
     }

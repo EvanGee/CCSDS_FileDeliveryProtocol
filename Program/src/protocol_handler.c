@@ -2,12 +2,13 @@
 #include "mib.h"
 #include "port.h"
 #include "protocol_handler.h"
-#include "string.h"
 #include "packet.h"
 #include "filesystem_funcs.h"
 #include "requests.h"
 #include "types.h"
 #include "utils.h"
+
+//htons
 #include <arpa/inet.h>
 
 //snprintf

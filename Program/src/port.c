@@ -1,11 +1,4 @@
-
-#include "packet.h"
 #include "port.h"
-#include "utils.h"
-#include "mib.h"
-#include "filesystem_funcs.h"
-#include "types.h"
-#include "config.h"
 
 #ifdef POSIX_PORT
     #include <pthread.h>
@@ -21,7 +14,6 @@
     #include <fcntl.h>
 #endif
 
-
 #ifdef FREE_RTOS_PORT 
     #include "FreeRTOS.h"
     #include "task.h"
@@ -30,9 +22,7 @@
     #ifdef FREE_RTOS_PLUS
         #include ""
     #endif
-
 #endif
-
 
 #ifdef CSP_NETWORK
     #include "csp.h"
@@ -212,14 +202,16 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 
     #ifdef POSIX_PORT
     pthread_t *handler = ssp_alloc(1,  sizeof(pthread_t));
-    if (checkAlloc(handler) < 0)
+    if (handler == NULL)
         return NULL;
 
 
     pthread_attr_t *attr = ssp_alloc(1, sizeof(pthread_attr_t)); 
     
-    if (checkAlloc(attr) < 0)
+    if (attr == NULL) {
+        ssp_free(handler);
         return NULL;
+    }
 
     int err = pthread_attr_init(attr);
     if (0 != err) 

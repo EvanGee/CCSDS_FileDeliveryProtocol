@@ -25,7 +25,6 @@ static int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void 
 }
 
 static void *ssp_init_socket_set(size_t *size) {
- 
     fd_set *socket_set = ssp_alloc(1, sizeof(fd_set));
     *size = sizeof(fd_set);
     return (void *)socket_set;
@@ -33,15 +32,11 @@ static void *ssp_init_socket_set(size_t *size) {
 
 
 static void ssp_fd_zero(void *socket_set){
-
     FD_ZERO((fd_set*) socket_set);
- 
 }
 
 static void ssp_fd_set(int sfd, void *socket_set) {
-
     FD_SET(sfd, (fd_set*) socket_set);
-
 }
 
 static int ssp_fd_is_set(int sfd, void *socket_set){
@@ -51,9 +46,7 @@ static int ssp_fd_is_set(int sfd, void *socket_set){
 }
 
 static void ssp_fd_clr(int sfd, void *socket_set) {
-
     FD_CLR(sfd, (fd_set *) socket_set);
-
 }
 
 static int ssp_select(int sfd, void *read_socket_set, void *write_socket_set, void *restrict_socket_set, uint32_t timeout_in_usec) {

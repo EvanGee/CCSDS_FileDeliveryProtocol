@@ -9,8 +9,6 @@
 
 #define POSIX_PORT
 #define POSIX_FILESYSTEM
-#define POSIX_NETWORK
-
 #define CSP_NETWORK
 //#define FREE_RTOS_PORT
 
@@ -29,6 +27,7 @@
 #endif
 
 
+
 void ssp_error( char *msg);
 void ssp_printf(char *stuff, ...);
 void *ssp_alloc(uint32_t u_memb, size_t size);
@@ -36,6 +35,17 @@ void ssp_sendto(Response res);
 
 void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void *params);
 int ssp_time_count(void);
+
+
+#ifdef POSIX_FILESYSTEM
+    #include <fcntl.h>
+    
+    #define SSP_O_RDWR O_RDWR
+    #define SSP_O_CREAT O_CREAT
+    #define SSP_O_TRUNC O_TRUNC
+    #define SSP_SEEK_SET SEEK_SET
+
+#endif
 
 int ssp_open(char *pathname, int flags);
 int ssp_read(int fd, char* buff, size_t size);

@@ -6,16 +6,11 @@
                                     aka: request from person
 
 ------------------------------------------------------------------------------*/
-#include "stdint.h"
 #include "requests.h"
 #include "port.h"
 #include "utils.h"
-#include <string.h>
-#include "tasks.h"
 #include "types.h"
 #include "filesystem_funcs.h"
-#include "mib.h"
-#include <stdbool.h>
 #include "file_delivery_app.h"
 
 
@@ -233,8 +228,7 @@ Request *init_request(char *buff, uint32_t buff_len) {
     req->buff = buff;
     req->procedure = none;
     req->paused = true;
-    reset_timeout(&req->timeout);
-    
+    req->timeout = ssp_time_count();
     req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();
@@ -363,7 +357,6 @@ void print_request_state(Request *req) {
     ssp_printf("EOF_sent indication %d\n", req->local_entity.EOF_sent_indication);
     ssp_printf("Metadata_recv indication %d\n", req->local_entity.Metadata_recv_indication);
     ssp_printf("Metadata_sent indication %d\n", req->local_entity.Metadata_sent_indication);
-    
     ssp_printf("Resume indication %d\n", req->local_entity.resumed_indication);
     ssp_printf("Suspended indication %d\n", req->local_entity.suspended_indication);
     ssp_printf("Transaction finished indication %d\n", req->local_entity.transaction_finished_indication);

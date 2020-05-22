@@ -1,12 +1,12 @@
 #include "types.h"
 #include "packet.h"
-#include "stdint.h"
-#include "string.h"
 #include "utils.h"
 #include "port.h"
 #include "filesystem_funcs.h"
 #include "requests.h"
- #include <arpa/inet.h>
+
+//hton
+#include <arpa/inet.h>
  
 /*------------------------------------------------------------------------------
 
