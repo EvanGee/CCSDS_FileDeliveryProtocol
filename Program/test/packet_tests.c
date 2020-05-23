@@ -16,22 +16,6 @@
 
 #define PACKET_TEST_SIZE 2000 
 
-/*
-typedef struct pdu_eof {
-    unsigned int condition_code : 4;
-    unsigned int spare : 4;
-    uint32_t checksum;
-
-    uint32_t file_size;
-
-    //Omitted if condition code is ‘No error’. Otherwise, entity ID in the
-    //TLV is the ID of the entity at which transaction cancellation was
-    //initiated.
-    TLV fault_location;
-    
-} Pdu_eof;
-*/
-
 static int test_build_eof_packet(char *packet, int packet_start) {
 
     DECLARE_NEW_TEST("testing eof_packet");
