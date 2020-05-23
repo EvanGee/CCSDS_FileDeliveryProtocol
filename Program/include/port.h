@@ -12,8 +12,7 @@ Author: Evan Giese
 #define POSIX_PORT
 #define POSIX_FILESYSTEM
 #define CSP_NETWORK
-//#define FREE_RTOS_PORT
-
+*/
 #include "types.h"
 
 #ifdef CSP_NETWORK

@@ -6,6 +6,7 @@ Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #include "port.h"
 
+
 #ifdef POSIX_PORT
     #include <pthread.h>
     #include <errno.h>
@@ -156,6 +157,10 @@ void ssp_error(char *error){
     #ifdef POSIX_PORT
         perror(error);
     #endif
+    #ifdef FREE_RTOS_PORT
+        perror(error);
+    #endif
+
 }
 
 //this can be switched to 
@@ -167,6 +172,15 @@ void ssp_printf(char *stuff, ...) {
         va_end (args);
         fflush(stdout);
     #endif
+
+    #ifdef FREE_RTOS_PORT
+        va_list args;
+        va_start(args, stuff);
+        vfprintf(stdout, stuff, args);
+        va_end (args);
+        fflush(stdout);
+    #endif
+
 }
 
 //returns seconds elapsed
@@ -183,6 +197,7 @@ int ssp_time_count() {
     #ifdef FREE_RTOS_PORT
         //some kind of ticks
     #endif 
+    return -1;
 }
 
 /*------------------------------------------------------------------------------
