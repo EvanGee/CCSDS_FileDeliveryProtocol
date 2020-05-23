@@ -13,14 +13,10 @@ Author: Evan Giese
 #include "types.h"
 #include "utils.h"
 
-//snprintf
-#include <stdio.h>
-
-
 
 static void build_temperary_file(Request *req, uint32_t size) {
 
-    snprintf(req->source_file_name, 75, "%s%llu%s", "incomplete_requests/.temp_", req->transaction_sequence_number, ".jpeg");
+    ssp_snprintf(req->source_file_name, 75, "%s%llu%s", "incomplete_requests/.temp_", req->transaction_sequence_number, ".jpeg");
     ssp_printf("haven't received metadata yet, building temperary file %s\n", req->source_file_name);
     req->file = create_temp_file(req->source_file_name, size);
 }
@@ -557,7 +553,7 @@ int process_file_request_metadata(Request *req) {
         req->file = create_file(req->destination_file_name, 1);
 
     else if (req->file->is_temp) {
-        snprintf(temp, 75, "%s%llu%s", "incomplete_requests/.temp_", req->transaction_sequence_number, ".jpeg");
+        ssp_snprintf(temp, 75, "%s%llu%s", "incomplete_requests/.temp_", req->transaction_sequence_number, ".jpeg");
         change_tempfile_to_actual(temp, req->destination_file_name, req->file_size, req->file);
         return 1;
     }

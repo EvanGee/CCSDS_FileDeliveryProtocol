@@ -171,7 +171,6 @@ void ssp_printf(char *stuff, ...) {
 
 //returns seconds elapsed
 int ssp_time_count() {
-
     #ifdef POSIX_PORT
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
@@ -181,17 +180,10 @@ int ssp_time_count() {
         return ts.tv_sec;
     #endif
 
-
-
-
-
     #ifdef FREE_RTOS_PORT
         //some kind of ticks
     #endif 
 }
-
-
-
 
 /*------------------------------------------------------------------------------
     Threading and task functions

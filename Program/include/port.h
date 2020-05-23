@@ -24,7 +24,6 @@ Author: Evan Giese
         uint8_t src_id;
         uint8_t src_port;
         csp_packet_t *packet;
-
     } csp_packet_wrapper;
 #endif
 
@@ -44,15 +43,12 @@ Author: Evan Giese
     #define ssp_ntohl ntohl
     #define ssp_htons htons
     #define ssp_stonl stonl
-#endif
 
-#ifdef COMPLETELY_GENERIC_OS
-    #define ssp_htonl htonl 
-    #define ssp_ntohl ntohl
-    #define ssp_htons htons
-    #define ssp_stonl stonl
-    #define SSP_INET_ADDRSTRLEN 16
-    #define SSP_AF_INET 2
+    #include <stdio.h>
+    #define ssp_snprintf snprintf
+    
+    #include "stdlib.h"
+    #define ssp_atol atol
 #endif
 
 

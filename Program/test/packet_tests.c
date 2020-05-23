@@ -50,7 +50,7 @@ static int test_build_eof_packet(char *packet, int packet_start) {
 
     Pdu_eof *eof_pdu = (Pdu_eof*) &packet[packet_index];
     ASSERT_EQUALS_INT("condition_code should equal NO_ERROR", eof_pdu->condition_code, COND_NO_ERROR);   
-    ASSERT_EQUALS_INT("filesize should equal", htonl(eof_pdu->file_size), file->total_size);
+    ASSERT_EQUALS_INT("filesize should equal", ssp_htonl(eof_pdu->file_size), file->total_size);
     ASSERT_EQUALS_INT("checksum should equal", eof_pdu->checksum, file->partial_checksum);
 
     free_file(file);
@@ -60,7 +60,7 @@ static int test_build_eof_packet(char *packet, int packet_start) {
 }
 
 static int test_respond_to_naks(char *packet, uint32_t packet_index) {
-    Request *req = init_request(5000);
+    Request *req = mock_empty_request();
 
     ssp_cleanup_req(req);
     return 0;
@@ -75,12 +75,12 @@ static void test_build_data_packet(char *packet, uint32_t packet_index){
 
     DECLARE_NEW_TEST("testing data packet");
 
-    File *file = create_file("testfile", 0);
+    File *file = create_file("test_files/testfile", 0);
 
     build_data_packet(packet, packet_index, file, 1000);
 
     ASSERT_EQUALS_INT("test proper datapacket offset set", (uint64_t)packet[packet_index], 0);
-    ASSERT_EQUALS_STR("test proper datapacket creation", &packet[packet_index + 4], "tempfileyo", 10);
+    ASSERT_EQUALS_STR("test proper datapacket creation", &packet[packet_index + 4], "testfileyo", 10);
     
     free_file(file);
 }
@@ -94,7 +94,7 @@ static void nak_print(void *element, void *args){
 static int test_build_nak_packet(char* packet, uint32_t start) {
 
     DECLARE_NEW_TEST("testing build nak packet");
-    Request *req = init_request(5000);
+    Request *req = mock_empty_request();
 
     req->file_size = 100000;
     memcpy(req->destination_file_name, "testestest", 15);
@@ -274,8 +274,8 @@ int test_build_metadata_packet(char *packet, uint32_t start) {
     memset(&packet[start], 0, 20);
     DECLARE_NEW_TEST("testing metadata packets");
 
-    Request *req = init_request(1000);
-    Request *recv_request = init_request(1000);
+    Request *req = mock_empty_request();
+    Request *recv_request = mock_empty_request();
 
     uint8_t len = build_put_packet_metadata(packet, start, req);
     fill_request_pdu_metadata(&packet[start + 1], recv_request);    
@@ -312,7 +312,7 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
 
     uint32_t packet_index = start;
 
-    Request *req = init_request(1000);
+    Request *req = mock_empty_request();
     int error = add_cont_partial_message_to_request(1,1,1,1,1,1,req);
 
     memset(&packet[start], 0, 100);
@@ -358,7 +358,7 @@ int test_add_messages_to_packet(char *packet, uint32_t start) {
     uint32_t packet_index = start;
     DECLARE_NEW_TEST("testing add_messages_to_packet");
 
-    Request *req = init_request(1000);
+    Request *req = mock_empty_request();
     int error = add_proxy_message_to_request(id, len, src, dest, req);
 
     memset(&packet[start], 0, 100);
@@ -402,12 +402,12 @@ int test_get_message_from_packet(char *packet, uint32_t start) {
 
     uint32_t packet_index = start;
 
-    Request *req = init_request(1000);
+    Request *req = mock_empty_request();
     int error = add_proxy_message_to_request(id, len, src, dest, req);
 
     uint32_t length_of_message = add_messages_to_packet(packet, start, req->messages_to_user);
 
-    Request *req2 = init_request(1000);
+    Request *req2 = mock_empty_request();
     uint32_t next_message = get_message_from_packet(packet, start, req2);
 
     Message *m = req2->messages_to_user->pop(req2->messages_to_user);
@@ -442,7 +442,7 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
 
     uint32_t packet_index = start;
 
-    Request *req = init_request(1000);
+    Request *req = mock_empty_request();
     
     
     int error = add_proxy_message_to_request(id, len, src, dest, req);
@@ -451,7 +451,7 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
     length_of_message = add_messages_to_packet(packet, length_of_message, req->messages_to_user);
     length_of_message = add_messages_to_packet(packet, length_of_message, req->messages_to_user);
 
-    Request *req2 = init_request(1000);
+    Request *req2 = mock_empty_request();
     get_messages_from_packet(packet, start, 1000 - start, req2);
 
     int message_count = req2->messages_to_user->count;
@@ -478,9 +478,6 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
 
 
 int packet_tests() {
-
-    printf("starting Packet Tests (creating and changing packet values)\n");
-
     
     //setting host name for testing
     char *host_name = "127.0.0.1";

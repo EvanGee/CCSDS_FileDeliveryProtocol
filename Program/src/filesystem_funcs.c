@@ -9,8 +9,6 @@ Author: Evan Giese
 #include "filesystem_funcs.h"
 #include "jsmn.h"
 #include "requests.h"
-//snprintf
-#include <stdio.h>
 
 uint32_t get_file_size(char *source_file_name) {
 
@@ -545,7 +543,7 @@ static int write_file_present_bool(int fd, File *file) {
 int save_req_to_file(Request *req) {
 
     char file_name[255];
-    snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".binary");
+    ssp_snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".binary");
     
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
@@ -691,7 +689,7 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Reque
     
     char file_name[255];
 
-    snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
+    ssp_snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
 
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {

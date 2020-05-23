@@ -38,17 +38,17 @@ static int request_finding_test() {
 
     List *list = linked_list();
 
-    Request *req = init_request(2000);
+    Request *req = mock_empty_request();
     req->dest_cfdp_id = 1;
     req->transaction_sequence_number = 1;
     list->push(list, req, req->dest_cfdp_id);
 
-    Request *req2 = init_request(2000);
+    Request *req2 = mock_empty_request();
     req2->dest_cfdp_id = 3;
     req2->transaction_sequence_number = 1;
     list->push(list, req2, req2->dest_cfdp_id);
 
-    Request *req3 = init_request(2000);
+    Request *req3 = mock_empty_request();
     req3->dest_cfdp_id = 2;
     req3->transaction_sequence_number = 2;
     list->push(list, req3, req3->dest_cfdp_id);
@@ -83,19 +83,19 @@ static int request_finding_test() {
 
 
 static void request_test_list_storage() {
-    Request *req = init_request(5000);
+    Request *req = mock_empty_request();
     List *list = linked_list();
 
     req->file = create_file("testfile.txt", 0);
     memcpy(req->source_file_name, "stuff", 6);
     list->insert(list, req, 1);
 
-    Request *req2 = init_request(5000);
+    Request *req2 = mock_empty_request();
     req2->file = create_file("testfile.txt", 0);
     memcpy(req2->source_file_name, "stuff2", 7);
     list->insert(list, req2, 2);
 
-    Request *req3 = init_request(5000);
+    Request *req3 = mock_empty_request();
     req3->file = create_file("testfile.txt", 0);
     memcpy(req3->source_file_name, "stuff3", 7);
     list->insert(list, req3, 3);
@@ -108,7 +108,7 @@ static void request_test_list_storage() {
 
 static int add_proxy_message() {
 
-    Request *req = init_request(5000);
+    Request *req = mock_empty_request();
 
     char *dest = "dest";
     char *src = "src";
@@ -133,7 +133,7 @@ static int add_proxy_message() {
 
 static int add_continue_partial_message() {
     int error = 0;
-    Request *req = init_request(5000);
+    Request *req = mock_empty_request();
 
     uint32_t src_id = 1;
     uint32_t dest_id = 1;

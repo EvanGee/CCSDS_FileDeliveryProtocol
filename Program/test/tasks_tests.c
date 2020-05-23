@@ -18,11 +18,8 @@ void test_remove_request() {
     request->procedure = clean_up;
     //run a task here, or a removal function
 
-
-
     l->iterate(l, check_request_callback, NULL);
     l->free(l, ssp_cleanup_req);
-
 }
 
 
@@ -30,14 +27,8 @@ void test_remove_request() {
 int tasks_tests() {
     DECLARE_NEW_TEST("Tasks"); 
 
-
     test_remove_request();
 
-
     int error = 0;
-
-
-
-
     return error;
 }

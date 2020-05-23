@@ -17,7 +17,8 @@ CC = gcc
 CFILES += $(PROJDIR)/src/utils.c
 CFILES +=  $(PROJDIR)/src/filesystem_funcs.c
 CFILES += $(PROJDIR)/src/port.c
-CFILES += $(PROJDIR)/src/server.c
+CFILES += $(PROJDIR)/src/posix_server_provider.c
+CFILES += $(PROJDIR)/src/csp_server_provider.c
 CFILES += $(PROJDIR)/src/protocol_handler.c
 CFILES += $(PROJDIR)/src/mib.c
 CFILES += $(PROJDIR)/src/requests.c
@@ -29,14 +30,14 @@ CFILES += $(PROJDIR)/src/packet.c
 
 CFILES += $(PROJDIR)/test/packet_tests.c
 CFILES += $(PROJDIR)/test/test.c
-#CFILES += $(PROJDIR)/test/mock.c
+CFILES += $(PROJDIR)/test/mock.c
 CFILES += $(PROJDIR)/test/request_tests.c
-#CFILES += $(PROJDIR)/test/tasks_tests.c
-#CFILES += $(PROJDIR)/test/list_tests.c
+CFILES += $(PROJDIR)/test/tasks_tests.c
+CFILES += $(PROJDIR)/test/list_tests.c
 
 CFILES += $(PROJDIR)/test/filesystem_tests.c
-#CFILES += $(PROJDIR)/test/protocol_handler_tests.c
-#CFILES += $(PROJDIR)/test/list_tests.c
+CFILES += $(PROJDIR)/test/protocol_handler_tests.c
+CFILES += $(PROJDIR)/test/list_tests.c
 #CFILES += $(PROJDIR)/test/server_tests.c
 
 

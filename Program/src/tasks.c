@@ -19,9 +19,6 @@ Author: Evan Giese
 #include "csp_server_provider.h"
 #endif
 
-//snprintf
-#include <stdio.h>
-
 //for print_request_state
 #include "requests.h"
 
@@ -61,8 +58,7 @@ static int check_timeout(int *prevtime, uint32_t timeout) {
 
 ------------------------------------------------------------------------------*/
 
-
-//sets request procedure as clean_up if ttl passed
+//sets request procedure as clean_up if ttl has passed
 static void timeout(Request *req) {
 
     bool is_timeout = check_timeout(&req->timeout, TIMEOUT_BEFORE_CANCEL_REQUEST);
@@ -265,7 +261,8 @@ static void on_exit_server_callback (void *params) {
 }
 
 
-//this function is just for posix fun
+//this function is just for stdin fun, I haven't decided if we need need to use
+//std in for anything, but we could use it to pass in args to the daemon.
 static int on_stdin_callback(void *other) {
 
     /*
@@ -314,9 +311,9 @@ static int on_stdin_callback(void *other) {
 
 static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port){
     //convert int to char *
-    int error = snprintf(port, 10, "%d", remote_entity.UT_port);
+    int error = ssp_snprintf(port, 10, "%d", remote_entity.UT_port);
     if (error < 0) {
-        ssp_error("snprintf");
+        ssp_error("ssp_snprintf");
         return -1;
     }
 

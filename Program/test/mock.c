@@ -43,9 +43,9 @@ int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id) {
     Pdu_header pdu_header;
     Remote_entity remote_entity;
 
-    mock_mock_remote_entity(&remote_entity, src_id);    
+    mock_mock_remote_entity(&remote_entity, dest_id);    
 
-    int error = get_header_from_mib(&pdu_header, remote_entity, dest_id);
+    int error = get_header_from_mib(&pdu_header, remote_entity, src_id);
     int packet_index = build_pdu_header(packet, 1, 0, &pdu_header);
 
     return packet_index;
@@ -55,6 +55,7 @@ File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *fil
     
     int packet_index = mock_packet(packet, dest_id, src_id);
     File *file = create_file(file_name, false);
+    file->partial_checksum = check_sum_file(file, 1000);
     build_eof_packet(packet, packet_index, file->total_size, check_sum_file(file, 1000));
 
     return file;
@@ -68,21 +69,30 @@ Response *mock_response() {
     res->sfd = 1;
     res->packet_len = 1500;
     res->size_of_addr = 16;
-    res->type_of_network = posix;
+    res->type_of_network = posix_connection_less;
     res->transmission_mode = UN_ACKNOWLEDGED_MODE;
     return res;
 }
 
+Request *mock_empty_request() {
+    char *buff = ssp_alloc(1500, 1);
+    Request *req = ssp_alloc(1, sizeof(Request));
+    req->messages_to_user = linked_list();
+    req->buff = buff;
+    req->file = NULL;
+    return req;
 
+}
 Request *mock_request() {
-    Request *req = init_request(5000);
 
-    char *dest = "dest";
-    char *src = "src";
+    Request *req = mock_empty_request();
+
+    char *dest = "test_files/dest";
+    char *src = "test_files/src";
     uint32_t id = 1;
 
     req->dest_cfdp_id = id;
-    req->file = create_file("dest_received.jpg", true);
+    req->file = create_file("test_files/dest_received.jpg", true);
     memcpy (req->source_file_name, dest, strnlen(dest, 255)); 
     memcpy (req->destination_file_name, src, strnlen(src, 255));
 
@@ -96,24 +106,11 @@ Request *mock_request() {
     req->res.sfd = 1;
     req->res.packet_len = 2000;
     req->res.size_of_addr = 16;
-    req->res.type_of_network = posix;
+    req->res.type_of_network = posix_connection_less;
     req->res.transmission_mode = UN_ACKNOWLEDGED_MODE;
     req->res.msg = req->buff;
+    req->messages_to_user = linked_list();
 
 
     return req;
 }   
-
-
-/*
-static int test_process_pdu_eof() {
-//char *packet, Request *req, Response res
-
-    
-    //process_pdu_eof(packet, Request *req, Response res);
-    return 0;
-}
-
-
-*/
-

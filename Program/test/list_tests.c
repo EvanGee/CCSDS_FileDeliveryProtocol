@@ -18,7 +18,7 @@ List *populate_request_list() {
     List *list = linked_list();
     Request *r;
     for (int i = 0; i < 5; i++) {
-        r = init_request(100);
+        r = mock_empty_request();
         r->dest_cfdp_id = i;
         list->push(list, r, i);
     }
@@ -59,11 +59,11 @@ void test_remove_node() {
 
 int list_tests() {
 
-    DECLARE_NEW_TEST("list.c");
+    DECLARE_NEW_TEST("list.c tests");
     List *list = linked_list();
     
-    Request  *r = init_request(10000);
-    Request *r2 = init_request(10000);
+    Request  *r = mock_empty_request();
+    Request *r2 = mock_empty_request();
 
     memcpy(r->source_file_name, "mybestfriend", 12);
     memcpy(r2->source_file_name, "secondrequest", 12);

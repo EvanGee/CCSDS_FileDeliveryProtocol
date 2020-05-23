@@ -9,11 +9,6 @@ Author: Evan Giese
 #include "types.h"
 #include "filesystem_funcs.h"
 
-//atoi
-#include "stdlib.h"
-
-//snprintf
-#include "stdio.h"
 
 
 int get_header_from_mib(Pdu_header *pdu_header, Remote_entity remote, uint32_t my_cfdp_id) {
@@ -96,61 +91,61 @@ static void parse_mib(char *key, char *value, void *params) {
         switch (i)
         {
             case PARSE_cfdp_id: 
-                remote->cfdp_id = atol(value);
+                remote->cfdp_id = ssp_atol(value);
                 break;
             case PARSE_UT_address: 
-                remote->UT_address = atol(value);
+                remote->UT_address = ssp_atol(value);
                 break;
             case PARSE_UT_port: 
-                remote->UT_port = atol(value);
+                remote->UT_port = ssp_atol(value);
                 break;
             case PARSE_type_of_network: 
-                remote->type_of_network = atol(value);
+                remote->type_of_network = ssp_atol(value);
                 break;
             case PARSE_default_transmission_mode:
-                remote->default_transmission_mode = atol(value); 
+                remote->default_transmission_mode = ssp_atol(value); 
                 break;
             case PARSE_one_way_light_time: 
-                remote->one_way_light_time = atol(value);
+                remote->one_way_light_time = ssp_atol(value);
                 break;
             case PARSE_total_round_trip_allowance:
-                remote->total_round_trip_allowance = atol(value); 
+                remote->total_round_trip_allowance = ssp_atol(value); 
                 break;
             case PARSE_async_NAK_interval: 
-                remote->async_NAK_interval = atol(value);
+                remote->async_NAK_interval = ssp_atol(value);
                 break;
             case PARSE_async_keep_alive_interval:
-                remote->async_keep_alive_interval = atol(value); 
+                remote->async_keep_alive_interval = ssp_atol(value); 
                 break;
             case PARSE_async_report_interval:
-                remote->async_report_interval = atol(value); 
+                remote->async_report_interval = ssp_atol(value); 
                 break;
             case PARSE_immediate_nak_mode_enabled:
-                remote->immediate_nak_mode_enabled = atol(value); 
+                remote->immediate_nak_mode_enabled = ssp_atol(value); 
                 break;
             case PARSE_prompt_transmission_interval:
-                remote->prompt_transmission_interval = atol(value); 
+                remote->prompt_transmission_interval = ssp_atol(value); 
                 break;
             case PARSE_disposition_of_incomplete:
-                remote->disposition_of_incomplete = atol(value); 
+                remote->disposition_of_incomplete = ssp_atol(value); 
                 break;
             case PARSE_CRC_required: 
-                remote->CRC_required = atol(value);
+                remote->CRC_required = ssp_atol(value);
                 break;
             case PARSE_mtu: 
-                remote->mtu = atol(value);
+                remote->mtu = ssp_atol(value);
                 break;
             case PARSE_keep_alive_discrepancy_limit:
-                remote->keep_alive_discrepancy_limit = atol(value); 
+                remote->keep_alive_discrepancy_limit = ssp_atol(value); 
                 break;
             case PARSE_positive_ack_timer_expiration_limit: 
-                remote->positive_ack_timer_expiration_limit = atol(value);
+                remote->positive_ack_timer_expiration_limit = ssp_atol(value);
                 break;
             case PARSE_nak_timer_expiration_limit:
-                remote->nak_timer_expiration_limit = atol(value); 
+                remote->nak_timer_expiration_limit = ssp_atol(value); 
                 break;
             case PARSE_transaction_inactivity_limit:
-                remote->transaction_inactivity_limit = atol(value); 
+                remote->transaction_inactivity_limit = ssp_atol(value); 
                 break;
             default:
                 break;
@@ -161,7 +156,7 @@ static void parse_mib(char *key, char *value, void *params) {
 int get_remote_entity_from_json (Remote_entity *remote, uint32_t cfdp_id) {
 
     char file_name[50];
-    snprintf(file_name, 50, "%s%d%s", "mib/peer_", cfdp_id, ".json");
+    ssp_snprintf(file_name, 50, "%s%d%s", "mib/peer_", cfdp_id, ".json");
     
     int error = read_json(file_name, parse_mib, remote);
 

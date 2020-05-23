@@ -4,7 +4,8 @@
     "UT_port" : 1111,
     "type_of_network" : 1,
     "default_transmission_mode" : 1,
-
+    "MTU" : 1500,
+    
     "one_way_light_time" : 123,
     "total_round_trip_allowance" : 123,
     "async_NAK_interval" : 123,
