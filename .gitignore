@@ -3,3 +3,15 @@ Documents
 main
 settings.json
 SpaceProjects.odt
+Program/src/incomplete_requests
+Program/src/obj
+
+*.o
+*.a
+TODO
+Program/FreeRTOSv10.2.1
+Program/libcsp
+.vscode*
+*.jpg
+*.jpeg
+.gitignore
