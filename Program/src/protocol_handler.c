@@ -113,7 +113,7 @@ static int find_request(void *element, void *args) {
             return NULL;
         }
 
-        memcpy(found_req->res.addr, res.addr, res.size_of_addr);
+        ssp_memcpy(found_req->res.addr, res.addr, res.size_of_addr);
 
         found_req->res.packet_len = remote_entity.mtu;
         found_req->res.sfd = res.sfd;
@@ -135,16 +135,16 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     Pdu_header *header = (Pdu_header *) packet;
 
     uint32_t source_id = 0;
-    memcpy(&source_id, &packet[packet_index], header->length_of_entity_IDs);
+    ssp_memcpy(&source_id, &packet[packet_index], header->length_of_entity_IDs);
     packet_index += header->length_of_entity_IDs;
 
     //TODO the transaction number should get the request from data structure hosting requests
     uint32_t transaction_sequence_number = 0;
-    memcpy(&transaction_sequence_number, &packet[packet_index], header->transaction_seq_num_len);
+    ssp_memcpy(&transaction_sequence_number, &packet[packet_index], header->transaction_seq_num_len);
     packet_index += header->transaction_seq_num_len;
 
     uint32_t dest_id = 0;
-    memcpy(&dest_id, &packet[packet_index], header->length_of_entity_IDs);
+    ssp_memcpy(&dest_id, &packet[packet_index], header->length_of_entity_IDs);
     packet_index += header->length_of_entity_IDs;
 
     if (app->my_cfdp_id != dest_id){
@@ -246,12 +246,12 @@ uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill)
     uint8_t file_name_len = meta_data_packet[packet_index];
     packet_index++;
 
-    memcpy(req_to_fill->source_file_name, &meta_data_packet[packet_index], file_name_len);
+    ssp_memcpy(req_to_fill->source_file_name, &meta_data_packet[packet_index], file_name_len);
     packet_index += file_name_len;
 
     file_name_len = meta_data_packet[packet_index];
     packet_index++;
-    memcpy(req_to_fill->destination_file_name, &meta_data_packet[packet_index], file_name_len);
+    ssp_memcpy(req_to_fill->destination_file_name, &meta_data_packet[packet_index], file_name_len);
 
     packet_index += file_name_len;
 
@@ -359,10 +359,10 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
     
         for (int i = 0; i < segments; i++){
             //outgoing_packet_index
-            memcpy(&offset_start, &packet[packet_index], 4);
+            ssp_memcpy(&offset_start, &packet[packet_index], 4);
             offset_start = ssp_ntohl(offset_start);
             packet_index += 4;
-            memcpy(&offset_end, &packet[packet_index], 4);
+            ssp_memcpy(&offset_end, &packet[packet_index], 4);
             offset_end = ssp_ntohl(offset_end);
             packet_index += 4;
             build_nak_response(req->buff, outgoing_packet_index, offset_start, req, client);

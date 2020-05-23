@@ -24,7 +24,7 @@ uint16_t copy_lv_to_buffer(char *buffer, LV lv){
     uint16_t packet_index = 0;
     buffer[packet_index] = lv.length;
     packet_index++;
-    memcpy(&buffer[packet_index], lv.value, lv.length);
+    ssp_memcpy(&buffer[packet_index], lv.value, lv.length);
     packet_index += lv.length;
     return packet_index;
 }
@@ -36,7 +36,7 @@ void free_lv(LV lv) {
 void create_lv(LV *lv, int len, void *value) {
 
     lv->value = ssp_alloc(len, sizeof(char));
-    memcpy(lv->value, value, len);
+    ssp_memcpy(lv->value, value, len);
     lv->length = len;
 }
 
@@ -56,7 +56,7 @@ Message *create_message(uint8_t type) {
         return NULL;
 
     //message->header.message_id_cfdp = ssp_alloc(5, sizeof(char));
-    memcpy(message->header.message_id_cfdp, "cfdp", 5);
+    ssp_memcpy(message->header.message_id_cfdp, "cfdp", 5);
     message->header.message_type = type;
     return message;
 }
@@ -319,8 +319,8 @@ Request *put_request(
     req->transmission_mode = transmission_mode;
     req->procedure = sending_start;
     
-    memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
-    memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
+    ssp_memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
+    ssp_memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
 
     return req;
 }

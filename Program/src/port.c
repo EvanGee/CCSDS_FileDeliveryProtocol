@@ -14,6 +14,7 @@ Author: Evan Giese
     #include <stdlib.h>
     #include <stdio.h>
     #include <arpa/inet.h>
+    #include <stdarg.h>
 #endif
 
 #ifdef POSIX_FILESYSTEM
@@ -92,7 +93,7 @@ void ssp_sendto(Response res) {
             if (csp_buffer_remaining() != 0) {
                 packet_sending = csp_buffer_get(1);
                 
-                memcpy(packet_sending->data, res.msg, res.packet_len);
+                ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
                 int err = csp_sendto(0, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 10);
                 
                 if (err < 0) {

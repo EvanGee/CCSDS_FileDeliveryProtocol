@@ -279,11 +279,11 @@ static int on_stdin_callback(void *other) {
                 ssp_printf("file: %s, we had trouble opening this file, please enter a new file\n", input);
                 return 0;
             }
-            memcpy(app->newClient->req->source_file_name, input, MAX_PATH);
+            ssp_memcpy(app->newClient->req->source_file_name, input, MAX_PATH);
             ssp_printf("Enter a destination file name:\n");
         }
         else if (strnlen(req->destination_file_name, MAX_PATH) == 0){
-            memcpy(app->newClient->req->destination_file_name, input, MAX_PATH);
+            ssp_memcpy(app->newClient->req->destination_file_name, input, MAX_PATH);
             ssp_printf("sending file: %s As file named: %s To cfid enditity %d\n", app->newClient->req->source_file_name, app->newClient->req->destination_file_name, app->newClient->cfdp_id);
             ssp_printf("cancel connection mode (yes):\n");
         } 

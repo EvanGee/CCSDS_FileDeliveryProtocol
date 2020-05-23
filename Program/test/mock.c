@@ -93,8 +93,8 @@ Request *mock_request() {
 
     req->dest_cfdp_id = id;
     req->file = create_file("test_files/dest_received.jpg", true);
-    memcpy (req->source_file_name, dest, strnlen(dest, 255)); 
-    memcpy (req->destination_file_name, src, strnlen(src, 255));
+    ssp_memcpy (req->source_file_name, dest, strnlen(dest, 255)); 
+    ssp_memcpy (req->destination_file_name, src, strnlen(src, 255));
 
     
     mock_mock_remote_entity(&req->remote_entity, id);
@@ -102,7 +102,7 @@ Request *mock_request() {
 
     int addr = 16;
     req->res.addr = malloc(5);
-    memcpy(req->res.addr, &addr, 4);
+    ssp_memcpy(req->res.addr, &addr, 4);
     req->res.sfd = 1;
     req->res.packet_len = 2000;
     req->res.size_of_addr = 16;

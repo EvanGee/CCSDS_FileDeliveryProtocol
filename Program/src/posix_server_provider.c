@@ -123,7 +123,7 @@ static int prepareHost(char *host_name, void *addr, size_t *size_of_addr, char *
             }
         }
 
-        memcpy(addr, cur->ai_addr, cur->ai_addrlen);
+        ssp_memcpy(addr, cur->ai_addr, cur->ai_addrlen);
         *size_of_addr = cur->ai_addrlen;
 
         freeaddrinfo(cur);
@@ -231,7 +231,7 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
             break;
         }
     
-        memcpy(read_socket_set, socket_set, size_of_socket_struct);
+        ssp_memcpy(read_socket_set, socket_set, size_of_socket_struct);
         int nrdy = ssp_select(connection_limit + 1, read_socket_set, NULL,  NULL, 100e3);
 
         if(!resizeBuff(&buff, buff_size, &prev_buff_size)){
@@ -351,7 +351,7 @@ void connectionless_server(char *host_name, char* port, int initial_buff_size,
             break;
         }
     
-        memcpy(read_socket_set, socket_set, size_of_socket_struct);
+        ssp_memcpy(read_socket_set, socket_set, size_of_socket_struct);
         int nrdy = ssp_select(sfd + 1, read_socket_set, NULL,  NULL, 100e3);
 
         if(!resizeBuff(&buff, buff_size, &prev_buff_size)){

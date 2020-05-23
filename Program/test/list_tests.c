@@ -65,8 +65,8 @@ int list_tests() {
     Request  *r = mock_empty_request();
     Request *r2 = mock_empty_request();
 
-    memcpy(r->source_file_name, "mybestfriend", 12);
-    memcpy(r2->source_file_name, "secondrequest", 12);
+    ssp_memcpy(r->source_file_name, "mybestfriend", 12);
+    ssp_memcpy(r2->source_file_name, "secondrequest", 12);
 
     list->push(list, r, 1);
     ASSERT_EQUALS_INT("should equal 1", 1, list->count);

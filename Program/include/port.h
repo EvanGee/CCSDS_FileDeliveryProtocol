@@ -11,8 +11,8 @@ Author: Evan Giese
 
 #define POSIX_PORT
 #define POSIX_FILESYSTEM
-#define CSP_NETWORK
-*/
+//#define CSP_NETWORK
+
 #include "types.h"
 
 #ifdef CSP_NETWORK
@@ -42,6 +42,9 @@ Author: Evan Giese
     #define ssp_ntohl ntohl
     #define ssp_htons htons
     #define ssp_stonl stonl
+
+    #include <string.h>
+    #define ssp_memcpy memcpy
 
     #include <stdio.h>
     #define ssp_snprintf snprintf

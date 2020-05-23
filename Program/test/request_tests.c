@@ -87,17 +87,17 @@ static void request_test_list_storage() {
     List *list = linked_list();
 
     req->file = create_file("testfile.txt", 0);
-    memcpy(req->source_file_name, "stuff", 6);
+    ssp_memcpy(req->source_file_name, "stuff", 6);
     list->insert(list, req, 1);
 
     Request *req2 = mock_empty_request();
     req2->file = create_file("testfile.txt", 0);
-    memcpy(req2->source_file_name, "stuff2", 7);
+    ssp_memcpy(req2->source_file_name, "stuff2", 7);
     list->insert(list, req2, 2);
 
     Request *req3 = mock_empty_request();
     req3->file = create_file("testfile.txt", 0);
-    memcpy(req3->source_file_name, "stuff3", 7);
+    ssp_memcpy(req3->source_file_name, "stuff3", 7);
     list->insert(list, req3, 3);
 
     ssp_cleanup_req(list->pop(list));

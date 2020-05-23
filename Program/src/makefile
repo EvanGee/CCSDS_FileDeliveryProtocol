@@ -29,7 +29,7 @@ CFILES += file_delivery_app.c
 CFILES += utils.c
 CFILES += tasks.c
 CFILES += posix_server_provider.c  #used for poxix port
-CFILES += csp_server_provider.c
+#CFILES += csp_server_provider.c
 CFILES += protocol_handler.c
 CFILES += mib.c
 CFILES += filesystem_funcs.c
@@ -67,7 +67,8 @@ CWARNS += -Wmissing-prototypes
 #---------------------------Libs---------------------------
 LINKFLAGS = 
 LIBS = -pthread
-STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
+STATIC_FILES = 
+#STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
 
 #---------------------------Compiler flags---------------------------
 

@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
     int msg = "some stuff to send";
     /* get a message from the user */ 
 
-    memcpy(buf, msg, strnlen(msg, BUFSIZE));
+    ssp_memcpy(buf, msg, strnlen(msg, BUFSIZE));
     for (;;) {
         //bzero(buf, BUFSIZE);
         //printf("Please enter msg: ");

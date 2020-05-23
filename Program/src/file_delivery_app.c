@@ -55,16 +55,19 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
 
     if (remote_entity.type_of_network == csp) {
         
-        ssp_printf("Initialising CSP\r\n");
+        #ifdef CSP_NETWORK
+            ssp_printf("Initialising CSP\r\n");
 
-        /* Init CSP with address MY_ADDRESS */
-        csp_init(remote_entity.UT_address);
+            /* Init CSP with address MY_ADDRESS */
+            csp_init(remote_entity.UT_address);
 
-        /* Init buffer system with 10 packets of maximum PACKET_LEN bytes each */
-        csp_buffer_init(10, remote_entity.mtu);
+            /* Init buffer system with 10 packets of maximum PACKET_LEN bytes each */
+            csp_buffer_init(10, remote_entity.mtu);
 
-        /* Start router task with 500 word stack, OS task priority 1 */
-        csp_route_start_task(500, 1);
+            /* Start router task with 500 word stack, OS task priority 1 */
+            csp_route_start_task(500, 1);
+
+        #endif
     }
     
     FTP *app = ssp_alloc(sizeof(FTP), 1);

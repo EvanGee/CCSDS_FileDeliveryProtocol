@@ -435,7 +435,7 @@ int get_file_from_file(int fd, File *file) {
             return -1;
         }
 
-        memcpy(new_offset, &offset, sizeof(Offset));
+        ssp_memcpy(new_offset, &offset, sizeof(Offset));
         missing_offsets->push(missing_offsets, new_offset, -1);
     }
 

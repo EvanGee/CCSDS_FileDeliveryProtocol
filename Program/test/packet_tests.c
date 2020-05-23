@@ -81,8 +81,8 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     Request *req = mock_empty_request();
 
     req->file_size = 100000;
-    memcpy(req->destination_file_name, "testestest", 15);
-    memcpy(req->source_file_name, "someotherfile", 15);
+    ssp_memcpy(req->destination_file_name, "testestest", 15);
+    ssp_memcpy(req->source_file_name, "someotherfile", 15);
 
     process_file_request_metadata(req);
 
@@ -106,7 +106,7 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     ASSERT_EQUALS_INT("number of segments == 1 ", number_of_segments, 1);
 
     Offset offset[count];
-    memcpy(offset, &nak->segments, sizeof(Offset) * count);
+    ssp_memcpy(offset, &nak->segments, sizeof(Offset) * count);
     start_scope = ntohl(offset->start);
     end_scope = ntohl(offset->end);
 
@@ -132,37 +132,37 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     packet_index += 16;
 
     //outgoing_packet_index
-    memcpy(&start_scope, &packet[packet_index], 4);
+    ssp_memcpy(&start_scope, &packet[packet_index], 4);
     start_scope = ntohl(start_scope);
     packet_index += 4;
-    memcpy(&end_scope, &packet[packet_index], 4);
+    ssp_memcpy(&end_scope, &packet[packet_index], 4);
     end_scope = ntohl(end_scope);
     packet_index += 4;
     ASSERT_EQUALS_INT("correct packet offset 0 start", start_scope, 0);
     ASSERT_EQUALS_INT("correct packet offset 0 end", end_scope, 1250);
     
-    memcpy(&start_scope, &packet[packet_index], 4);
+    ssp_memcpy(&start_scope, &packet[packet_index], 4);
     start_scope = ntohl(start_scope);
     packet_index += 4;
-    memcpy(&end_scope, &packet[packet_index], 4);
+    ssp_memcpy(&end_scope, &packet[packet_index], 4);
     end_scope = ntohl(end_scope);
     packet_index += 4;
     ASSERT_EQUALS_INT("correct packet offset 1 start", start_scope, 5000);
     ASSERT_EQUALS_INT("correct packet offset 1 end", end_scope, 6000);
 
-    memcpy(&start_scope, &packet[packet_index], 4);
+    ssp_memcpy(&start_scope, &packet[packet_index], 4);
     start_scope = ntohl(start_scope);
     packet_index += 4;
-    memcpy(&end_scope, &packet[packet_index], 4);
+    ssp_memcpy(&end_scope, &packet[packet_index], 4);
     end_scope = ntohl(end_scope);
     packet_index += 4;
     ASSERT_EQUALS_INT("correct packet offset 2 start", start_scope, 9000);
     ASSERT_EQUALS_INT("correct packet offset 2 end", end_scope, 10000);
 
-    memcpy(&start_scope, &packet[packet_index], 4);
+    ssp_memcpy(&start_scope, &packet[packet_index], 4);
     start_scope = ntohl(start_scope);
     packet_index += 4;
-    memcpy(&end_scope, &packet[packet_index], 4);
+    ssp_memcpy(&end_scope, &packet[packet_index], 4);
     end_scope = ntohl(end_scope);
     packet_index += 4;
     ASSERT_EQUALS_INT("correct packet offset 3 start", start_scope, 15000);
@@ -270,8 +270,8 @@ int test_build_metadata_packet(char *packet, uint32_t start) {
     
     char *str = "HELLO WORLD";
 
-    memcpy(req->destination_file_name, str, strnlen(str, MAX_PATH) );
-    memcpy(req->source_file_name, str, strnlen(str, MAX_PATH) );
+    ssp_memcpy(req->destination_file_name, str, strnlen(str, MAX_PATH) );
+    ssp_memcpy(req->source_file_name, str, strnlen(str, MAX_PATH) );
 
     len = build_put_packet_metadata(packet, start, req);
     fill_request_pdu_metadata(&packet[start + 1], recv_request);
