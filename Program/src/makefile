@@ -91,7 +91,7 @@ all: $(MAIN)
 .PHONY: clean lib
 
 $(MAIN): $(OBJS_FILES) $(STATIC_FILES)
-	mv *.o obj
+#	mv *.o obj
 
 lib:  $(OBJS_FILES)
 	ar -rsc file_delivery_app.a $(OBJS_FILES)

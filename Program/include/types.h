@@ -1,3 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
+
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #ifndef SSP_TYPES_H
 #define SSP_TYPES_H
 
@@ -13,7 +19,6 @@
 /*-----------------------------------------------------------------------------
 
                     Packet structs for building packets
-
 
 ------------------------------------------------------------------------------*/
 

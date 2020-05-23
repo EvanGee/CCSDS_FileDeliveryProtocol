@@ -1,3 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
+
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #include "types.h"
 #include "packet.h"
 #include "utils.h"
@@ -5,9 +11,6 @@
 #include "filesystem_funcs.h"
 #include "requests.h"
 
-//hton
-#include <arpa/inet.h>
- 
 /*------------------------------------------------------------------------------
 
                                     creating packets
@@ -15,7 +18,7 @@
 ------------------------------------------------------------------------------*/
 
 
-// if is_data_packet is false, then is directive packet
+// if is_data_packet is false, then is directive pacnket
 static void set_packet_header(char *packet, uint16_t data_len, bool is_data_packet) {
 
     Pdu_header *header = (Pdu_header *) packet;
@@ -98,7 +101,7 @@ uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {
     packet_index++;
 
     //4 bytes
-    uint32_t network_bytes = htonl(req->file_size);
+    uint32_t network_bytes = ssp_htonl(req->file_size);
     network_bytes = network_bytes;
     memcpy(&packet[packet_index], &network_bytes, sizeof(uint32_t));
     packet_index += 4;
@@ -220,7 +223,7 @@ void build_eof_packet(char *packet, uint32_t start, uint32_t file_size, uint32_t
     packet_index++;
 
     //4 bytes
-    eof_packet->file_size = ntohl(file_size);
+    eof_packet->file_size = ssp_ntohl(file_size);
     packet_index += 4;
     eof_packet->checksum = checksum;
     packet_index += 4;
@@ -241,8 +244,8 @@ void fill_nak_array_callback(Node *node, void *element, void *args){
     
     Offset *offset = (Offset *)element;
 
-    holder->offsets[holder->i].start = htonl(offset->start);
-    holder->offsets[holder->i].end = htonl(offset->end);
+    holder->offsets[holder->i].start = ssp_htonl(offset->start);
+    holder->offsets[holder->i].end = ssp_htonl(offset->end);
     holder->i++;
 }
 

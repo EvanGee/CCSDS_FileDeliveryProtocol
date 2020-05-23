@@ -1,4 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
 
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #ifndef FILESYSTEM_FUNCS_H
 #define FILESYSTEM_FUNCS_H
 #include "types.h"

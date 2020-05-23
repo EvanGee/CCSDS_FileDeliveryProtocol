@@ -1,9 +1,8 @@
 /*------------------------------------------------------------------------------
-CMPT-361-AS50(1) - 2017 Fall - Introduction to Networks
-Assignment #1
-Evan Giese 1689223
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
 
-This file is the header file for server.c 
+Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #ifndef CSP_SERVER_H
 #define CSP_SERVER_H

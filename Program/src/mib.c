@@ -1,4 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
 
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #include "mib.h"
 #include "port.h"
 #include "types.h"

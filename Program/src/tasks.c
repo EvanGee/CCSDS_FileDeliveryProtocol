@@ -1,13 +1,23 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
+
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #include "protocol_handler.h"
 #include "tasks.h"
 #include "port.h"
 #include "mib.h"
 #include "filesystem_funcs.h"
-
 #include "types.h"
 
+#ifdef POSIX_PORT
 #include "posix_server_provider.h"
+#endif
+
+#ifdef CSP_NETWORK
 #include "csp_server_provider.h"
+#endif
 
 //snprintf
 #include <stdio.h>
@@ -310,10 +320,10 @@ static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port)
         return -1;
     }
 
-    uint32_t ut_addr = htonl(remote_entity.UT_address);
+    uint32_t ut_addr = ssp_htonl(remote_entity.UT_address);
 
     //convert uint id to char *
-    const char *ret = inet_ntop(AF_INET, &ut_addr, host_name, SSP_INET_ADDRSTRLEN);
+    const char *ret = inet_ntop(SSP_AF_INET, &ut_addr, host_name, SSP_INET_ADDRSTRLEN);
     if (ret == NULL) {
         ssp_error("inet_ntop");
         return -1;
@@ -324,171 +334,204 @@ static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port)
 
 
 void *ssp_connectionless_server_task(void *params) {
-    ssp_printf("starting posix connectionless server task\n");
-    FTP* app = (FTP*) params;
-    app->transaction_sequence_number = 1;
+    #ifdef POSIX_PORT
+        ssp_printf("starting posix connectionless server task\n");
+        FTP* app = (FTP*) params;
+        app->transaction_sequence_number = 1;
 
-    char port[10];
-    char host_name[SSP_INET_ADDRSTRLEN];
+        char port[10];
+        char host_name[SSP_INET_ADDRSTRLEN];
 
-    int error = get_ip_port(app->remote_entity, host_name, port);
-    if (error < 0) {
-        ssp_cleanup_ftp(app);
-        return NULL;
-    }
+        int error = get_ip_port(app->remote_entity, host_name, port);
+        if (error < 0) {
+            ssp_cleanup_ftp(app);
+            return NULL;
+        }
 
-    connectionless_server(host_name, port, 
-        app->packet_len, 
-        on_recv_server_callback, 
-        on_time_out_callback_server, 
-        on_stdin_callback, 
-        check_exit_server_callback, 
-        on_exit_server_callback, 
-        app);
-    
+        connectionless_server(host_name, port, 
+            app->packet_len, 
+            on_recv_server_callback, 
+            on_time_out_callback_server, 
+            on_stdin_callback, 
+            check_exit_server_callback, 
+            on_exit_server_callback, 
+            app);
+    #endif
+    #ifndef POSIX_PORT
+        ssp_printf("can't start posix connectionless server, no drivers\n");
+    #endif  
     return NULL;
 }
 
     
 void *ssp_connectionless_client_task(void* params){
-    ssp_printf("starting posix connectionless client task \n");
-    Client *client = (Client *) params;
+    #ifdef POSIX_PORT
+        ssp_printf("starting posix connectionless client task \n");
+        Client *client = (Client *) params;
 
-    char port[10];
-    char host_name[SSP_INET_ADDRSTRLEN];
+        char port[10];
+        char host_name[SSP_INET_ADDRSTRLEN];
 
-    int error = get_ip_port(client->remote_entity, host_name, port);
-    if (error < 0) {
-        ssp_cleanup_client(client);
+        int error = get_ip_port(client->remote_entity, host_name, port);
+        if (error < 0) {
+            ssp_cleanup_client(client);
+            return NULL;
+        }
+
+        connectionless_client(host_name, 
+            port, 
+            client->packet_len, 
+            client, 
+            on_send_client_callback, 
+            on_recv_client_callback, 
+            check_exit_client_callback, 
+            on_exit_client_callback);
+        
         return NULL;
-    }
-
-    connectionless_client(host_name, 
-        port, 
-        client->packet_len, 
-        client, 
-        on_send_client_callback, 
-        on_recv_client_callback, 
-        check_exit_client_callback, 
-        on_exit_client_callback);
-    
-    return NULL;
+    #endif
+    #ifndef POSIX_PORT
+        ssp_printf("can't start posix connectionless client, no drivers\n");
+    #endif  
 }
 
 void *ssp_connection_server_task(void *params) {
-    ssp_printf("starting posix connection server\n");
-    FTP* app = (FTP*) params;
-    app->transaction_sequence_number = 1;
+    #ifdef POSIX_PORT
+        ssp_printf("starting posix connection server\n");
+        FTP* app = (FTP*) params;
+        app->transaction_sequence_number = 1;
 
-    char port[10];
-    char host_name[SSP_INET_ADDRSTRLEN];
+        char port[10];
+        char host_name[SSP_INET_ADDRSTRLEN];
 
-    int error = get_ip_port(app->remote_entity, host_name, port);
-    if (error < 0) {
-        ssp_cleanup_ftp(app);
-        return NULL;
-    }
+        int error = get_ip_port(app->remote_entity, host_name, port);
+        if (error < 0) {
+            ssp_cleanup_ftp(app);
+            return NULL;
+        }
 
-    //1024 is the connection max limit
-    connection_server(host_name, 
-        port, 
-        app->packet_len,
-        10, 
-        on_recv_server_callback, 
-        on_time_out_callback_server, 
-        on_stdin_callback, 
-        check_exit_server_callback, 
-        on_exit_server_callback, 
-        app);
-
+        //1024 is the connection max limit
+        connection_server(host_name, 
+            port, 
+            app->packet_len,
+            10, 
+            on_recv_server_callback, 
+            on_time_out_callback_server, 
+            on_stdin_callback, 
+            check_exit_server_callback, 
+            on_exit_server_callback, 
+            app);
+    #endif
+    #ifndef POSIX_PORT
+        ssp_printf("can't start posix connection server, no drivers\n");
+    #endif  
     return NULL;
 }
 
 void *ssp_connection_client_task(void *params) {
-    ssp_printf("starting posix connection client\n");
-    Client *client = (Client *) params;
+    #ifdef POSIX_PORT
+        ssp_printf("starting posix connection client\n");
+        Client *client = (Client *) params;
 
-    char port[10];
-    char host_name[SSP_INET_ADDRSTRLEN];
+        char port[10];
+        char host_name[SSP_INET_ADDRSTRLEN];
 
-    int error = get_ip_port(client->remote_entity, host_name, port);
-    if (error < 0) {
-        ssp_cleanup_client(client);
-        return NULL;
-    }
+        int error = get_ip_port(client->remote_entity, host_name, port);
+        if (error < 0) {
+            ssp_cleanup_client(client);
+            return NULL;
+        }
 
-    connection_client(host_name, 
-        port, 
-        client->packet_len, 
-        client,
-        on_send_client_callback, 
-        on_recv_client_callback, 
-        check_exit_client_callback, 
-        on_exit_client_callback);
-  
+        connection_client(host_name, 
+            port, 
+            client->packet_len, 
+            client,
+            on_send_client_callback, 
+            on_recv_client_callback, 
+            check_exit_client_callback, 
+            on_exit_client_callback);
+    #endif
+    #ifndef POSIX_PORT
+        ssp_printf("can't start posix connection client, no drivers\n");
+    #endif  
     return NULL;
 }
 
 void *ssp_csp_connectionless_server_task(void *params) {
-    ssp_printf("starting csp connectionless server\n");
-    FTP *app = (FTP *) params;
+    #ifdef CSP_NETWORK
+        ssp_printf("starting csp connectionless server\n");
+        FTP *app = (FTP *) params;
 
-    csp_connectionless_server(
-        app->remote_entity.UT_port,
-        on_recv_server_callback, 
-        on_time_out_callback_server, 
-        on_stdin_callback, 
-        check_exit_server_callback, 
-        on_exit_server_callback, 
-        app);
-
+        csp_connectionless_server(
+            app->remote_entity.UT_port,
+            on_recv_server_callback, 
+            on_time_out_callback_server, 
+            on_stdin_callback, 
+            check_exit_server_callback, 
+            on_exit_server_callback, 
+            app);
+    #endif
+    #ifndef CSP_NETWORK
+        ssp_printf("can't start csp connectionless server, no drivers\n");
+    #endif  
     return NULL;
 }
 
 void *ssp_csp_connectionless_client_task(void *params) {
-    ssp_printf("starting csp connectionless client\n");
-    Client *client = (Client *) params;
-    
-    csp_connectionless_client(client->remote_entity.UT_address, 
-        client->remote_entity.UT_port,
-        client->app->remote_entity.UT_port, 
-        on_send_client_callback, 
-        on_recv_client_callback, 
-        check_exit_client_callback, 
-        on_exit_client_callback, 
-        client);
-
+    #ifdef CSP_NETWORK
+        ssp_printf("starting csp connectionless client\n");
+        Client *client = (Client *) params;
+        
+        csp_connectionless_client(client->remote_entity.UT_address, 
+            client->remote_entity.UT_port,
+            client->app->remote_entity.UT_port, 
+            on_send_client_callback, 
+            on_recv_client_callback, 
+            check_exit_client_callback, 
+            on_exit_client_callback, 
+            client);
+    #endif
+    #ifndef CSP_NETWORK
+        ssp_printf("can't start csp connectionless client, no drivers\n");
+    #endif  
     return NULL;
 }
 
 
 void *ssp_csp_connection_server_task(void *params) {
+    #ifdef CSP_NETWORK
     ssp_printf("starting csp connection server\n");
     FTP *app = (FTP *) params;
 
-    csp_connection_server(app->remote_entity.UT_port,
-        on_recv_server_callback,
-        on_time_out_callback_server,
-        on_stdin_callback,
-        check_exit_server_callback,
-        on_exit_server_callback,
-        params);
-
+        csp_connection_server(app->remote_entity.UT_port,
+            on_recv_server_callback,
+            on_time_out_callback_server,
+            on_stdin_callback,
+            check_exit_server_callback,
+            on_exit_server_callback,
+            params);
+    #endif
+    #ifndef CSP_NETWORK
+        ssp_printf("can't start csp connection server, no drivers\n");
+    #endif  
     return NULL;
 } 
 
 void *ssp_csp_connection_client_task(void *params) {
+    #ifdef CSP_NETWORK
     ssp_printf("starting csp connection client\n");
     Client *client = (Client *) params;
+        csp_connection_client(client->remote_entity.UT_address, 
+            client->remote_entity.UT_port,
+            on_send_client_callback,
+            on_recv_client_callback,
+            check_exit_client_callback,
+            on_exit_client_callback,
+            params);
 
-    csp_connection_client(client->remote_entity.UT_address, 
-        client->remote_entity.UT_port,
-        on_send_client_callback,
-        on_recv_client_callback,
-        check_exit_client_callback,
-        on_exit_client_callback,
-        params);
-
+    #endif
+    #ifndef CSP_NETWORK
+        ssp_printf("can't start csp connection client, no drivers\n");
+    #endif  
     return NULL;
 }
 /*------------------------------------------------------------------------------

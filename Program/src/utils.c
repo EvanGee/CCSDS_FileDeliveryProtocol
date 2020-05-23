@@ -1,3 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
+
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #include "port.h"
 #include "utils.h"
 //size is the number of bytes we want to print

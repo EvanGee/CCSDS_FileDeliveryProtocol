@@ -1,4 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
 
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -7,7 +12,7 @@
 #include <arpa/inet.h>
 
 //Have to include these files
-
+#include <libgen.h>
 //for types
 #include "protocol_handler.h"
 //for conf
@@ -121,44 +126,11 @@ int main(int argc, char** argv) {
     //create a client
     if (conf->client_cfdp_id != 0){
 
-        
-        
         start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy.jpg", ACKNOWLEDGED_MODE, app));
         //start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy2.jpg", UN_ACKNOWLEDGED_MODE, app));
         //start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy3.jpg", UN_ACKNOWLEDGED_MODE, app));
         Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/tcp.jpg", ACKNOWLEDGED_MODE, app);
         start_request(req);
-
-        /*
-        req = put_request(conf->client_cfdp_id, NULL, NULL, UN_ACKNOWLEDGED_MODE, app);
-        if (req != NULL)
-            add_proxy_message_to_request(2, 1, "pictures/pic.jpeg", "pictures/Proxy.jpg", req);
-
-        start_request(req);
-        */
-       
-        /*
-        req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
-        add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy2.jpg", req);
-        start_request(req);
-
-        
-        req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
-        add_proxy_message_to_request(2, 1, "pic.jpeg", "proxy3.jpg", req);
-        start_request(req);
-
-        Request *req;
-        for (int i=0; i < 4; i++) {
-            sleep(10);
-            req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
-            char filename[11] = {'p','r','o','x','y', (char) (48+i), '.', 'j', 'p', 'g', '\0'};
-
-
-            add_proxy_message_to_request(2, 1, "pic.jpeg", filename, req);
-            start_request(req);
-
-        }
-*/ 
 
     }
 

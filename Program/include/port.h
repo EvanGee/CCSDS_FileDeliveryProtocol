@@ -1,4 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
 
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #ifndef PORT_H
 #define PORT_H
 
@@ -25,7 +30,6 @@
 
 #ifdef POSIX_FILESYSTEM
     #include <fcntl.h>
-    
     #define SSP_O_RDWR O_RDWR
     #define SSP_O_CREAT O_CREAT
     #define SSP_O_TRUNC O_TRUNC
@@ -35,10 +39,27 @@
 #ifdef POSIX_PORT
     #include <arpa/inet.h>
     #define SSP_INET_ADDRSTRLEN INET_ADDRSTRLEN
+    #define SSP_AF_INET AF_INET
+    #define ssp_htonl htonl 
+    #define ssp_ntohl ntohl
+    #define ssp_htons htons
+    #define ssp_stonl stonl
+#endif
+
+#ifdef COMPLETELY_GENERIC_OS
+    #define ssp_htonl htonl 
+    #define ssp_ntohl ntohl
+    #define ssp_htons htons
+    #define ssp_stonl stonl
+    #define SSP_INET_ADDRSTRLEN 16
+    #define SSP_AF_INET 2
 #endif
 
 
-void ssp_error( char *msg);
+
+//don't change these in the header file here, if you need to change them
+//change them in the .c file
+void ssp_error(char *msg);
 void ssp_printf(char *stuff, ...);
 void *ssp_alloc(uint32_t u_memb, size_t size);
 void ssp_sendto(Response res);

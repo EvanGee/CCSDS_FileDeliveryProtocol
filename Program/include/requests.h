@@ -1,4 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
 
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #ifndef REQUESTS_H
 #define REQUESTS_H
 
@@ -34,7 +39,6 @@ Message_cont_part_request *create_message_cont_partial_request(uint32_t benefici
                                                     uint8_t transaction_id_length);
 
 void print_request_state(Request *req);
-//Frees a message struct
 void ssp_free_message(void *params);
 uint16_t copy_lv_to_buffer(char *buffer, LV lv);
 void copy_lv_from_buffer(LV *lv, char *packet, uint32_t start);

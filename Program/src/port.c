@@ -1,3 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
+
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #include "port.h"
 
 #ifdef POSIX_PORT
@@ -76,38 +82,36 @@ int ssp_close(int fd) {
 ------------------------------------------------------------------------------*/
 
 void ssp_sendto(Response res) {
-
-
-
+    
     if (res.type_of_network == csp /*&& res.transmission_mode == UN_ACKNOWLEDGED_MODE*/) {
+        #ifdef CSP_NETWORK
+            csp_packet_t *packet = (csp_packet_t *) res.addr;
+            csp_packet_t *packet_sending;
 
-        csp_packet_t *packet = (csp_packet_t *) res.addr;
-        csp_packet_t *packet_sending;
-
-        if (csp_buffer_remaining() != 0) {
-            packet_sending = csp_buffer_get(1);
-            
-            memcpy(packet_sending->data, res.msg, res.packet_len);
-            int err = csp_sendto(0, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 10);
-            
-            if (err < 0) {
-                ssp_error("ERROR in ssp_sento");
-                csp_buffer_free(packet_sending);
+            if (csp_buffer_remaining() != 0) {
+                packet_sending = csp_buffer_get(1);
+                
+                memcpy(packet_sending->data, res.msg, res.packet_len);
+                int err = csp_sendto(0, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 10);
+                
+                if (err < 0) {
+                    ssp_error("ERROR in ssp_sento");
+                    csp_buffer_free(packet_sending);
+                }
             }
-
-        }
-        else 
-            ssp_error("couldn't get new packet for sending!\n");
-  
+            else 
+                ssp_error("couldn't get new packet for sending!\n");
+        #endif
     } else {
+        #ifdef POSIX_PORT
+            struct sockaddr* addr = (struct sockaddr*) res.addr;
 
-        struct sockaddr* addr = (struct sockaddr*) res.addr;
-
-        int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
-        if (err < 0) {
-            ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(struct sockaddr));
-            ssp_error("ERROR in sendto");
-        }
+            int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
+            if (err < 0) {
+                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(struct sockaddr));
+                ssp_error("ERROR in sendto");
+            }
+        #endif
     }
        
 }
@@ -154,7 +158,8 @@ void ssp_error(char *error){
     #endif
 }
 
-void ssp_printf( char *stuff, ...) {
+//this can be switched to 
+void ssp_printf(char *stuff, ...) {
     #ifdef POSIX_PORT
         va_list args;
         va_start(args, stuff);

@@ -1,3 +1,10 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
+
+Author: Evan Giese
+------------------------------------------------------------------------------*/
+
 #include "csp.h"
 #include "csp_server_provider.h"
 #include "port.h"

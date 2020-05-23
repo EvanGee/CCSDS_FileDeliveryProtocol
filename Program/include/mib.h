@@ -1,8 +1,9 @@
-//the management information base (MIB)
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
 
-//default faul handle
-
-
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #ifndef MIB_H
 #define MIB_H
 

@@ -1,4 +1,9 @@
+/*------------------------------------------------------------------------------
+This file is protected under copyright. If you want to use it,
+please include this text, that is my only stipulation.  
 
+Author: Evan Giese
+------------------------------------------------------------------------------*/
 #include "mib.h"
 #include "port.h"
 #include "protocol_handler.h"
@@ -7,9 +12,6 @@
 #include "requests.h"
 #include "types.h"
 #include "utils.h"
-
-//htons
-#include <arpa/inet.h>
 
 //snprintf
 #include <stdio.h>
@@ -240,7 +242,7 @@ uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill)
 
     uint8_t packet_index = 1;
     uint32_t *network_bytes = (uint32_t*) &meta_data_packet[packet_index];
-    uint32_t file_size = ntohl(*network_bytes);
+    uint32_t file_size = ssp_ntohl(*network_bytes);
 
     req_to_fill->file_size = file_size;
     packet_index += 4;
@@ -346,8 +348,8 @@ static void send_data(Request *req, Response res) {
 int nak_response(char *packet, uint32_t start, Request *req, Response res, Client *client) {
         uint32_t packet_index = start;
         Pdu_nak *nak = (Pdu_nak *) &packet[packet_index];
-        //uint32_t offset_first = ntohl(nak->start_scope);
-        //uint32_t offset_last = ntohl(nak->end_scope);
+        //uint32_t offset_first = ssp_ntohl(nak->start_scope);
+        //uint32_t offset_last = ssp_ntohl(nak->end_scope);
         uint64_t segments = ntohll(nak->segment_requests);
         packet_index += 16;
 
@@ -362,10 +364,10 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
         for (int i = 0; i < segments; i++){
             //outgoing_packet_index
             memcpy(&offset_start, &packet[packet_index], 4);
-            offset_start = ntohl(offset_start);
+            offset_start = ssp_ntohl(offset_start);
             packet_index += 4;
             memcpy(&offset_end, &packet[packet_index], 4);
-            offset_end = ntohl(offset_end);
+            offset_end = ssp_ntohl(offset_end);
             packet_index += 4;
             build_nak_response(req->buff, outgoing_packet_index, offset_start, req, client);
             ssp_sendto(res);
@@ -536,7 +538,7 @@ void process_pdu_eof(char *packet, Request *req, Response res) {
 
     ssp_printf("received eof packet transaction: %d\n", req->transaction_sequence_number);
     Pdu_eof *eof_packet = (Pdu_eof *) packet;
-    uint32_t file_size = ntohl(eof_packet->file_size);
+    uint32_t file_size = ssp_ntohl(eof_packet->file_size);
 
     if (req->file == NULL && req->local_entity.Metadata_recv_indication) {
         build_temperary_file(req, file_size);
@@ -707,7 +709,6 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
 
                     ssp_printf("received finished packet transaction: %d\n", req->transaction_sequence_number);
                     req->local_entity.transaction_finished_indication = true;
-                    /* code */
                     break;
             
                 default:
