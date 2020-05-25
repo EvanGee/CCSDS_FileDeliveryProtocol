@@ -19,10 +19,10 @@ If you are compiling on linux, it should compile posix compliant by default.
 
 ### Compiling CSP:
 first, one needs to build the .a file for your specific cpu architecture. 
-instructions can be found here. https://github.com/libcsp/libcsp
+instructions can be found here: https://github.com/libcsp/libcsp
 
 archive file: 
-Once one has the .a file. simply link to it my adding the path to 
+Once one has the .a file by following the above instructions. simply link to it my adding the path to 
 STATIC_FILES in our makefile: STATIC_FILES += /path/to/libcsp.a
 
 .h files:
@@ -44,6 +44,7 @@ There are examples to help you with linking in the makefile.
 Once again, make sure that FREE_RTOS_PORT is definted in port.h
 and that POSIX_PORT is not defined. 
 
+run make to compile!
 
 # Getting started:
 
