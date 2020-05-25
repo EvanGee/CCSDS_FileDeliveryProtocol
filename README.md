@@ -56,12 +56,11 @@ The app has some startup requirements. init the app with:
     }
 
 this will spin up a thread in posix, or a task in FreeRTOS. 
-if you want to join this thread (make the current executing thread wait)
-and it is a posix thread you can run:
+if you want to join this thread, and it is a posix thread, you can run:
 ssp_thread_join(app->server_handle);
 
 if you want to exit this task for any reason set app->close = 1;
-this will run the exiting subroutines for us.
+this will run the exiting subroutines and close the task if it is a FreeRTOS task.
 
 if you wish to send a file to a peer:
 
@@ -72,9 +71,9 @@ name of the file as it will arrive at destination,
 ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),
 app.
 
-    example:
-    Request *req = put_request(<destination id>, "pictures/src.jpg", "pictures/desination.jpg", ACKNOWLEDGED_MODE, app);
+example:
 
+    Request *req = put_request(<destination id>, "pictures/src.jpg", "pictures/desination.jpg", ACKNOWLEDGED_MODE, app);
     start_request(req);
     
     
@@ -96,8 +95,7 @@ example:
 
     start_request(req);
     
-    hint, if you want to 'get' a file, set the <cfid of proxy destination> to your id.
-
+hint, if you want to 'get' a file, set the <cfid of proxy destination> to your id.
 
 # MIB (management information base)
     
@@ -109,6 +107,7 @@ The MIB is currently configured as key value pairs. These pairs are formatted
 in the JSON format, the name of the file is peer_<cfid_id>. 
 
 Here is an example of a MIB entry:
+
     {
     "cfdp_id": 1,
     "UT_address" : 2130706433,
@@ -116,7 +115,6 @@ Here is an example of a MIB entry:
     "type_of_network" : 1,
     "default_transmission_mode" : 1,
     "MTU" : 1500,
-
     "one_way_light_time" : 123,
     "total_round_trip_allowance" : 123,
     "async_NAK_interval" : 123,
