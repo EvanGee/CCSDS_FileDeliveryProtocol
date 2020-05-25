@@ -133,31 +133,32 @@ Here is an example of a MIB entry:
 
 Below are the meanings of the fields for the MIB
 
-cfdp_id
+- cfdp_id
     This is the unique identifier of a peer on the network. We can start it at 1
     and increment it from there. This is an unsigned integer (32 bit) value;
 
-
-UT_address
+- UT_address
     This is an Underlying Transmission address. For example, in an IP stack, this
     would be an IP4 Ip address. This value is a decimal represenstation of an IP
     address. This particular one is 127.0.0.1. 
 
-
-UT_port
+- UT_port
     This os an Underlying Transmission port. For example, in an IP stack, this
     would be a 16 bit value -- like port 8080. Combinded with the UT_address, 
     together they form a complete UT address. The one above would be equal to
     127.0.0.1:1111. This is an unsigned integer (16 bit) value
 
-type_of_network
+- type_of_network
     This number represents what type of network the underlying UT address takes.
-    currently, the only acceptable values are 0 and 1.
+    currently, the only acceptable values are 0 and 1. 
+    - 0: UDP
+    - 1: TCP
+    - 2: csp
 
-default_transmission_mode:
+- default_transmission_mode:
     not implmented
 
-MTU
+- MTU
     This number represents the 'maximum transmissable unit' -- this will also
     take the form of a buffer in the program. This value is the maximum size 
     packet that the application will receive. 
