@@ -69,6 +69,7 @@ LINKFLAGS =
 LIBS = -pthread
 STATIC_FILES = 
 #STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
+#STATIC_FILES += $(PROJDIR)/FreeRtos
 
 #---------------------------Compiler flags---------------------------
 
