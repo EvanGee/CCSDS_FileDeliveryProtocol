@@ -92,14 +92,14 @@ example:
 if you wish to get a file from a peer, we need to add a 'message' onto a put request,
 we can specify that there is no associated put request if we set the filenames to NULL:
 
-params:
-id of destination,
-source file name,
-name of the file as it will arrive at destination,
-ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),
-app.
+params:  
+id of destination,  
+source file name,  
+name of the file as it will arrive at destination,  
+ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+app  
 
-example:
+example:  
 
     Request *req = put_request(<cfid of destination>, NULL, NULL, ACKNOWLEDGED_MODE, app);
 
