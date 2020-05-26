@@ -10,7 +10,7 @@ This is a FTP protocol that is partially (mostly) adheres to the CCSDS (Consulta
     this edge case. Furthermore, this implementation will build a
     'temporary file' if it has missed a metadata packet. This temporary file
     will allow storage of data packets until a metadata packet is received,
-    allowing us to save minutes on data re-transmissions in the event a Metadata
+    allowing us to save minutes on data re-transmissions in the event a metadata
     packet is missed.
 
 Supported operation systems:
