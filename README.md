@@ -3,8 +3,8 @@ This is not finished! - currently working on it!
 This is a FTP protocol that is partially (mostly) adheres to the CCSDS (Consultative Committee for Space Data Systems) spec for sending files into space CCSDS 727.0-B-4 (https://public.ccsds.org/pubs/727x0b4.pdf). This project is being built for a student lead space initiative at the Univerity of Alberta called ABsat. 
 
     The main difference this implementation offers that has deviates from the above
-    specifications is that this implementation offers a metadata nak (non acknowledgment) 
-    letting the file sender user quickly resend a metadata packet if it was dropped, 
+    specifications is that this implementation offers a metadata nak (non acknowledgment).
+    This Nak lets the file sender user quickly resend a metadata packet if it was dropped. 
     Since metadata packets are crucial to file management, and round trip times
     can range to minutes or hours in space, I thought it prudent to handle
     this edge case. Furthermore, this implementation will build a
