@@ -1,6 +1,17 @@
 This is not finished! - currently working on it!
 
-This is a FTP protocol that adheres to the CCSDS (Consultative Committee for Space Data Systems) spec for sending files into space. This project is being built for a student lead space initiative at the Univerity of Alberta called ABsat. 
+This is a FTP protocol that is partially (mostly) adheres to the CCSDS (Consultative Committee for Space Data Systems) spec for sending files into space CCSDS 727.0-B-4 (https://public.ccsds.org/pubs/727x0b4.pdf). This project is being built for a student lead space initiative at the Univerity of Alberta called ABsat. 
+
+    The main difference this implementation offers that has deviates from the above
+    specifications is that this implementation offers a metadata nak (non acknowledgment) 
+    letting the file sender user quickly resend a metadata packet if it was dropped, 
+    Since metadata packets are crucial to file management, and round trip times
+    can range to minutes or hours in space, I thought it prudent to handle
+    this edge case. Furthermore, this implementation will build a
+    'temporary file' if it has missed a metadata packet. This temporary file
+    will allow storage of data packets until a metadata packet is received,
+    allowing us to save minutes on data re-transmissions in the event a Metadata
+    packet is missed.
 
 Supported operation systems:
 - Posix,
@@ -15,7 +26,7 @@ Supported network stacks:
 
 # Compilation Notes:
 
-If you are compiling on linux, it should compile posix compliant by default.
+If you are compiling on Linux, it should compile posix compliant by default.
 
 ### Compiling CSP:
 first, one needs to build the .a file for your specific cpu architecture. 
@@ -30,25 +41,26 @@ We need to include the .h files to our include path. We can do this
 by linking the .h files to our INCLUDES in our makefile. 
 INCLUDES += /path/to/libcsp/include
 
-The last thing you need to do to let this app integrate seemlessly with csp,
-is to make sure that CSP_NETWORK is defined in port.h
+The last thing you need to do to let this app integrate seamlessly with csp,
+is to make sure that CSP_NETWORK is defined in port.h and csp_server_provider.c
+is  uncommented in the makefile.
 
 run make to compile!
 
 ### Compiling with FreeRTOS:
 The best way to compile with FreeRTOS is to do the same thing as we did 
-with libscp -- create a .a file, and link to the .h files.
+with libscp -- create an .a file, and link to the .h files.
 
 There are examples to help you with linking in the makefile.
 
-Once again, make sure that FREE_RTOS_PORT is definted in port.h
+Once again, make sure that FREE_RTOS_PORT is defined in port.h
 and that POSIX_PORT is not defined. 
 
 run make to compile!
 
 # Getting started:
 
-The app has some startup requirements. init the app with:
+init the app with:
 
     FTP *app = init_ftp(my_cfdp_id);
     if (app == NULL) {
@@ -64,14 +76,14 @@ this will run the exiting subroutines and close the task if it is a FreeRTOS tas
 
 if you wish to send a file to a peer:
 
-params:
-id of destination,
-source file name,
-name of the file as it will arrive at destination,
-ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),
-app.
+params:  
+id of destination,  
+source file name,  
+name of the file as it will arrive at destination,  
+ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+app  
 
-example:
+example:  
 
     Request *req = put_request(<destination id>, "pictures/src.jpg", "pictures/desination.jpg", ACKNOWLEDGED_MODE, app);
     start_request(req);
@@ -91,7 +103,7 @@ example:
 
     Request *req = put_request(<cfid of destination>, NULL, NULL, ACKNOWLEDGED_MODE, app);
 
-    add_proxy_message_to_request(<cfid of proxy destination>, <length_of_id_in_octets>, "source_file_name" "destination_file_name", req);
+    add_proxy_message_to_request(<cfid of proxy destination>, , "source_file_name" "destination_file_name", req);
 
     start_request(req);
     
@@ -139,12 +151,12 @@ Below are the meanings of the fields for the MIB
 
 - UT_address
     This is an Underlying Transmission address. For example, in an IP stack, this
-    would be an IP4 Ip address. This value is a decimal represenstation of an IP
+    would be an IP4 Ip address. This value is a decimal representation of an IP
     address. This particular one is 127.0.0.1. 
 
 - UT_port
     This os an Underlying Transmission port. For example, in an IP stack, this
-    would be a 16 bit value -- like port 8080. Combinded with the UT_address, 
+    would be a 16 bit value -- like port 8080. combined with the UT_address, 
     together they form a complete UT address. The one above would be equal to
     127.0.0.1:1111. This is an unsigned integer (16 bit) value
 
@@ -156,14 +168,26 @@ Below are the meanings of the fields for the MIB
     - 2: csp
 
 - default_transmission_mode:
-    not implmented
+    not implemented
 
 - MTU
-    This number represents the 'maximum transmissable unit' -- this will also
+    This number represents the 'maximum transmissible unit' -- this will also
     take the form of a buffer in the program. This value is the maximum size 
     packet that the application will receive. 
 
-
+- one_way_light_time : not implemented
+- total_round_trip_allowance : not implemented
+- async_NAK_interval : not implemented
+- async_keep_alive_interval : not implemented
+- async_report_interval : not implemented
+- immediate_nak_mode_enabled : not implemented
+- prompt_transmission_interval : not implemented
+- disposition_of_incomplete : not implemented
+- CRC_required : not implemented
+- keep_alive_discrepancy_limit : not implemented
+- positive_ack_timer_expiration_limit : not implemented
+- nak_timer_expiration_limit : not implemented
+- transaction_inactivity_limit : not implemented
 
 if you want to get in contact with me
 email me at evangiese77@gmail.com
