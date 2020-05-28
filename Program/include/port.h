@@ -42,6 +42,7 @@ Author: Evan Giese
     #define ssp_ntohl ntohl
     #define ssp_htons htons
     #define ssp_stonl stonl
+    #define ssp_inet_ntop inet_ntop
 
     #include <string.h>
     #define ssp_memcpy memcpy
@@ -53,6 +54,10 @@ Author: Evan Giese
     #define ssp_atol atol
 #endif
 
+#ifdef FREE_RTOS_PORT 
+    //TODO need the above POSIX_PORT definitions to work, if we are bigendian, then the
+    //htonl etc are empty.
+#endif
 
 
 //don't change these in the header file here, if you need to change them

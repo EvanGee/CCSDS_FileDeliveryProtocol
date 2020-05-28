@@ -320,7 +320,7 @@ static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port)
     uint32_t ut_addr = ssp_htonl(remote_entity.UT_address);
 
     //convert uint id to char *
-    const char *ret = inet_ntop(SSP_AF_INET, &ut_addr, host_name, SSP_INET_ADDRSTRLEN);
+    const char *ret = ssp_inet_ntop(SSP_AF_INET, &ut_addr, host_name, SSP_INET_ADDRSTRLEN);
     if (ret == NULL) {
         ssp_error("inet_ntop");
         return -1;

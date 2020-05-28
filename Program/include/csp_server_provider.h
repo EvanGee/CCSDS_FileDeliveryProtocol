@@ -6,7 +6,7 @@ Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #ifndef CSP_SERVER_H
 #define CSP_SERVER_H
-#include <stdint.h>
+#include "stdint.h"
 
 void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port,
     int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),

@@ -7,15 +7,26 @@ Author: Evan Giese
 #ifndef SSP_TYPES_H
 #define SSP_TYPES_H
 
-#include <stdint.h>
 #include "list.h"
-#include <stdbool.h>
-#include <stddef.h>
-
 
 #define MAX_PATH 255
 #define ACKNOWLEDGED_MODE 0
 #define UN_ACKNOWLEDGED_MODE 1
+
+#ifndef _SIZE_T
+#define _SIZE_T
+typedef unsigned int size_t;
+#endif
+
+typedef enum { false, true } bool; 
+
+
+
+
+
+
+
+
 /*-----------------------------------------------------------------------------
 
                     Packet structs for building packets
@@ -627,6 +638,7 @@ typedef struct request {
     Response res;
 } Request;
 
+
 //add "client" in here to represent local entity
 typedef struct ftp {
 
@@ -635,6 +647,8 @@ typedef struct ftp {
 
     //buffer for making packets, is length of packet_len
     char* buff;
+
+
     
     void *server_handle;
     uint32_t my_cfdp_id;

@@ -7,7 +7,7 @@ Author: Evan Giese
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <stdint.h>
+#include "stdint.h"
 
 //https://stackoverflow.com/questions/3022552/is-there-any-standard-htonl-like-function-for-64-bits-integers-in-c
 #define htonll(x) ((1==ssp_htonl(1)) ? (x) : ((uint64_t)ssp_htonl((x) & 0xFFFFFFFF) << 32) | ssp_htonl((x) >> 32))

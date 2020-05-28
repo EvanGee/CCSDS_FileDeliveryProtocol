@@ -4,7 +4,7 @@ please include this text, that is my only stipulation.
 
 Author: Evan Giese
 ------------------------------------------------------------------------------*/
-#include <stdint.h>
+#include "stdint.h"
 #include "port.h"
 #include "filesystem_funcs.h"
 #include "jsmn.h"

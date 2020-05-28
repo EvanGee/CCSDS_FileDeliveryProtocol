@@ -5,7 +5,7 @@ please include this text, that is my only stipulation.
 Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #include <stdio.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -126,10 +126,10 @@ int main(int argc, char** argv) {
     //create a client
     if (conf->client_cfdp_id != 0){
 
-        start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpg", "pictures/noProxy.jpg", ACKNOWLEDGED_MODE, app));
+        start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy.jpg", ACKNOWLEDGED_MODE, app));
         //start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy2.jpg", UN_ACKNOWLEDGED_MODE, app));
         //start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy3.jpg", UN_ACKNOWLEDGED_MODE, app));
-        Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpg", "pictures/tcp.jpg", ACKNOWLEDGED_MODE, app);
+        Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/tcp.jpg", ACKNOWLEDGED_MODE, app);
         start_request(req);
 
     }
