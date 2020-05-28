@@ -3,14 +3,14 @@ This is not finished! - currently working on it!
 This is a FTP protocol that is partially (mostly) adheres to the CCSDS (Consultative Committee for Space Data Systems) spec for sending files into space CCSDS 727.0-B-4 (https://public.ccsds.org/pubs/727x0b4.pdf). This project is being built for a student lead space initiative at the Univerity of Alberta called ABsat. 
 
     The main difference this implementation offers that has deviates from the above
-    specifications is that this implementation offers a metadata nak (non acknowledgment) 
-    letting the file sender user quickly resend a metadata packet if it was dropped, 
+    specifications is that this implementation offers a metadata nak (non acknowledgment).
+    This Nak lets the file sender user quickly resend a metadata packet if it was dropped. 
     Since metadata packets are crucial to file management, and round trip times
     can range to minutes or hours in space, I thought it prudent to handle
     this edge case. Furthermore, this implementation will build a
     'temporary file' if it has missed a metadata packet. This temporary file
     will allow storage of data packets until a metadata packet is received,
-    allowing us to save minutes on data re-transmissions in the event a Metadata
+    allowing us to save minutes on data re-transmissions in the event a metadata
     packet is missed.
 
 Supported operation systems:
@@ -92,14 +92,14 @@ example:
 if you wish to get a file from a peer, we need to add a 'message' onto a put request,
 we can specify that there is no associated put request if we set the filenames to NULL:
 
-params:
-id of destination,
-source file name,
-name of the file as it will arrive at destination,
-ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),
-app.
+params:  
+id of destination,  
+source file name,  
+name of the file as it will arrive at destination,  
+ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+app  
 
-example:
+example:  
 
     Request *req = put_request(<cfid of destination>, NULL, NULL, ACKNOWLEDGED_MODE, app);
 
