@@ -5,7 +5,7 @@ please include this text, that is my only stipulation.
 Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #include <stdio.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -111,33 +111,43 @@ int main(int argc, char** argv) {
     exit_now = prepareSignalHandler();
 
     //get-opt configuration
+    /*
     Config *conf = configuration(argc, argv);
-
     if (conf->my_cfdp_id == 0){
         printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
         return 1;
     }
+    */
 
-    FTP *app = init_ftp(conf->my_cfdp_id);
+
+    #ifdef CSP_NETWORK
+            ssp_printf("Initialising CSP\r\n");
+
+            /* Init CSP with address MY_ADDRESS */
+            csp_init(1);
+
+            /* Init buffer system with 10 packets of maximum bytes each */
+            csp_buffer_init(1000, 250);
+
+            /* Start router task with 500 word stack, OS task priority 1 */
+            csp_route_start_task(500, 1);
+    
+    #endif
+
+    FTP *app = init_ftp(5);
     if (app == NULL) {
         return 1;
     }
     
-    //create a client
-    if (conf->client_cfdp_id != 0){
-
-        start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy.jpg", ACKNOWLEDGED_MODE, app));
-        //start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy2.jpg", UN_ACKNOWLEDGED_MODE, app));
-        //start_request(put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy3.jpg", UN_ACKNOWLEDGED_MODE, app));
-        Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/tcp.jpg", ACKNOWLEDGED_MODE, app);
-        start_request(req);
-
+    FTP *app2 = init_ftp(6);
+    if (app2 == NULL) {
+        return 1;
     }
+    
+    start_request(put_request(6, "pictures/pic.jpeg", "pictures/noProxy.jpg", ACKNOWLEDGED_MODE, app));
 
     ssp_thread_join(app->server_handle);
-    free(conf); 
-
-    
+    //free(conf); 
     return 0;
 }
 

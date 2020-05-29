@@ -267,6 +267,7 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     req->dest_cfdp_id = client->remote_entity.cfdp_id;
     req->pdu_header = client->pdu_header;
     req->res.packet_len = client->packet_len;
+    req->buff = client->buff;
     
     client->request_list->insert(client->request_list, req, 0);
 
@@ -365,6 +366,10 @@ void print_request_state(Request *req) {
     ssp_printf("Resume indication %d\n", req->local_entity.resumed_indication);
     ssp_printf("Suspended indication %d\n", req->local_entity.suspended_indication);
     ssp_printf("Transaction finished indication %d\n", req->local_entity.transaction_finished_indication);
+    
+    if (req->file != NULL)
+        ssp_printf("checksum received = %u checksum calculated = %u\n", req->file->eof_checksum, req->file->partial_checksum);
+
     print_request_procedure(req);
     
     ssp_printf("current messages: \n");

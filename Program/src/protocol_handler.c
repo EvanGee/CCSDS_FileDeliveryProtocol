@@ -148,6 +148,10 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     packet_index += header->length_of_entity_IDs;
 
     if (app->my_cfdp_id != dest_id){
+        if (is_server)
+            ssp_printf("SERVER: ");
+        else 
+            ssp_printf("CLIENT: ");
         ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", app->my_cfdp_id, dest_id);
         return -1;
     }
@@ -182,6 +186,8 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
             transaction_sequence_number,
             res,
             app);
+            
+        ssp_printf("source id %d my id: %d, dest id %d\n ", source_id, app->my_cfdp_id, found_req->dest_cfdp_id);
 
         if (found_req == NULL) {
             ssp_error("could not create request for incomming transmission");
@@ -319,6 +325,7 @@ static void send_eof_pdu(Request *req, Response res) {
     return;
 }
 
+//if no file attached to request, set procedure to none
 static void start_sequence(Request *req, Response res) {
     
     send_put_metadata(req, res);
@@ -344,8 +351,6 @@ static void send_data(Request *req, Response res) {
 int nak_response(char *packet, uint32_t start, Request *req, Response res, Client *client) {
         uint32_t packet_index = start;
         Pdu_nak *nak = (Pdu_nak *) &packet[packet_index];
-        //uint32_t offset_first = ssp_ntohl(nak->start_scope);
-        //uint32_t offset_last = ssp_ntohl(nak->end_scope);
         uint64_t segments = ntohll(nak->segment_requests);
         packet_index += 16;
 
@@ -378,11 +383,8 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
 void parse_packet_client(char *packet, uint32_t packet_index, Response res, Request *req, Client* client) {
  
 
-    //Pdu_header *header = (Pdu_header *) packet;    
-    //uint16_t incoming_packet_data_len = ntohs(header->PDU_data_field_len);
     uint8_t directive = packet[packet_index];
     packet_index += 1; 
-
     switch(directive) {
         case FINISHED_PDU:
             req->local_entity.transaction_finished_indication = true;
@@ -390,8 +392,8 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             ssp_printf("received finished pdu transaction: %d\n", req->transaction_sequence_number);
             break;
         case NAK_PDU:
-            nak_response(packet, packet_index, req, res, client);
             ssp_printf("received Nak pdu transaction: %d\n", req->transaction_sequence_number);
+            nak_response(packet, packet_index, req, res, client);
             break;
         case ACK_PDU:
 
@@ -487,16 +489,6 @@ void user_request_handler(Response res, Request *req, Client* client) {
 
 ------------------------------------------------------------------------------*/
 
-
-
-/*
-static void print_offsets(void *element, void *args) {
-
-    Offset *off = (Offset *) element;
-    ssp_printf("missing offset start: %d end:%d\n", off->start, off->end);
-}
-*/
-
 static void request_eof(Request *req, Response res) {
     
     ssp_printf("sending eof nak transaction: %d\n", req->transaction_sequence_number);
@@ -585,7 +577,6 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
         process_file_request_metadata(req);
     else {
         printf("just receiving messages, closing request\n");
-        //req->local_entity.transaction_finished_indication = true;
         req->local_entity.EOF_recv_indication = true;
         req->procedure = none;
     }
@@ -602,7 +593,10 @@ void on_server_time_out(Response res, Request *req) {
         req->local_entity.transaction_finished_indication)
         return;
 
-
+    if (req->local_entity.transaction_finished_indication == true && RESEND_FINISHED_TIMES != req->resent_finished){
+        resend_finished_pdu(req, res);
+        return;
+    }
     if (req->resent_finished == RESEND_FINISHED_TIMES && req->local_entity.transaction_finished_indication) {
         req->procedure = clean_up;
         ssp_printf("file sent, closing request transaction: %d\n", req->transaction_sequence_number);

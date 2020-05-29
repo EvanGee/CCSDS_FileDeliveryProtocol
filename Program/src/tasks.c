@@ -88,7 +88,7 @@ static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, u
     res.addr = addr;
     res.sfd = sfd;
     res.size_of_addr = size_of_addr;
-
+    
     Request **request_container = &app->current_request;
     int packet_index = process_pdu_header(packet, true, res, request_container, app->request_list, app);
     if (packet_index < 0) {
@@ -125,6 +125,7 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
     res.size_of_addr = size_of_addr;
     res.transmission_mode = client->remote_entity.default_transmission_mode;
     res.msg = client->buff;
+    res.packet_len = packet_len;
 
     Request **request_container = &client->current_request;
 
@@ -173,7 +174,7 @@ static void user_request_check(Node *node, void *request, void *args) {
     
     remove_request_check(node, request, params->client->request_list);
 }
-//TODO can getrid of res here I think, well at least the addr
+
 static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, void *other) {
 
     Response res;    

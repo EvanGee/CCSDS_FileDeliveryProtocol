@@ -17,12 +17,12 @@ static void create_ssp_server_drivers(FTP *app) {
     } else if(app->remote_entity.type_of_network == posix_connection) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
 
-    } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+    } else if (app->remote_entity.type_of_network == csp) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
 
-    } else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
-    }
+    } //else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
+      //  app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
+   // }
 }
 
 static void create_ssp_client_drivers(Client *client) {
@@ -34,10 +34,10 @@ static void create_ssp_client_drivers(Client *client) {
     } else if(remote_entity.type_of_network == posix_connection) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
 
-    } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
+   // } else if (remote_entity.type_of_network == csp) {
+       // client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
 
-    } else if (remote_entity.type_of_network == csp && remote_entity.default_transmission_mode == UN_ACKNOWLEDGED_MODE) {
+    } else if (remote_entity.type_of_network == csp) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
     }
 
@@ -51,23 +51,6 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     if (error == -1) {
         ssp_error("couldn't start server\n");
         return NULL;
-    }
-
-    if (remote_entity.type_of_network == csp) {
-        
-        #ifdef CSP_NETWORK
-            ssp_printf("Initialising CSP\r\n");
-
-            /* Init CSP with address MY_ADDRESS */
-            csp_init(remote_entity.UT_address);
-
-            /* Init buffer system with 10 packets of maximum PACKET_LEN bytes each */
-            csp_buffer_init(10, remote_entity.mtu);
-
-            /* Start router task with 500 word stack, OS task priority 1 */
-            csp_route_start_task(500, 1);
-
-        #endif
     }
     
     FTP *app = ssp_alloc(sizeof(FTP), 1);
