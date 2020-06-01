@@ -148,14 +148,9 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     packet_index += header->length_of_entity_IDs;
 
     if (app->my_cfdp_id != dest_id){
-        if (is_server)
-            ssp_printf("SERVER: ");
-        else 
-            ssp_printf("CLIENT: ");
         ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", app->my_cfdp_id, dest_id);
         return -1;
     }
-
     //if packet is from the same request, don't' change current request
     Request *current_req = (*req);
 
@@ -187,8 +182,6 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
             res,
             app);
             
-        ssp_printf("source id %d my id: %d, dest id %d\n ", source_id, app->my_cfdp_id, found_req->dest_cfdp_id);
-
         if (found_req == NULL) {
             ssp_error("could not create request for incomming transmission");
             return -1;
@@ -385,6 +378,7 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
 
     uint8_t directive = packet[packet_index];
     packet_index += 1; 
+
     switch(directive) {
         case FINISHED_PDU:
             req->local_entity.transaction_finished_indication = true;
@@ -586,11 +580,7 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
 void on_server_time_out(Response res, Request *req) {
     
 
-    if (req->paused)
-        return;
-
-    if (req->transmission_mode == UN_ACKNOWLEDGED_MODE ||
-        req->local_entity.transaction_finished_indication)
+    if (req->paused || req->transmission_mode == UN_ACKNOWLEDGED_MODE)
         return;
 
     if (req->local_entity.transaction_finished_indication == true && RESEND_FINISHED_TIMES != req->resent_finished){
@@ -644,6 +634,8 @@ void on_server_time_out(Response res, Request *req) {
         }
         
         ssp_printf("checksum have: %u checksum_need: %u\n", req->file->partial_checksum, req->file->eof_checksum);
+        //uint32_t checksum = check_sum_file(req->file, 1000);
+        //ssp_printf("checksum re-calculated: %u\n", checksum);
         
     }
 

@@ -17,12 +17,12 @@ static void create_ssp_server_drivers(FTP *app) {
     } else if(app->remote_entity.type_of_network == posix_connection) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
 
-    } else if (app->remote_entity.type_of_network == csp) {
+    } else if (app->remote_entity.type_of_network == csp_connectionless) {
         app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
 
-    } //else if (app->remote_entity.type_of_network == csp && app->remote_entity.default_transmission_mode == ACKNOWLEDGED_MODE) {
-      //  app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
-   // }
+    } else if (app->remote_entity.type_of_network == csp_connection) {
+        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
+    }
 }
 
 static void create_ssp_client_drivers(Client *client) {
@@ -34,13 +34,12 @@ static void create_ssp_client_drivers(Client *client) {
     } else if(remote_entity.type_of_network == posix_connection) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
 
-   // } else if (remote_entity.type_of_network == csp) {
-       // client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
-
-    } else if (remote_entity.type_of_network == csp) {
+    } else if (remote_entity.type_of_network == csp_connectionless) {
         client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
     }
-
+    else if (remote_entity.type_of_network == csp_connection) {
+        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
+    }
 }
 
 FTP *init_ftp(uint32_t my_cfdp_address) {

@@ -461,6 +461,7 @@ void *ssp_csp_connectionless_server_task(void *params) {
 
         csp_connectionless_server(
             app->remote_entity.UT_port,
+            app->remote_entity.mtu,
             on_recv_server_callback, 
             on_time_out_callback_server, 
             on_stdin_callback, 
@@ -481,7 +482,8 @@ void *ssp_csp_connectionless_client_task(void *params) {
         
         csp_connectionless_client(client->remote_entity.UT_address, 
             client->remote_entity.UT_port,
-            client->app->remote_entity.UT_port, 
+            CSP_CLIENT_PORT,
+            client->remote_entity.mtu,
             on_send_client_callback, 
             on_recv_client_callback, 
             check_exit_client_callback, 
@@ -501,6 +503,7 @@ void *ssp_csp_connection_server_task(void *params) {
     FTP *app = (FTP *) params;
 
         csp_connection_server(app->remote_entity.UT_port,
+            app->remote_entity.mtu,
             on_recv_server_callback,
             on_time_out_callback_server,
             on_stdin_callback,
@@ -520,6 +523,8 @@ void *ssp_csp_connection_client_task(void *params) {
     Client *client = (Client *) params;
         csp_connection_client(client->remote_entity.UT_address, 
             client->remote_entity.UT_port,
+            CSP_CLIENT_PORT,
+            client->remote_entity.mtu,
             on_send_client_callback,
             on_recv_client_callback,
             check_exit_client_callback,

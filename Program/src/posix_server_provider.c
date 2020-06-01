@@ -13,7 +13,7 @@ Author: Evan Giese
 #include "port.h"
 #include <sys/select.h>
 
-static int exit_now;
+extern int exit_now;
  
 static int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len) {
     int count = 0;

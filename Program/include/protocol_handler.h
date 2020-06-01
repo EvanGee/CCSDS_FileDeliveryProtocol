@@ -9,8 +9,8 @@ Author: Evan Giese
 #include "types.h"
 
 #define RESEND_EOF_TIMES 3
-#define RESEND_FINISHED_TIMES 3
-#define TIMEOUT_BEFORE_CANCEL_REQUEST 10
+#define RESEND_FINISHED_TIMES 10
+#define TIMEOUT_BEFORE_CANCEL_REQUEST 30
 
 int parse_packet_server(char* buff, uint32_t packet_index, Response res, Request *req, FTP *app);
 void user_request_handler(Response res, Request *req, Client *client);

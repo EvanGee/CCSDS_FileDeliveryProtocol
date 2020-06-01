@@ -85,16 +85,23 @@ int ssp_close(int fd) {
 
 void ssp_sendto(Response res) {
     
-    if (res.type_of_network == csp /*&& res.transmission_mode == UN_ACKNOWLEDGED_MODE*/) {
+    if (res.type_of_network == csp_connectionless) {
         #ifdef CSP_NETWORK
             csp_packet_t *packet = (csp_packet_t *) res.addr;
             csp_packet_t *packet_sending;
 
             if (csp_buffer_remaining() != 0) {
                 packet_sending = csp_buffer_get(1);
-                
+                if (packet_sending == NULL) {
+                    ssp_printf("couldn't get packet, is NULL");
+                }  
+                                
+                ssp_printf("sending packet to dest %d port %d srcaddr %d srcport %d \n", packet->id.dst, packet->id.dport, packet->id.src, packet->id.sport);
+            
                 ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
-                int err = csp_sendto(0, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 10);
+                packet_sending->length = res.packet_len;
+
+                int err = csp_sendto(packet->id.pri, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
                 
                 if (err < 0) {
                     ssp_error("ERROR in ssp_sento");
@@ -104,10 +111,30 @@ void ssp_sendto(Response res) {
             else 
                 ssp_error("couldn't get new packet for sending!\n");
         #endif
-    } else {
+    } else if (res.type_of_network == csp_connection) {
+        #ifdef CSP_NETWORK
+            csp_conn_t *conn = (csp_conn_t*) res.addr;
+            csp_packet_t *packet_sending;
+
+            if (csp_buffer_remaining() != 0) {
+                packet_sending = csp_buffer_get(1);
+                if (packet_sending == NULL) {
+                    ssp_printf("couldn't get packet, is NULL");
+                }
+                ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
+                packet_sending->length = res.packet_len;
+                /* 5. Send packet */
+                if (!csp_send(conn, packet_sending, 1000)) {
+                    /* Send failed */
+                    csp_log_error("Send failed");
+                    csp_buffer_free(packet_sending);
+                }
+            }
+        #endif
+    }
+    else {
         #ifdef POSIX_PORT
             struct sockaddr* addr = (struct sockaddr*) res.addr;
-
             int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
             if (err < 0) {
                 ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(struct sockaddr));
