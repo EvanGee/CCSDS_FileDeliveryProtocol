@@ -11,34 +11,46 @@ Author: Evan Giese
 
 static void create_ssp_server_drivers(FTP *app) {
 
-    if (app->remote_entity.type_of_network == posix_connection_less) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, app);
-
-    } else if(app->remote_entity.type_of_network == posix_connection) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
-
-    } else if (app->remote_entity.type_of_network == csp_connectionless) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
-
-    } else if (app->remote_entity.type_of_network == csp_connection) {
-        app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
+    switch (app->remote_entity.type_of_network)
+    {
+        case posix_connectionless:
+            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, app);
+            break;
+        case posix_connection:
+            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
+            break;
+        case csp_connectionless:
+            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
+            break;
+        case csp_connection:
+            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
+            break;
+        default:
+            ssp_printf("server couldn't start, 'type of network' not recognized\n");
+            break;
     }
 }
 
 static void create_ssp_client_drivers(Client *client) {
     Remote_entity remote_entity = client->remote_entity;
 
-    if (remote_entity.type_of_network == posix_connection_less) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
-
-    } else if(remote_entity.type_of_network == posix_connection) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
-
-    } else if (remote_entity.type_of_network == csp_connectionless) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
-    }
-    else if (remote_entity.type_of_network == csp_connection) {
-        client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
+    switch (remote_entity.type_of_network)
+    {
+        case posix_connectionless:
+            client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_client_task, client);
+            break;
+        case posix_connection:
+            client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_client_task, client);
+            break;
+        case csp_connectionless:
+            client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_client_task, client);
+            break;
+        case csp_connection:
+            client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
+            break;
+        default:
+            ssp_printf("client couldn't start, 'type of network' not recognized\n");
+            break;
     }
 }
 

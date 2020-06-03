@@ -498,7 +498,7 @@ typedef struct local_entity {
 
 
 typedef enum Network_type {
-    posix_connection_less,
+    posix_connectionless,
     posix_connection,
     csp_connectionless,
     csp_connection,
