@@ -14,7 +14,6 @@ Here is an example of a MIB entry:
     "type_of_network" : 1,
     "default_transmission_mode" : 1,
     "MTU" : 1500,
-
     "one_way_light_time" : 123,
     "total_round_trip_allowance" : 123,
     "async_NAK_interval" : 123,
@@ -33,32 +32,49 @@ Here is an example of a MIB entry:
 
 Below are the meanings of the fields for the MIB
 
-cfdp_id
+- cfdp_id
     This is the unique identifier of a peer on the network. We can start it at 1
     and increment it from there. This is an unsigned integer (32 bit) value;
 
-
-UT_address
+- UT_address
     This is an Underlying Transmission address. For example, in an IP stack, this
-    would be an IP4 Ip address. This value is a decimal represenstation of an IP
+    would be an IP4 Ip address. This value is a decimal representation of an IP
     address. This particular one is 127.0.0.1. 
 
-
-UT_port
+- UT_port
     This os an Underlying Transmission port. For example, in an IP stack, this
-    would be a 16 bit value -- like port 8080. Combinded with the UT_address, 
+    would be a 16 bit value -- like port 8080. combined with the UT_address, 
     together they form a complete UT address. The one above would be equal to
     127.0.0.1:1111. This is an unsigned integer (16 bit) value
 
-type_of_network
+- type_of_network
     This number represents what type of network the underlying UT address takes.
-    currently, the only acceptable values are 0 and 1.
+    currently, the only acceptable values are 0 and 1. 
+    - 0: UDP
+    - 1: TCP
+    - 2: csp
 
+- default_transmission_mode:
+    not implemented
 
-default_transmission_mode:
-    not implmented
-
-MTU
-    This number represents the 'maximum transmissable unit' -- this will also
+- MTU
+    This number represents the 'maximum transmissible unit' -- this will also
     take the form of a buffer in the program. This value is the maximum size 
     packet that the application will receive. 
+
+- one_way_light_time : not implemented
+- total_round_trip_allowance : not implemented
+- async_NAK_interval : not implemented
+- async_keep_alive_interval : not implemented
+- async_report_interval : not implemented
+- immediate_nak_mode_enabled : not implemented
+- prompt_transmission_interval : not implemented
+- disposition_of_incomplete : not implemented
+- CRC_required : not implemented
+- keep_alive_discrepancy_limit : not implemented
+- positive_ack_timer_expiration_limit : not implemented
+- nak_timer_expiration_limit : not implemented
+- transaction_inactivity_limit : not implemented
+
+if you want to get in contact with me
+email me at evangiese77@gmail.com
