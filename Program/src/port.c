@@ -35,7 +35,7 @@ Author: Evan Giese
 
 /*------------------------------------------------------------------------------
     File system port functions, these are used to interchange different 
-    File systems
+    File systems, will add RELIANCE_EDGE here in the future
 ------------------------------------------------------------------------------*/
 int ssp_rename(const char *old, const char *new) {
     #ifdef POSIX_FILESYSTEM
@@ -153,16 +153,15 @@ void ssp_sendto(Response res) {
 
 void *ssp_alloc(uint32_t n_memb, size_t size) {
     
-    #ifdef POSIX_PORT
+    #ifdef FREE_RTOS_PORT
+        return pvPortMalloc(n_memb * size);
+    #else
         void *mem = calloc(n_memb, size);
         if (mem == NULL)
             ssp_error("Memory failed to alloc!\n");
         return mem;
     #endif
 
-    #ifdef FREE_RTOS_PORT
-        return pvPortMalloc(n_memb * size);
-    #endif
     
 }
 
@@ -170,62 +169,35 @@ void ssp_free(void *pointer) {
 
     if (pointer == NULL)
         return;
-        
-    #ifdef POSIX_PORT
-        free(pointer);
-    #endif
-
+    
     #ifdef FREE_RTOS_PORT
         vPortFree(pointer);
+    #else
+        free(pointer);
     #endif
     
 }
 
+//what kind of errorno functions do we have in RED_FS?
 void ssp_error(char *error){
-    #ifdef POSIX_PORT
-        perror(error);
-    #endif
-    #ifdef FREE_RTOS_PORT
-        perror(error);
-    #endif
-
+    perror(error);
 }
 
-//this can be switched to 
+//this can be switched to printing to a log file in the future, not sure
+//if FREE_RTOS has va_list
 void ssp_printf(char *stuff, ...) {
-    #ifdef POSIX_PORT
-        va_list args;
-        va_start(args, stuff);
-        vfprintf(stdout, stuff, args);
-        va_end (args);
-        fflush(stdout);
-    #endif
-
-    #ifdef FREE_RTOS_PORT
-        va_list args;
-        va_start(args, stuff);
-        vfprintf(stdout, stuff, args);
-        va_end (args);
-        fflush(stdout);
-    #endif
-
+    va_list args;
+    va_start(args, stuff);
+    vfprintf(stdout, stuff, args);
+    va_end (args);
+    fflush(stdout);
 }
 
-//returns seconds elapsed
+//returns seconds elapsed, need FREE RTOS realtime clock lib to properly port
 int ssp_time_count() {
-    #ifdef POSIX_PORT
-        struct timespec ts;
-        clock_gettime(CLOCK_REALTIME, &ts);
-
-        //clock_t c = clock();
-        //c = c / CLOCKS_PER_SEC;
-        return ts.tv_sec;
-    #endif
-
-    #ifdef FREE_RTOS_PORT
-        //some kind of ticks
-    #endif 
-    return -1;
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec;
 }
 
 /*------------------------------------------------------------------------------
@@ -233,8 +205,25 @@ int ssp_time_count() {
 ------------------------------------------------------------------------------*/
 void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void *params) {
 
+    #ifdef FREE_RTOS_PORT
 
-    #ifdef POSIX_PORT
+    TaskHandle_t *xHandle = ssp_alloc(1, sizeof(TaskHandle_t));
+    BaseType_t xReturned;
+    
+    /* Create the task, storing the handle. */
+    xReturned = xTaskCreate(
+                    thread_func,       /* Function that implements the task. */
+                    "FTP",          /* Text name for the task. */
+                    stack_size,      /* Stack size in words, not bytes. */
+                    params,    /* Parameter passed into the task. */
+                    tskIDLE_PRIORITY,/* Priority at which the task is created. */
+                    xHandle );      /* Used to pass out the created task's handle. */
+    if (xReturned == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY)
+        ssp_error("Not enough memory to start task\n");
+
+    return xHandle;
+
+    #else //pthreads
     pthread_t *handler = ssp_alloc(1,  sizeof(pthread_t));
     if (handler == NULL)
         return NULL;
@@ -270,24 +259,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     return handler;
     #endif
 
-    #ifdef FREE_RTOS_PORT
 
-    TaskHandle_t *xHandle = ssp_alloc(1, sizeof(TaskHandle_t));
-    BaseType_t xReturned;
-    
-    /* Create the task, storing the handle. */
-    xReturned = xTaskCreate(
-                    thread_func,       /* Function that implements the task. */
-                    "FTP",          /* Text name for the task. */
-                    stack_size,      /* Stack size in words, not bytes. */
-                    params,    /* Parameter passed into the task. */
-                    tskIDLE_PRIORITY,/* Priority at which the task is created. */
-                    xHandle );      /* Used to pass out the created task's handle. */
-    if (xReturned == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY)
-        ssp_error("Not enough memory to start task\n");
-
-    return xHandle;
-    #endif
 
 }
 
