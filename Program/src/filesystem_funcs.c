@@ -615,41 +615,24 @@ int save_req_to_file(Request *req) {
 
 static Message *read_in_proxy_message(int fd) {
 
-    uint8_t destination_file_name_len = 0;
-    char destination_file_name[255];
-    uint8_t src_file_name_len = 0;
-    char src_file_name[255];
-    uint8_t dest_id_len = 0;
-    uint32_t dest_id = 0;
 
     char *error_message = "failed to read put proxy message\n";
-    
-    int err = ssp_read(fd, (char*) &destination_file_name_len, sizeof(uint8_t));
+
+    LV destination_file;
+    LV src_file_name;
+    LV dest_id;
+
+    int err = read_lv(fd, &destination_file);
     if (err < 0) {
         ssp_error(error_message);
         return NULL;
     }
-    err = ssp_read(fd, destination_file_name, destination_file_name_len);
+    err = read_lv(fd, &src_file_name);
     if (err < 0) {
         ssp_error(error_message);
         return NULL;
     }
-    err = ssp_read(fd, (char*) &src_file_name_len, sizeof(uint8_t));
-    if (err < 0) {
-        ssp_error(error_message);
-        return NULL;
-    }
-    err = ssp_read(fd, src_file_name, src_file_name_len);
-    if (err < 0) {
-        ssp_error(error_message);
-        return NULL;
-    }
-    err = ssp_read(fd, (char*) &dest_id_len, sizeof(uint8_t));
-    if (err < 0) {
-        ssp_error(error_message);
-        return NULL;
-    }
-    err = ssp_read(fd, (char *)&dest_id, dest_id_len);
+    err = read_lv(fd, &dest_id);
     if (err < 0) {
         ssp_error(error_message);
         return NULL;
@@ -659,12 +642,14 @@ static Message *read_in_proxy_message(int fd) {
     if (message == NULL)
         return NULL;
 
-    //why does this not work?
-    Message_put_proxy *proxy_message = create_message_put_proxy(dest_id, dest_id_len, src_file_name, destination_file_name);
+    Message_put_proxy *proxy_message = ssp_alloc(1, sizeof(Message_put_proxy));
     if (proxy_message == NULL) {
         ssp_free(message);
         return NULL;
     }
+    proxy_message->destination_file_name = destination_file;
+    proxy_message->source_file_name = src_file_name;
+    proxy_message->destination_id = dest_id;
     
     message->value = proxy_message;
     return message;
