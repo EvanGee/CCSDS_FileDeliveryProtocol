@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include "test.h"
 
+
+
 static void nak_print(Node *node, void *element, void *args){
     Offset *offset = (Offset *)element;
     ssp_printf("start: %u end: %u\n", offset->start, offset->end);
@@ -37,6 +39,41 @@ void print_json(char *key, char *value, void *params) {
 int read_json_file_test() {
 
     int error = read_json("mib/peer_1.json", print_json, NULL);
+
+    return 1;
+}
+
+
+int test_write_lv() {
+
+    DECLARE_NEW_TEST("test write lv");
+    char *my_file_name = "temp/test_lv_write";
+    int fd = ssp_open(my_file_name, O_RDWR | O_CREAT);
+    if (fd < 0) {
+        ssp_error("couldn't open file\n");
+        return -1;
+    }
+
+    LV lv;
+    lv.value = my_file_name;
+    lv.length = strnlen(my_file_name, 255);
+    
+    int error = write_lv(fd, lv);
+    if (error < 0) {
+        return -1;
+    }
+    //seek back to start of file
+    ssp_lseek(fd, 0, 0);
+
+    LV new_lv;
+    error = read_lv(fd, &new_lv);
+    if (error < 0) {
+        return -1;
+    }
+
+    ASSERT_EQUALS_STR("write&read lv value to file", lv.value, my_file_name, lv.length);
+    ASSERT_EQUALS_INT("write&read lv length", new_lv.length, lv.length);
+    free_lv(new_lv);
 
     return 1;
 }
@@ -178,8 +215,9 @@ static int test_saving_request(){
 
 int file_system_tests() {
     int error = 0;
+    error = test_write_lv();
     error = test_saving_request();
-    //error = test_save_file();
+    error = test_save_file();
     return error;
 }
 

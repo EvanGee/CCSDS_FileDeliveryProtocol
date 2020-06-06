@@ -447,6 +447,42 @@ int get_file_from_file(int fd, File *file) {
 //dest_file
 //length
 //src_file
+
+int write_lv(int fd, LV lv){
+
+    char *error_message = "failed to write lv\n";
+    int err = ssp_write(fd, (char*)&lv.length, sizeof(uint8_t));
+    if (err < 0) {
+        ssp_error(error_message);
+        return -1;
+    }
+    err = ssp_write(fd, (char*)&lv.value, lv.length);
+    if (err < 0) {
+        ssp_error(error_message);
+        return -1;
+    }
+    return 1;
+}
+int read_lv(int fd, LV *lv){
+
+    char *error_message = "failed to read lv\n";
+    int err = ssp_read(fd, (char*)&lv->length, sizeof(uint8_t));
+    if (err < 0) {
+        ssp_error(error_message);
+        return -1;
+    }
+    lv->value = ssp_alloc(lv->length, sizeof(uint8_t));
+    if(lv->value == NULL) {
+        return -1;
+    }
+    err = ssp_read(fd, (char*)lv->value, lv->length);
+    if (err < 0) {
+        ssp_error(error_message);
+        return -1;
+    }
+    return 1;
+}
+
 static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy_message) {
 
     char *error_message = "failed to write put proxy message\n";
@@ -639,7 +675,6 @@ static Message *read_in_proxy_message(int fd) {
         return NULL;
 
     //why does this not work?
-    
     Message_put_proxy *proxy_message = create_message_put_proxy(dest_id, dest_id_len, src_file_name, destination_file_name);
     if (proxy_message == NULL) {
         ssp_free(message);
@@ -671,7 +706,6 @@ static int get_messages_from_file(int fd, List *messages){
             {
                 case PROXY_PUT_REQUEST:
                     message = read_in_proxy_message(fd);
-
                     break;
 
                 default:

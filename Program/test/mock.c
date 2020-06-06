@@ -69,7 +69,7 @@ Response *mock_response() {
     res->sfd = 1;
     res->packet_len = 1500;
     res->size_of_addr = 16;
-    res->type_of_network = posix_connection_less;
+    res->type_of_network = posix_connectionless;
     res->transmission_mode = UN_ACKNOWLEDGED_MODE;
     return res;
 }
@@ -106,7 +106,7 @@ Request *mock_request() {
     req->res.sfd = 1;
     req->res.packet_len = 2000;
     req->res.size_of_addr = 16;
-    req->res.type_of_network = posix_connection_less;
+    req->res.type_of_network = posix_connectionless;
     req->res.transmission_mode = UN_ACKNOWLEDGED_MODE;
     req->res.msg = req->buff;
     req->messages_to_user = linked_list();

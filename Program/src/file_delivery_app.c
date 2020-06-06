@@ -60,7 +60,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     Remote_entity remote_entity;
     int error = get_remote_entity_from_json(&remote_entity, my_cfdp_address);
     if (error == -1) {
-        ssp_error("couldn't start server\n");
+        ssp_error("can't get configuration data, can't start server.\n");
         return NULL;
     }
     
