@@ -443,11 +443,6 @@ int get_file_from_file(int fd, File *file) {
     return 0;
 }
 
-//length
-//dest_file
-//length
-//src_file
-
 int write_lv(int fd, LV lv){
 
     char *error_message = "failed to write lv\n";
@@ -456,7 +451,7 @@ int write_lv(int fd, LV lv){
         ssp_error(error_message);
         return -1;
     }
-    err = ssp_write(fd, (char*)&lv.value, lv.length);
+    err = ssp_write(fd, (char*)lv.value, lv.length);
     if (err < 0) {
         ssp_error(error_message);
         return -1;
@@ -483,46 +478,35 @@ int read_lv(int fd, LV *lv){
     return 1;
 }
 
+//length
+//dest_file
+//length
+//src_file
+
 static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy_message) {
 
     char *error_message = "failed to write put proxy message\n";
-    int err = ssp_write(fd, &proxy_message->destination_file_name.length, sizeof(uint8_t));
+    
+    int err = write_lv(fd, proxy_message->destination_file_name);
     if (err < 0) {
         *error = err;
         ssp_error(error_message);
         return;
     }
-    err = ssp_write(fd, proxy_message->destination_file_name.value, proxy_message->destination_file_name.length);
-    if (err < 0) {
-        *error = err;
-        ssp_error(error_message);
-        return;
-    }
-    err = ssp_write(fd, &proxy_message->source_file_name.length, sizeof(uint8_t));
-    if (err < 0) {
-        *error = err;
-        ssp_error(error_message);
-        return;
-    }
-    err = ssp_write(fd, proxy_message->source_file_name.value, proxy_message->source_file_name.length);
-    if (err < 0) {
-        *error = err;
-        ssp_error(error_message);
-        return;
-    }
-    err = ssp_write(fd, &proxy_message->destination_id.length, sizeof(uint8_t));
-    if (err < 0) {
-        *error = err;
-        ssp_error(error_message);
-        return;
-    }
-    err = ssp_write(fd, proxy_message->destination_id.value, proxy_message->destination_id.length);
+    
+    err = write_lv(fd, proxy_message->source_file_name);
     if (err < 0) {
         *error = err;
         ssp_error(error_message);
         return;
     }
 
+    err = write_lv(fd, proxy_message->destination_id);
+    if (err < 0) {
+        *error = err;
+        ssp_error(error_message);
+        return;
+    }
 }
 static void write_message_callback(Node *node, void *element, void *param) {
 
@@ -639,6 +623,7 @@ static Message *read_in_proxy_message(int fd) {
     uint32_t dest_id = 0;
 
     char *error_message = "failed to read put proxy message\n";
+    
     int err = ssp_read(fd, (char*) &destination_file_name_len, sizeof(uint8_t));
     if (err < 0) {
         ssp_error(error_message);
