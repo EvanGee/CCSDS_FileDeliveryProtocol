@@ -191,6 +191,24 @@ int test_lv_functions() {
     
 }
 
+int init_cont_partial_request_test() {
+    Message_cont_part_request p_cont;
+    uint32_t dest_id = 3;
+    uint32_t org_id = 4;
+    uint64_t tran_id = 1;
+    
+    p_cont.destination_id.value = &dest_id;
+    p_cont.originator_id.value = &org_id;
+    p_cont.transaction_id.value = &tran_id;
+    uint32_t buff_len = 1500;
+    char buff[buff_len];
+
+    int error = init_cont_partial_request(&p_cont, buff, buff_len);
+    if (error < 0) {
+        ssp_error("whoops\n");
+        return -1;
+    }
+}
 
 int request_user_input_tests() {
 
@@ -210,5 +228,6 @@ int request_tests() {
     error = test_lv_functions();
     error = add_continue_partial_message();
 
+    error = init_cont_partial_request_test();
     return error;
 }

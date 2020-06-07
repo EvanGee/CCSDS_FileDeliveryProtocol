@@ -17,6 +17,7 @@ Author: Evan Giese
 #include "types.h"
 #include "filesystem_funcs.h"
 #include "file_delivery_app.h"
+#include "mib.h"
 
 
 //returns total space taken up in the packet from the added lv
@@ -68,6 +69,36 @@ Message *create_message(uint8_t type) {
         Messages (additional minor requests, things like mv files)
 ------------------------------------------------------------------------------*/
 
+//this will turn a incoming request to a request that will go out later
+int init_cont_partial_request(Message_cont_part_request *p_cont, char *buff, uint32_t buff_len) {
+
+    Request req;
+    
+    uint32_t dest_id = *(uint32_t*)p_cont->destination_id.value;
+    uint64_t trans_num = *(uint64_t*)p_cont->transaction_id.value;
+    uint32_t ord_id = *(uint32_t*)p_cont->originator_id.value;
+
+    int error = get_req_from_file(ord_id, trans_num, &req);
+    if (error < 0) {
+        ssp_error("couldn't get request from file system\n");
+        return error;
+    }
+    req.dest_cfdp_id = dest_id;
+    error = get_remote_entity_from_json(&req.remote_entity, dest_id);
+    if (error < 0) {
+        ssp_error("couldn't get remote config from file system\n");
+        return error;
+    }
+    req.local_entity.EOF_sent_indication = req.local_entity.EOF_recv_indication;
+    req.local_entity.Metadata_sent_indication = req.local_entity.Metadata_recv_indication;
+    req.local_entity.resumed_indication = 1;
+    req.local_entity.suspended_indication = 0;
+    req.local_entity.transaction_finished_indication = 0;
+
+    get_header_from_mib(&req.pdu_header, req.remote_entity, req.dest_cfdp_id);
+    save_req_to_file(&req);
+    return 1;
+}
 
 
 //Omission of source and destination filenames shall indicate that only Meta
@@ -137,7 +168,7 @@ int add_cont_partial_message_to_request(uint32_t beneficial_cfid,
                                     uint8_t transaction_id_length,
                                     Request *req){
 
-    Message *message = create_message(PROXY_CONTINUE_PARTIAL);
+    Message *message = create_message(CONTINUE_PARTIAL);
     if (message == NULL)
         return -1;
 
@@ -185,7 +216,7 @@ void ssp_free_message(void *params) {
             ssp_free_put_proxy_message(proxy_request);
             break;
 
-        case PROXY_CONTINUE_PARTIAL:
+        case CONTINUE_PARTIAL:
             proxy_cont_partial_request = (Message_cont_part_request *) message->value;
             ssp_free_proxy_cont_partial_request(proxy_cont_partial_request);
             break;
@@ -289,14 +320,8 @@ Request *put_request(
     Request *req;
     uint32_t file_size = 0;
 
-    bool exists = does_file_exist(source_file_name);
-    if (exists == false) {
-        ssp_printf("ERROR: File does not exist\n");
-        return NULL;
-    }
-
     ssp_printf("trying to start new request\n");
-    if (source_file_name == NULL || destination_file_name == NULL) {
+    if (source_file_name == NULL && destination_file_name == NULL) {
         req = start_new_client_request(app, dest_id);
         req->transmission_mode = transmission_mode;
         req->procedure = sending_start;
@@ -305,6 +330,12 @@ Request *put_request(
 
     if (strnlen(source_file_name, MAX_PATH) == 0 || strnlen(destination_file_name, MAX_PATH) == 0) {
         ssp_printf("ERROR: no file names present in put request, if you want to just send messages, make both source and dest NULL\n");
+        return NULL;
+    }
+
+    bool exists = does_file_exist(source_file_name);
+    if (exists == false) {
+        ssp_printf("ERROR: File does not exist\n");
         return NULL;
     }
 
@@ -358,7 +389,10 @@ static void print_messages_callback(Node *node, void *element, void *args) {
 void print_request_state(Request *req) {
 
     ssp_printf("----------------Transaction %d---------------\n", req->transaction_sequence_number);
-    ssp_printf("local_entity stats: \n");
+    
+    ssp_printf("local_entity id and stats: \n");
+
+    ssp_printf("destination id %d: \n", req->dest_cfdp_id);
     ssp_printf("EOF_recv indication %d\n", req->local_entity.EOF_recv_indication);
     ssp_printf("EOF_sent indication %d\n", req->local_entity.EOF_sent_indication);
     ssp_printf("Metadata_recv indication %d\n", req->local_entity.Metadata_recv_indication);
@@ -367,11 +401,13 @@ void print_request_state(Request *req) {
     ssp_printf("Suspended indication %d\n", req->local_entity.suspended_indication);
     ssp_printf("Transaction finished indication %d\n", req->local_entity.transaction_finished_indication);
     
-    if (req->file != NULL)
+    if (req->file != NULL) {
         ssp_printf("checksum received = %u checksum calculated = %u\n", req->file->eof_checksum, req->file->partial_checksum);
-
+        ssp_printf("offset list count %d\n", req->file->missing_offsets->count);
+    }
     print_request_procedure(req);
     
+    ssp_printf("current message count %d\n", req->messages_to_user->count);
     ssp_printf("current messages: \n");
     req->messages_to_user->iterate(req->messages_to_user, print_messages_callback, NULL);
     

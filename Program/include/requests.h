@@ -38,6 +38,7 @@ Message_cont_part_request *create_message_cont_partial_request(uint32_t benefici
                                                     uint32_t transaction_id,
                                                     uint8_t transaction_id_length);
 
+int init_cont_partial_request(Message_cont_part_request *p_cont, char *buff, uint32_t buff_len);
 void print_request_state(Request *req);
 void ssp_free_message(void *params);
 uint16_t copy_lv_to_buffer(char *buffer, LV lv);

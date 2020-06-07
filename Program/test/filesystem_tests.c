@@ -207,17 +207,88 @@ static int test_saving_request(){
 
     ssp_cleanup_req(req);
     got_req.messages_to_user->free(got_req.messages_to_user, ssp_free_message);
-    
     //need to free list
     return error;
 }
 
 
+int test_save_file_and_messages() {
+
+    DECLARE_NEW_TEST("test saving file and messages");
+    int error = 0;
+    Request *req = mock_empty_request();
+
+    req->dest_cfdp_id = 2;
+    req->transaction_sequence_number = 2;
+    req->local_entity.EOF_recv_indication = 1;
+    req->local_entity.EOF_sent_indication = 1;
+    req->local_entity.suspended_indication = 1;
+    char *dest_file = "stuff";
+    char *src_file = "morestuff";
+
+    Message *m = create_message(PROXY_PUT_REQUEST);
+    m->value = create_message_put_proxy(1, 1, src_file, dest_file);
+    req->messages_to_user->push(req->messages_to_user, m, 0);
+
+    m = create_message(PROXY_PUT_REQUEST);
+    m->value = create_message_put_proxy(1, 1, src_file, dest_file);
+    req->messages_to_user->push(req->messages_to_user, m, 0);
+
+    m = create_message(PROXY_PUT_REQUEST);
+    m->value = create_message_put_proxy(1, 1, src_file, dest_file);
+    req->messages_to_user->push(req->messages_to_user, m, 0);
+
+    error = save_req_to_file(req);
+    if (error == -1)
+        printf("failed to write\n");
+
+    File file;
+    memset(&file, 0, sizeof(File));
+
+    file.missing_offsets = linked_list();
+
+    Offset one = {
+        0, 250
+    };
+    Offset two = {
+        100, 250
+    };
+    Offset three = {
+        250, 250
+    };
+    
+    file.missing_offsets->push(file.missing_offsets, &one, -1);
+    file.missing_offsets->push(file.missing_offsets, &two, -1);
+    file.missing_offsets->push(file.missing_offsets, &three, -1);
+    req->file = &file;
+
+
+    Request got_req;
+
+    error = save_req_to_file(req);
+    if (error < 0)
+        printf("failed to write\n");
+
+    error = get_req_from_file(2, 2, &got_req);
+    if (error < 0)
+        printf("failed to write\n");
+
+
+    print_request_state(&got_req);
+
+    return 1;
+}
+
+
+
+
+
 int file_system_tests() {
     int error = 0;
-    error = test_write_lv();
-    error = test_saving_request();
-    error = test_save_file();
+    //error = test_write_lv();
+    //error = test_saving_request();
+    //error = test_save_file();
+    error = test_save_file_and_messages();
     return error;
 }
 

@@ -395,7 +395,7 @@ int save_file_to_file(int fd, File *file) {
     file->missing_offsets->iterate(file->missing_offsets, save_file_callback, &param);      
     return param.error;  
 }
-
+//[file][length][offsets]
 int get_file_from_file(int fd, File *file) {
 
     uint32_t length = 0;
@@ -411,7 +411,6 @@ int get_file_from_file(int fd, File *file) {
         ssp_error(error_msg);
         return -1;
     }
-
     Offset offset;
     memset(&offset, 0, sizeof(Offset));
 
@@ -564,7 +563,7 @@ int save_req_to_file(Request *req) {
 
     char file_name[255];
     ssp_snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".binary");
-    
+  
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
@@ -693,9 +692,11 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Reque
     
     char file_name[255];
 
+    
     ssp_snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
+    ssp_printf("opening %s\n", file_name);
 
-    int fd = ssp_open(file_name, O_RDWR | O_CREAT);
+    int fd = ssp_open(file_name, O_RDWR);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
         return -1;
@@ -712,22 +713,32 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Reque
     if (error == -1)
         return -1;
     
-    File *file;
+    File *file = NULL;
     if (is_file_present) {
         file = ssp_alloc(1, sizeof(File));
         if (file == NULL) {
             return -1;
         }
         error = get_file_from_file(fd, file);
+        if (error < 0) {
+            ssp_free(file);
+            return -1;
+        }
+        req->file = file;
     }
 
     List *messages = linked_list();
-    if (messages == NULL)
+    if (messages == NULL) {
+        ssp_free(file);
         return -1;
+    }
 
     error = get_messages_from_file(fd, messages);
-    if (error == -1) 
+    if (error == -1) {
+        ssp_free(file);
+        messages->freeOnlyList(messages);
         return -1;
+    }
 
     req->messages_to_user = messages;
 

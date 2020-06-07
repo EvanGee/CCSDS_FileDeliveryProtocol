@@ -257,25 +257,47 @@ uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill)
     return packet_index;
 }
 
-
 void process_messages(Request *req, FTP *app) {
 
     if (req->messages_to_user->count == 0)
         return;
         
     Message *message = req->messages_to_user->pop(req->messages_to_user);
-    if (message->header.message_type == PROXY_PUT_REQUEST){
-        
-        Message_put_proxy *p = (Message_put_proxy *) message->value;
-        ssp_printf("received proxy request for source file name: %s dest file name %s, to id %d\n", 
-        (char *)p->source_file_name.value,
-        (char *)p->destination_file_name.value,
-        *(uint8_t*)p->destination_id.value);
+    Message_put_proxy *p_put;
+    Message_cont_part_request *p_cont;
+    //int error = 0;
 
-        start_request(put_request(*(uint8_t*)p->destination_id.value,
-        (char *)p->source_file_name.value, 
-        (char *)p->destination_file_name.value, ACKNOWLEDGED_MODE, app));
-        ssp_free_message(message);
+    switch (message->header.message_type)
+    {
+        case PROXY_PUT_REQUEST:
+                
+            p_put = (Message_put_proxy *) message->value;
+            ssp_printf("received proxy request for source file name: %s dest file name %s, to id %d\n", 
+            (char *)p_put->source_file_name.value,
+            (char *)p_put->destination_file_name.value,
+            *(uint8_t*)p_put->destination_id.value);
+
+            start_request(put_request(*(uint8_t*)p_put->destination_id.value,
+            (char *)p_put->source_file_name.value, 
+            (char *)p_put->destination_file_name.value, ACKNOWLEDGED_MODE, app));
+            ssp_free_message(message);
+            break;
+
+        case CONTINUE_PARTIAL:
+            
+            p_cont = (Message_cont_part_request *) message->value;
+            ssp_printf("received message request to continue one way communication destination id %d, originator id %d, transaction id %d\n",
+            *(uint32_t*)p_cont->destination_id.value, *(uint32_t*)p_cont->originator_id.value, *(uint32_t*)p_cont->transaction_id.value);
+
+            
+            //error = get_req_from_file(*(uint32_t*)p_cont->destination_id.value, *(uint64_t*)p_cont->transaction_id.value, req);
+            
+            
+        default:
+            break;
+    }
+    if (message->header.message_type == PROXY_PUT_REQUEST){
+       
 
     }   
 
@@ -559,7 +581,6 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
 
     ssp_printf("received metadata packet transaction: %d\n", req->transaction_sequence_number);
     packet_index += fill_request_pdu_metadata(&packet[packet_index], req);
-
     uint16_t data_len = get_data_length(packet);
 
     get_messages_from_packet(packet, packet_index, data_len, req);

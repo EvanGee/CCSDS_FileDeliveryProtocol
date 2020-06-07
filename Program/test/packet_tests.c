@@ -303,7 +303,7 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
     packet_index = add_messages_to_packet(packet, packet_index, req->messages_to_user);
 
     ASSERT_EQUALS_STR("'cfdp' should be at the start of the message", &packet[start], "cfdp", 5);
-    ASSERT_EQUALS_INT("testing PROXY_PUT_REQUEST code", (uint8_t) packet[start + 5], PROXY_CONTINUE_PARTIAL);
+    ASSERT_EQUALS_INT("testing CONTINUE_PARTIAL code", (uint8_t) packet[start + 5], CONTINUE_PARTIAL);
 
 
     LV dest_id, original_id, transaction_id;
@@ -493,7 +493,7 @@ int packet_tests() {
     test_add_messages_to_packet(packet, data_start_index);
     test_get_message_from_packet(packet, data_start_index);
     test_get_messages_from_packet(packet, data_start_index);
-    
+    test_add_cont_part_to_packet(packet, data_start_index);
     return 0;
 
 }

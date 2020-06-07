@@ -125,7 +125,7 @@ uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {
     packet_index += destination_file_length;
 
     //add messages to metadata
-    packet_index = add_messages_to_packet(packet, packet_index, req->messages_to_user);
+    packet_index += add_messages_to_packet(packet, packet_index, req->messages_to_user);
 
     uint8_t data_len = packet_index - start; 
     set_packet_header(packet, data_len, DIRECTIVE);
@@ -336,7 +336,6 @@ static void add_messages_callback(Node *node, void *element, void *args) {
 
     Message_put_proxy *proxy_put;
     Message_cont_part_request *proxy_cont_part;
-
     switch (message->header.message_type)
     {
         case PROXY_PUT_REQUEST:
@@ -346,7 +345,7 @@ static void add_messages_callback(Node *node, void *element, void *args) {
             packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_put->destination_file_name);
             break;
 
-        case PROXY_CONTINUE_PARTIAL:
+        case CONTINUE_PARTIAL:
             proxy_cont_part = (Message_cont_part_request *) message->value;
             packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_cont_part->destination_id);
             packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_cont_part->originator_id);
@@ -384,8 +383,9 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
     Message_cont_part_request *proxy_cont_part;
 
     uint32_t message_start = start + 6;
+    uint32_t message_type = start + 5;
 
-    switch (packet[start + 5])
+    switch (packet[message_type])
     {
         case PROXY_PUT_REQUEST:
             m = create_message(PROXY_PUT_REQUEST);
@@ -403,8 +403,8 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             message_start += proxy_put->destination_file_name.length + 1;
             break;
 
-        case PROXY_CONTINUE_PARTIAL:
-            m = create_message(PROXY_CONTINUE_PARTIAL);
+        case CONTINUE_PARTIAL:
+            m = create_message(CONTINUE_PARTIAL);
             
             m->value = ssp_alloc(1, sizeof(Message_cont_part_request));
             proxy_cont_part = (Message_cont_part_request *) m->value;
@@ -431,11 +431,11 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
 uint32_t get_messages_from_packet(char *packet, uint32_t start, uint32_t data_length, Request *req) {
 
     uint32_t packet_index = start;
-
     while (packet_index < data_length - 5) {
 
         if (strncmp(&packet[packet_index], "cfdp", 5))
             break;
+
 
         packet_index = get_message_from_packet(packet, packet_index, req);
     }
