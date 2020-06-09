@@ -182,7 +182,7 @@ static int test_saving_request(){
 
     //---------------------------GETTING REQUEST--------------------------------
     Request got_req;
-    error = get_req_from_file(1, 1, &got_req);
+    error = get_req_from_file(1, 1, 1, &got_req);
     if (error < 0)
         printf("failed to write\n");
     
@@ -269,7 +269,7 @@ int test_save_file_and_messages() {
     if (error < 0)
         printf("failed to write\n");
 
-    error = get_req_from_file(2, 2, &got_req);
+    error = get_req_from_file(2, 2, 2, &got_req);
     if (error < 0)
         printf("failed to write\n");
 

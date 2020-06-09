@@ -597,6 +597,7 @@ typedef struct request {
 
     uint64_t transaction_sequence_number;
     uint32_t dest_cfdp_id;
+    uint32_t my_cfdp_id;
 
     File *file;
     uint32_t file_size;

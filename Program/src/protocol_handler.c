@@ -102,7 +102,7 @@ static int find_request(void *element, void *args) {
         found_req->transaction_sequence_number = transaction_sequence_number;
         found_req->dest_cfdp_id = source_id;
         found_req->pdu_header = pdu_header;
-
+        found_req->my_cfdp_id = app->my_cfdp_id;
         found_req->remote_entity = remote_entity;
         found_req->procedure = sending_put_metadata;
 
@@ -265,8 +265,10 @@ void process_messages(Request *req, FTP *app) {
     Message *message = req->messages_to_user->pop(req->messages_to_user);
     Message_put_proxy *p_put;
     Message_cont_part_request *p_cont;
-    //int error = 0;
+    int error = 0;
+    char *error_msg = "couldn't process messages: %s";
 
+    //on failure, these will send back an error message to the requester
     switch (message->header.message_type)
     {
         case PROXY_PUT_REQUEST:
@@ -280,26 +282,31 @@ void process_messages(Request *req, FTP *app) {
             start_request(put_request(*(uint8_t*)p_put->destination_id.value,
             (char *)p_put->source_file_name.value, 
             (char *)p_put->destination_file_name.value, ACKNOWLEDGED_MODE, app));
-            ssp_free_message(message);
             break;
 
         case CONTINUE_PARTIAL:
             
             p_cont = (Message_cont_part_request *) message->value;
+            uint32_t dest_id = *(uint8_t*)p_cont->destination_id.value;
+            uint32_t orig_id = *(uint8_t*)p_cont->originator_id.value;
+            uint32_t tran_id = *(uint8_t*)p_cont->transaction_id.value;
+            
             ssp_printf("received message request to continue one way communication destination id %d, originator id %d, transaction id %d\n",
-            *(uint32_t*)p_cont->destination_id.value, *(uint32_t*)p_cont->originator_id.value, *(uint32_t*)p_cont->transaction_id.value);
-
+            dest_id, orig_id, tran_id);
             
-            //error = get_req_from_file(*(uint32_t*)p_cont->destination_id.value, *(uint64_t*)p_cont->transaction_id.value, req);
+            if (orig_id != app->my_cfdp_id) {
+                ssp_printf(error_msg, "continue partial request, wrong originator ID");
+                return;
+            }
             
+            error = init_cont_partial_request(p_cont, app->buff, app->packet_len);
+            if (error < 0)
+                ssp_printf(error_msg, "continue partial request");
             
         default:
             break;
     }
-    if (message->header.message_type == PROXY_PUT_REQUEST){
-       
-
-    }   
+    ssp_free_message(message); 
 
 }
 

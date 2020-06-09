@@ -77,6 +77,11 @@ int ssp_close(int fd) {
     #endif
 }
 
+int ssp_remove(char *pathname){
+    #ifdef POSIX_FILESYSTEM
+        return remove(pathname);
+    #endif
+}
 
 /*------------------------------------------------------------------------------
     Network port functions, these are used to interchange different network

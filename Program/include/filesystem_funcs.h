@@ -36,6 +36,7 @@ int read_lv(int fd, LV *lv);
 int save_req_to_file(Request *req);
 int save_file_to_file(int fd, File *file);
 int get_file_from_file(int fd, File *file);
-int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req);
+int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint32_t my_cfdp_id, Request *req);
+int delete_saved_request(Request *req);
 
 #endif 

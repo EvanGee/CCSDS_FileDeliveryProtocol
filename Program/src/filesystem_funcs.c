@@ -557,13 +557,25 @@ static int write_file_present_bool(int fd, File *file) {
     return error;
 }
 
+static void get_file_name(char *filename, uint32_t dest_cfdp_id, uint32_t cfdp_id, uint64_t trans) {
+    ssp_snprintf(filename, 255, "%s%u%s%u%s%llu%s", "incomplete_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".request");
+}
+
+int delete_saved_request(Request *req) {
+    char file_name[255];
+    get_file_name(file_name, req->dest_cfdp_id, req->my_cfdp_id, req->transaction_sequence_number);
+    ssp_printf("deleting %s\n", file_name);
+    int error = ssp_remove(file_name);
+    return error;
+}
+
 //work in progress
 //[REQ][IS_FILE_PRESENT][FILE][MESSAGE_LENGTH][MESSAGES]
 int save_req_to_file(Request *req) {
 
     char file_name[255];
-    ssp_snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", req->dest_cfdp_id, ":num:", req->transaction_sequence_number, ".binary");
-  
+    get_file_name(file_name, req->dest_cfdp_id, req->my_cfdp_id, req->transaction_sequence_number);
+   
     int fd = ssp_open(file_name, O_RDWR | O_CREAT);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
@@ -572,8 +584,10 @@ int save_req_to_file(Request *req) {
     
     //writing request struct
     int error = ssp_write(fd, req, sizeof(Request));
-    if (error == -1) 
+    if (error == -1) {
+        ssp_printf("couldnt write request struct\n");
         return -1;
+    }
 
     struct params param = {
         0,
@@ -582,32 +596,41 @@ int save_req_to_file(Request *req) {
 
     //writing is file present
     error = write_file_present_bool(fd, req->file);
-    if (error < 0)
+    if (error < 0){
+        ssp_printf("couldnt write bool\n");
         return -1;
+    }
         
     //writing file
     if (req->file != NULL) {
         error = save_file_to_file(fd, req->file);
-        if (error < 0)
+        if (error < 0) {
+            ssp_printf("couldnt write file\n");
             return -1;
+        }
     }
 
     //writing message count
     error = ssp_write(fd, &req->messages_to_user->count, sizeof(uint8_t));
-    if (error == -1) 
+    if (error == -1) {
+        ssp_printf("couldnt write message count\n");
         return -1;
+    }
 
     if (!req->messages_to_user->count)
         return 0;
 
     //writing messages
     req->messages_to_user->iterate(req->messages_to_user, write_message_callback, &param);
-    if (param.error < 0)
+    if (param.error < 0) {
+        ssp_printf("couldnt write messsages\n");
         return -1;
+    }
 
     error = ssp_close(fd);
     if (error < 0) {
         ssp_error("couldn't close file descriptor\n");
+        return -1;
     }
     return 0;
 }
@@ -676,9 +699,12 @@ static int get_messages_from_file(int fd, List *messages){
                 case PROXY_PUT_REQUEST:
                     message = read_in_proxy_message(fd);
                     break;
-
+                case CONTINUE_PARTIAL:
+                    ssp_printf("this type of message is not implmeneted yet\n");
+                    continue;
                 default:
-                    break;
+                    ssp_printf("failed to read in message, no known message type\n");
+                    continue;
             }
             message->header.message_type = message_type;
             messages->push(messages, message, -1);
@@ -688,12 +714,13 @@ static int get_messages_from_file(int fd, List *messages){
 }
 
 //[REQ][IS_FILE_PRESENT][FILE][MESSAGE_LENGTH][MESSAGES]
-int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Request *req) {
+int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint32_t my_cfdp_id, Request *req) {
     
     char file_name[255];
-
+    //will overwrite messages pointer, so we need to save it
+    List *messages = req->messages_to_user;
     
-    ssp_snprintf(file_name, 255, "%s%u%s%llu%s", "incomplete_requests/pending_req_id:", dest_cfdp_id, ":num:", transaction_seq_num, ".binary");
+    get_file_name(file_name, dest_cfdp_id, my_cfdp_id, transaction_seq_num);    
     ssp_printf("opening %s\n", file_name);
 
     int fd = ssp_open(file_name, O_RDWR);
@@ -727,20 +754,12 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, Reque
         req->file = file;
     }
 
-    List *messages = linked_list();
-    if (messages == NULL) {
-        ssp_free(file);
-        return -1;
-    }
-
-    error = get_messages_from_file(fd, messages);
+    req->messages_to_user = messages;
+    error = get_messages_from_file(fd, req->messages_to_user);
     if (error == -1) {
         ssp_free(file);
-        messages->freeOnlyList(messages);
         return -1;
     }
-
-    req->messages_to_user = messages;
 
     error = ssp_close(fd);
     if (error < 0) {

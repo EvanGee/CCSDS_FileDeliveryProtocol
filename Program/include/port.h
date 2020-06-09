@@ -78,7 +78,7 @@ int ssp_write(int fd, const void *buf, size_t count);
 int ssp_close(int fd);
 void ssp_free(void *pointer);
 void ssp_thread_join(void *thread_handle);
-
+int ssp_remove(char *pathname);
 int ssp_rename(const char *old, const char *new);
 void reset_request(Request *req);
 
