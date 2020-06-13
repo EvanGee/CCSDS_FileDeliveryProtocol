@@ -13,6 +13,9 @@ Author: Evan Giese
 #define POSIX_FILESYSTEM
 //#define CSP_NETWORK
 
+//comment this out if you want to sendto function to actually work
+#define TEST
+
 #include "types.h"
 
 #ifdef CSP_NETWORK

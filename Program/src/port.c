@@ -89,7 +89,9 @@ int ssp_remove(char *pathname){
 ------------------------------------------------------------------------------*/
 
 void ssp_sendto(Response res) {
-    
+    #ifdef TEST
+        return;
+     #endif
     if (res.type_of_network == csp_connectionless) {
         #ifdef CSP_NETWORK
             csp_packet_t *packet = (csp_packet_t *) res.addr;

@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 
+char buff[1500];
 
 void mock_mock_remote_entity(Remote_entity *remote_entity, uint32_t cfdp_id) {
 
@@ -29,7 +30,7 @@ void mock_mock_remote_entity(Remote_entity *remote_entity, uint32_t cfdp_id) {
     remote_entity->default_transmission_mode= 1;
     remote_entity->disposition_of_incomplete= 1;
     remote_entity->CRC_required= 1;
-    remote_entity->mtu= 1500;
+    remote_entity->mtu = 1500;
     remote_entity->keep_alive_discrepancy_limit= 1;
     remote_entity->positive_ack_timer_expiration_limit= 1;
     remote_entity->nak_timer_expiration_limit= 1;
@@ -47,7 +48,6 @@ int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id) {
 
     int error = get_header_from_mib(&pdu_header, remote_entity, src_id);
     int packet_index = build_pdu_header(packet, 1, 0, &pdu_header);
-
     return packet_index;
 }
 
@@ -62,7 +62,7 @@ File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *fil
 }
 
 
-Response *mock_response() {
+Response *mock_response(char *buffer) {
     Response *res = calloc(1, sizeof(Response));
     int addr = 16;
     res->addr = &addr;
@@ -71,19 +71,16 @@ Response *mock_response() {
     res->size_of_addr = 16;
     res->type_of_network = posix_connectionless;
     res->transmission_mode = UN_ACKNOWLEDGED_MODE;
+    res->msg = buffer;
     return res;
 }
 
 Request *mock_empty_request() {
-    char *buff = ssp_alloc(1500, 1);
-    Request *req = ssp_alloc(1, sizeof(Request));
-    req->messages_to_user = linked_list();
-    req->buff = buff;
-    req->file = NULL;
-    return req;
-
+    return init_request(buff, sizeof(buff));
 }
+
 Request *mock_request() {
+
 
     Request *req = mock_empty_request();
 
@@ -95,7 +92,6 @@ Request *mock_request() {
     req->file = create_file("test_files/dest_received.jpg", true);
     ssp_memcpy (req->source_file_name, dest, strnlen(dest, 255)); 
     ssp_memcpy (req->destination_file_name, src, strnlen(src, 255));
-
     
     mock_mock_remote_entity(&req->remote_entity, id);
     get_header_from_mib(&req->pdu_header, req->remote_entity, 1);
@@ -104,13 +100,11 @@ Request *mock_request() {
     req->res.addr = malloc(5);
     ssp_memcpy(req->res.addr, &addr, 4);
     req->res.sfd = 1;
-    req->res.packet_len = 2000;
+    req->res.packet_len = sizeof(buff);
     req->res.size_of_addr = 16;
     req->res.type_of_network = posix_connectionless;
     req->res.transmission_mode = UN_ACKNOWLEDGED_MODE;
     req->res.msg = req->buff;
-    req->messages_to_user = linked_list();
-
 
     return req;
 }   

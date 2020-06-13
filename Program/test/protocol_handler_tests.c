@@ -29,7 +29,6 @@ static int test_process_pdu_eof() {
     ASSERT_EQUALS_INT("received eof, checksum should equal", req->file->eof_checksum, file->partial_checksum);
     ASSERT_EQUALS_INT("received eof, filesize should equal", req->file->total_size, file->total_size);
     
-    free(req->buff);
     ssp_cleanup_req(req);
 
     //test empty files
@@ -43,8 +42,6 @@ static int test_process_pdu_eof() {
     ASSERT_EQUALS_INT("received eof, checksum should equal", req->file->eof_checksum, file->partial_checksum);
     ASSERT_EQUALS_INT("received eof, filesize should equal", req->file->total_size, file->total_size);
 
-
-    free(req->buff);
     ssp_cleanup_req(req);
     return 0;
 }
@@ -70,8 +67,7 @@ int test_on_server_time_out()  {
 
     on_server_time_out(req->res, req);
 
-    //file equals null, should return.
-    //on_server_time_out(req->res, req);
+    ssp_cleanup_req(req);
     return 0;
 
 }
@@ -81,7 +77,7 @@ static int test_wrong_id(FTP *app) {
     int error = 0;
     Response *res = mock_response();
     char packet[2000];
-
+    
     int packet_index = mock_packet(packet, 2, 1);
 
     Request **req_container = &app->current_request; 
@@ -103,6 +99,7 @@ static int test_correct_id(FTP *app) {
     char packet[2000];
     int packet_index = mock_packet(packet, 1, 2);
 
+    set_data_length(packet, 100);
     Request **req_container = &app->current_request; 
     process_pdu_header(packet, true, *res, req_container, app->request_list, app);
     Request *req = (*req_container);
@@ -116,22 +113,28 @@ static int test_correct_id(FTP *app) {
     return error;
 }
 
-static int test_process_pdu_header(FTP *app) {
-
+static int test_process_pdu_header() {
+    char buff[1500];
     int error = 0;
+    FTP *app = ssp_alloc(1, sizeof(FTP));
+    app->request_list = linked_list();
+    app->packet_len = 1500;
+    app->buff = buff;
+    app->my_cfdp_id = 1;
+
     error = test_wrong_id(app);
     error = test_correct_id(app);
+    app->request_list->free(app->request_list, ssp_cleanup_req);
+    ssp_free(app);
+
     return error;
 }
 
 
 int protocol_handler_test() {
     int error = 0;
-    FTP *app = init_ftp(1);
-    error = test_process_pdu_header(app);
+    error = test_process_pdu_header();
     error = test_process_pdu_eof();
-    //error = test_on_server_time_out();
-    app->close = true;
-    ssp_thread_join(app->server_handle);
+    error = test_on_server_time_out();
     return error;
 }
