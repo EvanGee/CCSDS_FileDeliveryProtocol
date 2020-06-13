@@ -84,6 +84,7 @@ int init_cont_partial_request(Message_cont_part_request *p_cont, char *buff, uin
     int error = get_req_from_file(src_id, trans_num, dest_id, req);
     if (error < 0) {
         ssp_error("couldn't get request from file system\n");
+        ssp_cleanup_req(req);
         return error;
     }
     Request old_request = *req;
@@ -94,25 +95,29 @@ int init_cont_partial_request(Message_cont_part_request *p_cont, char *buff, uin
     error = get_remote_entity_from_json(&req->remote_entity, dest_id);
     if (error < 0) {
         ssp_error("couldn't get remote config from file system\n");
+        ssp_cleanup_req(req);
         return error;
     }
     req->local_entity.EOF_sent_indication = req->local_entity.EOF_recv_indication;
     req->local_entity.Metadata_sent_indication = req->local_entity.Metadata_recv_indication;
-    req->local_entity.resumed_indication = 1;
+    req->local_entity.resumed_indication = 0;
     req->local_entity.suspended_indication = 0;
     req->local_entity.transaction_finished_indication = 0;
     req->my_cfdp_id = src_id;
+    
     get_header_from_mib(&req->pdu_header, req->remote_entity, req->dest_cfdp_id);
 
     error = save_req_to_file(req);
     if (error < 0) {
         ssp_error("couldn't save req to file\n");
+        ssp_cleanup_req(req);
         return -1;
     }
     //delete old file
     error = delete_saved_request(&old_request);
     if (error < 0) {
         ssp_error("couldn't remove saved request\n");
+        ssp_cleanup_req(req);
         return -1;
     }
     ssp_cleanup_req(req);

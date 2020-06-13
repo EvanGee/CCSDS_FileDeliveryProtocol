@@ -1,10 +1,10 @@
 {
-    "cfdp_id": 2,
-    "UT_address" : 2130706433,
-    "UT_port" : 1112,
-    "type_of_network" : 1,
+    "cfdp_id": 6,
+    "UT_address" : 1,
+    "UT_port" : 2,
+    "type_of_network" : 2,
     "default_transmission_mode" : 1,
-    "MTU" : 1500,
+    "MTU" : 250,
 
     "one_way_light_time" : 123,
     "total_round_trip_allowance" : 123,
