@@ -606,7 +606,8 @@ typedef struct request {
     char destination_file_name[MAX_PATH];
 
     //previous timeout time in seconds
-    int timeout;
+    int timeout_before_cancel;
+    int timeout_before_journal;
     
     uint8_t segmentation_control;
     uint8_t fault_handler_overides;

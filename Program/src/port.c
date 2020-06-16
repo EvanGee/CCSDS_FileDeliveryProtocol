@@ -41,12 +41,14 @@ int ssp_rename(const char *old, const char *new) {
     #ifdef POSIX_FILESYSTEM
         return rename(old, new);
     #endif
+    return -1;
 }
 
 int ssp_write(int fd, const void *buf, size_t count) {
     #ifdef POSIX_FILESYSTEM
         return write(fd, buf, count);
     #endif
+    return -1;
 }
 
 
@@ -54,6 +56,7 @@ int ssp_read(int fd, char* buff, size_t size) {
     #ifdef POSIX_FILESYSTEM
         return read(fd, buff, size);
     #endif
+    return -1;
 
 }
 
@@ -62,6 +65,7 @@ int ssp_lseek(int fd, int offset, int whence) {
     #ifdef POSIX_FILESYSTEM
         return lseek(fd, offset, whence);
     #endif
+    return -1;
 } 
 
 int ssp_open(char *pathname, int flags) {
@@ -69,20 +73,40 @@ int ssp_open(char *pathname, int flags) {
         //open with read and write permissions
         return open(pathname, flags, 0666);
     #endif
+    return -1;
 }
 
 int ssp_close(int fd) {
     #ifdef POSIX_FILESYSTEM
         return close(fd);
     #endif
+    return -1;
 }
 
 int ssp_remove(char *pathname){
     #ifdef POSIX_FILESYSTEM
         return remove(pathname);
     #endif
+    return -1;
 }
 
+int ssp_mkdir(char *dir_name) {
+    #ifdef POSIX_FILESYSTEM
+        int error = mkdir(dir_name, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        if (error < 0) {
+            if(errno == EEXIST) {
+                return 1;
+            } 
+            ssp_printf("couldn't make dir\n");
+            return -1;   
+        }     
+        else {
+            return 1;
+        }
+        return -1;
+
+    #endif
+}
 /*------------------------------------------------------------------------------
     Network port functions, these are used to interchange different network
     stacks

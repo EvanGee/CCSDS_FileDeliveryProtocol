@@ -257,56 +257,58 @@ uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill)
     return packet_index;
 }
 
+
 void process_messages(Request *req, FTP *app) {
 
-    if (req->messages_to_user->count == 0)
-        return;
-        
-    Message *message = req->messages_to_user->pop(req->messages_to_user);
-    Message_put_proxy *p_put;
-    Message_cont_part_request *p_cont;
-    int error = 0;
-    char *error_msg = "couldn't process messages: %s";
+    while (req->messages_to_user->count) {
+        Message *message = req->messages_to_user->pop(req->messages_to_user);
+        Message_put_proxy *p_put;
+        Message_cont_part_request *p_cont;
+        int error = 0;
+        char *error_msg = "couldn't process messages: %s";
 
-    //on failure, these will send back an error message to the requester
-    switch (message->header.message_type)
-    {
-        case PROXY_PUT_REQUEST:
+        //on failure, these will send back an error message to the requester
+        switch (message->header.message_type)
+        {
+            case PROXY_PUT_REQUEST:
+                    
+                p_put = (Message_put_proxy *) message->value;
+                ssp_printf("received proxy request for source file name: %s dest file name %s, to id %d\n", 
+                (char *)p_put->source_file_name.value,
+                (char *)p_put->destination_file_name.value,
+                *(uint8_t*)p_put->destination_id.value);
+
+                start_request(put_request(*(uint8_t*)p_put->destination_id.value,
+                (char *)p_put->source_file_name.value, 
+                (char *)p_put->destination_file_name.value, ACKNOWLEDGED_MODE, app));
+                break;
+
+            case CONTINUE_PARTIAL:
                 
-            p_put = (Message_put_proxy *) message->value;
-            ssp_printf("received proxy request for source file name: %s dest file name %s, to id %d\n", 
-            (char *)p_put->source_file_name.value,
-            (char *)p_put->destination_file_name.value,
-            *(uint8_t*)p_put->destination_id.value);
-
-            start_request(put_request(*(uint8_t*)p_put->destination_id.value,
-            (char *)p_put->source_file_name.value, 
-            (char *)p_put->destination_file_name.value, ACKNOWLEDGED_MODE, app));
-            break;
-
-        case CONTINUE_PARTIAL:
-            
-            p_cont = (Message_cont_part_request *) message->value;
-            uint32_t dest_id = *(uint8_t*)p_cont->destination_id.value;
-            uint32_t orig_id = *(uint8_t*)p_cont->originator_id.value;
-            uint32_t tran_id = *(uint8_t*)p_cont->transaction_id.value;
-            
-            ssp_printf("received message request to continue one way communication destination id %d, originator id %d, transaction id %d\n",
-            dest_id, orig_id, tran_id);
-            
-            if (orig_id != app->my_cfdp_id) {
-                ssp_printf(error_msg, "continue partial request, wrong originator ID");
-                return;
-            }
-            
-            error = init_cont_partial_request(p_cont, app->buff, app->packet_len);
-            if (error < 0)
-                ssp_printf(error_msg, "continue partial request");
-            
-        default:
-            break;
-    }
-    ssp_free_message(message); 
+                p_cont = (Message_cont_part_request *) message->value;
+                uint32_t dest_id = *(uint8_t*)p_cont->destination_id.value;
+                uint32_t orig_id = *(uint8_t*)p_cont->originator_id.value;
+                uint32_t tran_id = *(uint8_t*)p_cont->transaction_id.value;
+                
+                ssp_printf("received message request to continue one way communication destination id %d, originator id %d, transaction id %d\n",
+                dest_id, orig_id, tran_id);
+                
+                if (orig_id != app->my_cfdp_id) {
+                    ssp_printf(error_msg, "continue partial request, wrong originator ID");
+                    return;
+                }
+                
+                error = init_cont_partial_request(p_cont, app->buff, app->packet_len);
+                if (error < 0)
+                    ssp_printf(error_msg, "continue partial request\n");
+                break;
+    
+            default:
+                ssp_printf("message type not recognized\n");
+                break;
+        }
+        ssp_free_message(message); 
+    }  
 
 }
 

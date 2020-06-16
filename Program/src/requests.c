@@ -121,7 +121,6 @@ int init_cont_partial_request(Message_cont_part_request *p_cont, char *buff, uin
         return -1;
     }
     ssp_cleanup_req(req);
-
     return 1;
 }
 
@@ -289,7 +288,8 @@ Request *init_request(char *buff, uint32_t buff_len) {
     req->buff = buff;
     req->procedure = none;
     req->paused = true;
-    req->timeout = ssp_time_count();
+    req->timeout_before_cancel = ssp_time_count();
+    req->timeout_before_journal = ssp_time_count();
     req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();

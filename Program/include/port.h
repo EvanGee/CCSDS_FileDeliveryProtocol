@@ -14,7 +14,7 @@ Author: Evan Giese
 //#define CSP_NETWORK
 
 //comment this out if you want to sendto function to actually work
-#define TEST
+//#define TEST
 
 #include "types.h"
 
@@ -31,6 +31,7 @@ Author: Evan Giese
 
 #ifdef POSIX_FILESYSTEM
     #include <fcntl.h>
+    #include <sys/stat.h>
     #define SSP_O_RDWR O_RDWR
     #define SSP_O_CREAT O_CREAT
     #define SSP_O_TRUNC O_TRUNC
@@ -83,6 +84,7 @@ void ssp_free(void *pointer);
 void ssp_thread_join(void *thread_handle);
 int ssp_remove(char *pathname);
 int ssp_rename(const char *old, const char *new);
+int ssp_mkdir(char *dir_name);
 void reset_request(Request *req);
 
 

@@ -61,7 +61,7 @@ static int check_timeout(int *prevtime, uint32_t timeout) {
 //sets request procedure as clean_up if ttl has passed
 static void timeout(Request *req) {
 
-    bool is_timeout = check_timeout(&req->timeout, TIMEOUT_BEFORE_CANCEL_REQUEST);
+    bool is_timeout = check_timeout(&req->timeout_before_cancel, TIMEOUT_BEFORE_CANCEL_REQUEST);
     if (is_timeout) {
         if (req->local_entity.transaction_finished_indication){
             ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
@@ -71,6 +71,14 @@ static void timeout(Request *req) {
             save_req_to_file(req);
         }
         req->procedure = clean_up;
+    } 
+
+    is_timeout = check_timeout(&req->timeout_before_journal, TIMEOUT_BEFORE_SAVE_REQUEST);
+    if (is_timeout) {
+        int error = save_req_to_file(req);
+        if (error < 0) {
+            ssp_printf("couldn't journal file\n");
+        }
     }
 }
 
@@ -101,7 +109,7 @@ static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, u
     
     int count = parse_packet_server(packet, packet_index, app->current_request->res, current_request, app);
 
-    reset_timeout(&current_request->timeout);
+    reset_timeout(&current_request->timeout_before_cancel);
 
     memset(packet, 0, count);
 
@@ -139,7 +147,7 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
 
     parse_packet_client(packet, packet_index, res, current_request, client);
 
-    reset_timeout(&current_request->timeout);
+    reset_timeout(&current_request->timeout_before_cancel);
 
     memset(packet, 0, packet_len);
     

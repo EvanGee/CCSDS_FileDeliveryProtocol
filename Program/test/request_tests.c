@@ -103,7 +103,6 @@ static void request_test_list_storage() {
     ssp_cleanup_req(list->pop(list));
     list->iterate(list, list_print, NULL);  
     list->free(list, ssp_cleanup_req);
-
 }
 
 static int add_proxy_message() {
@@ -128,10 +127,65 @@ static int add_proxy_message() {
     ssp_free_message(message);
     ssp_cleanup_req(req);
     return 0;
-
 }
 
-static int add_continue_partial_message() {
+
+int init_cont_partial_request_test_fail() {
+    Message_cont_part_request p_cont;
+    uint32_t dest_id = 0;
+    uint32_t org_id = 1;
+    uint64_t tran_id = 0;
+    Request *req = mock_request();
+
+    p_cont.destination_id.value = &dest_id;
+    p_cont.originator_id.value = &org_id;
+    p_cont.transaction_id.value = &tran_id;
+    uint32_t buff_len = 1500;
+    char buff[buff_len];
+
+    int error = init_cont_partial_request(&p_cont, buff, buff_len);
+    ASSERT_EQUALS_INT("failed to write, errored", error, -1);
+    ssp_cleanup_req(req);
+}
+
+int init_cont_partial_request_test() {
+    Message_cont_part_request p_cont;
+    uint32_t dest_id = 3;
+    uint32_t org_id = 2;
+    uint64_t tran_id = 1;
+
+    Request *req = mock_request();
+    req->transaction_sequence_number = 1;
+    req->dest_cfdp_id = 2;
+    req->my_cfdp_id = 3;
+    req->local_entity.EOF_recv_indication = 1;
+    req->local_entity.Metadata_recv_indication = 1;
+
+    save_req_to_file(req);
+
+    p_cont.destination_id.value = &dest_id;
+    p_cont.originator_id.value = &org_id;
+    p_cont.transaction_id.value = &tran_id;
+    uint32_t buff_len = 1500;
+    char buff[buff_len];
+
+    int error = init_cont_partial_request(&p_cont, buff, buff_len);
+
+    Request *req2 = mock_empty_request();
+    get_req_from_file(dest_id, tran_id, org_id, req2);
+    ASSERT_EQUALS_INT("eof received, don't resend. local_entity.eof_recv = 1", 
+    req->local_entity.EOF_recv_indication, 
+    req2->local_entity.EOF_sent_indication);
+
+    ASSERT_EQUALS_INT("metadata received, don't resend. local_entity.Metadata_sent = 1", 
+    req->local_entity.Metadata_recv_indication, 
+    req2->local_entity.Metadata_sent_indication);
+
+    ssp_cleanup_req(req);
+    ssp_cleanup_req(req2);
+}
+
+static int add_continue_partial_message_test() {
     int error = 0;
     Request *req = mock_empty_request();
 
@@ -191,60 +245,6 @@ int test_lv_functions() {
     
 }
 
-int init_cont_partial_request_test_fail() {
-    Message_cont_part_request p_cont;
-    uint32_t dest_id = 0;
-    uint32_t org_id = 1;
-    uint64_t tran_id = 0;
-    Request *req = mock_request();
-
-    p_cont.destination_id.value = &dest_id;
-    p_cont.originator_id.value = &org_id;
-    p_cont.transaction_id.value = &tran_id;
-    uint32_t buff_len = 1500;
-    char buff[buff_len];
-
-    int error = init_cont_partial_request(&p_cont, buff, buff_len);
-    ASSERT_EQUALS_INT("failed to write, errored", error, -1);
-    ssp_cleanup_req(req);
-}
-
-int init_cont_partial_request_test() {
-    Message_cont_part_request p_cont;
-    uint32_t dest_id = 3;
-    uint32_t org_id = 2;
-    uint64_t tran_id = 1;
-
-    Request *req = mock_request();
-    req->transaction_sequence_number = 1;
-    req->dest_cfdp_id = 2;
-    req->my_cfdp_id = 3;
-    req->local_entity.EOF_recv_indication = 1;
-    req->local_entity.Metadata_recv_indication = 1;
-
-    save_req_to_file(req);
-
-    p_cont.destination_id.value = &dest_id;
-    p_cont.originator_id.value = &org_id;
-    p_cont.transaction_id.value = &tran_id;
-    uint32_t buff_len = 1500;
-    char buff[buff_len];
-
-    int error = init_cont_partial_request(&p_cont, buff, buff_len);
-
-    Request *req2 = mock_empty_request();
-    get_req_from_file(dest_id, tran_id, org_id, req2);
-    ASSERT_EQUALS_INT("eof received, don't resend. local_entity.eof_recv = 1", 
-    req->local_entity.EOF_recv_indication, 
-    req2->local_entity.EOF_sent_indication);
-
-    ASSERT_EQUALS_INT("metadata received, don't resend. local_entity.Metadata_sent = 1", 
-    req->local_entity.Metadata_recv_indication, 
-    req2->local_entity.Metadata_sent_indication);
-
-    ssp_cleanup_req(req);
-    ssp_cleanup_req(req2);
-}
 
 int request_user_input_tests() {
 
@@ -255,6 +255,11 @@ int request_user_input_tests() {
     ssp_thread_join(app->server_handle);
 }
 
+int test_process_messages() {
+
+    process_messages(Request *req, FTP *app) 
+}
+
 int request_tests() {
 
     int error = 0;
@@ -263,7 +268,7 @@ int request_tests() {
     error = request_user_input_tests();
     error = add_proxy_message();
     error = test_lv_functions();
-    error = add_continue_partial_message();
+    error = add_continue_partial_message_test();
     error = init_cont_partial_request_test_fail();
     error = init_cont_partial_request_test();
 
