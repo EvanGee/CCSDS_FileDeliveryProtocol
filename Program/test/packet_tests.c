@@ -87,7 +87,6 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     process_file_request_metadata(req);
 
     uint64_t count = req->file->missing_offsets->count;
-
     uint32_t data_len = build_nak_packet(packet, start, req);
 
     ASSERT_EQUALS_INT("NAK directive code set", packet[start], NAK_PDU);
@@ -108,7 +107,9 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     Offset offset[count];
     ssp_memcpy(offset, &nak->segments, sizeof(Offset) * count);
     start_scope = ntohl(offset->start);
+    ssp_printf("test start_scope %d\n", start_scope);
     end_scope = ntohl(offset->end);
+    ssp_printf("test end_scope %d\n", end_scope);
 
     ASSERT_EQUALS_INT("start offset == 0 ", start_scope, 0);
     ASSERT_EQUALS_INT("end scope == 100000 ", end_scope, 100000);
@@ -176,6 +177,36 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     return 0;
 }
 
+
+static int test_build_very_large_nak_packet(char* packet, uint32_t start) {
+
+    DECLARE_NEW_TEST("testing build very large nak packet");
+    
+    File *file = create_file("test_files/vid.mp4", 0);
+    Request *req = mock_empty_request();
+
+    req->file = file;
+    req->file_size = file->total_size;
+    process_file_request_metadata(req);
+
+    for (int i = 0; i < 10000; i+=10) {
+        receive_offset(file, 0, i, i+10);
+        i++;
+    }
+    uint64_t count = file->missing_offsets->count;
+
+    ssp_printf("len %d", count);
+    uint32_t data_len = build_nak_packet(packet, start, req);
+    uint32_t offsets_sent = (data_len - 17) / sizeof(Offset);
+    ssp_printf("offsets that fit in packet %d\n", offsets_sent);
+
+    ASSERT_EQUALS_INT("data length of NAK fits in the packet", 1489, data_len);
+
+    ssp_printf("data_len = %d", data_len);
+
+    ssp_cleanup_req(req);
+    return 0;
+}
 int test_build_ack_finished_pdu(char *packet, uint32_t start) {
 
     DECLARE_NEW_TEST("testing finish ack packet");
@@ -482,6 +513,8 @@ int packet_tests() {
 
     test_build_ack_eof_pdu(packet, data_start_index);
     test_build_nak_packet(packet, data_start_index);
+    test_build_very_large_nak_packet(packet, data_start_index);
+    /*
     test_respond_to_naks(packet, data_start_index);
 
     memset(packet, 0, PACKET_TEST_SIZE);
@@ -494,6 +527,7 @@ int packet_tests() {
     test_get_message_from_packet(packet, data_start_index);
     test_get_messages_from_packet(packet, data_start_index);
     test_add_cont_part_to_packet(packet, data_start_index);
+    */
     return 0;
 
 }

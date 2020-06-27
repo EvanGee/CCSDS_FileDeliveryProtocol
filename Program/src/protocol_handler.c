@@ -365,7 +365,7 @@ static void send_data(Request *req, Response res) {
 
     if (build_data_packet(req->buff, start, req->file, res.packet_len)) {
         req->procedure = sending_eof;
-        ssp_printf("sending data blast transaction: %d\n", req->transaction_sequence_number);
+        ssp_printf("sending data burst transaction: %d\n", req->transaction_sequence_number);
     }
     ssp_sendto(res);
 }
@@ -406,6 +406,9 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
 //fills the current request with packet data, responses from servers
 void parse_packet_client(char *packet, uint32_t packet_index, Response res, Request *req, Client* client) {
  
+    //if client is still sending the first data_burst, don't accepts packets
+    if (req->procedure == sending_data)
+        return;
 
     uint8_t directive = packet[packet_index];
     packet_index += 1; 
@@ -579,7 +582,6 @@ int process_file_request_metadata(Request *req) {
     offset->end = req->file_size;
     offset->start = 0;
     req->file->missing_offsets->insert(req->file->missing_offsets, offset, req->file_size);
-
     return 1;
 }
 

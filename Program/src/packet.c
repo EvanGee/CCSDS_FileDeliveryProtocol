@@ -234,19 +234,29 @@ void build_eof_packet(char *packet, uint32_t start, uint32_t file_size, uint32_t
 }
 
 //this is a callback for building nak_array server side
-struct offset_holder {
-    Offset *offsets;
-    int i;
+struct packet_nak_helper {
+    char*packet;
+    uint64_t max_number_of_nak_segments;
+    uint64_t current_number_of_segments;
+    uint32_t start_scope;
+    uint32_t end_scope;
 };
 
 void fill_nak_array_callback(Node *node, void *element, void *args){
-    struct offset_holder *holder = (struct offset_holder *)args;
-    
-    Offset *offset = (Offset *)element;
+    struct packet_nak_helper *holder = (struct packet_nak_helper *)args;
 
-    holder->offsets[holder->i].start = ssp_htonl(offset->start);
-    holder->offsets[holder->i].end = ssp_htonl(offset->end);
-    holder->i++;
+    if (holder->current_number_of_segments == holder->max_number_of_nak_segments)
+        return;
+
+    Offset *offset = (Offset *)element;
+    Offset offset_to_copy;
+    offset_to_copy.start = ssp_htonl(offset->start);
+    offset_to_copy.end = ssp_htonl(offset->end);
+
+    memcpy(holder->packet, &offset_to_copy, sizeof(Offset));
+
+    holder->current_number_of_segments++;
+    holder->packet+=sizeof(Offset);
 }
 
 uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
@@ -254,26 +264,27 @@ uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
     packet[start] = NAK_PDU;
     uint32_t packet_index = start + 1;
     Pdu_nak *pdu_nak = (Pdu_nak *) &packet[packet_index];
-    uint64_t count = req->file->missing_offsets->count;
+    packet_index += 16;
     
-    //fill offset array with all missing offsets [holder.offsets]
-    struct offset_holder holder;
-    holder.offsets = ssp_alloc(count, sizeof(Offset));
-    holder.i = 0;
+    struct packet_nak_helper holder;
+
+    holder.max_number_of_nak_segments = (req->buff_len - packet_index) / sizeof(Offset);
+   
+    holder.packet = &packet[packet_index];
+    holder.current_number_of_segments = 0;
+    holder.start_scope = 0;
+    holder.end_scope = 0;
 
     req->file->missing_offsets->iterate(req->file->missing_offsets, fill_nak_array_callback, &holder);
-    
-    pdu_nak->start_scope = holder.offsets[0].start;
-    pdu_nak->end_scope = holder.offsets[holder.i-1].end;
 
+    uint32_t start_scope = ((Offset *)req->file->missing_offsets->head->next->element)->start;
+    uint32_t end_scope = ((Offset *)req->file->missing_offsets->tail->prev->element)->end;
 
-    pdu_nak->segment_requests = htonll(count);
-    packet_index+=16;
-   
-    memcpy(&packet[packet_index], holder.offsets, sizeof(Offset) * count);
-    ssp_free(holder.offsets);
+    pdu_nak->start_scope = htonl(start_scope);
+    pdu_nak->end_scope = htonl(end_scope);
+    pdu_nak->segment_requests = htonll(holder.current_number_of_segments);
 
-    packet_index += sizeof(Offset) * count;
+    packet_index += sizeof(Offset) * holder.current_number_of_segments;
 
     uint16_t data_len = packet_index - start;
     set_packet_header(packet, data_len, DIRECTIVE);
