@@ -10,6 +10,7 @@ Author: Evan Giese
 #include "jsmn.h"
 #include "requests.h"
 
+
 uint32_t get_file_size(char *source_file_name) {
 
     int fd = ssp_open(source_file_name, 0);
@@ -557,12 +558,22 @@ static int write_file_present_bool(int fd, File *file) {
     return error;
 }
 
-static void get_file_name(char *filename, uint32_t dest_cfdp_id, uint32_t cfdp_id, uint64_t trans) {
-    ssp_snprintf(filename, 255, "%s%u%s%u%s%llu%s", "incomplete_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".request");
+static int get_file_name(char *filename, uint32_t dest_cfdp_id, uint32_t cfdp_id, uint64_t trans) {
+
+    char dir_name[MAX_PATH];
+    ssp_snprintf(dir_name, MAX_PATH, "%s%u%s", "incomplete_requests/CFID:", cfdp_id, "_requests");
+
+    int error = ssp_mkdir(dir_name);
+    if (error < 0)
+        return -1;
+
+    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s%llu%s", "incomplete_requests/CFID:", cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".request");
+
+    return 1;
 }
 
 int delete_saved_request(Request *req) {
-    char file_name[255];
+    char file_name[MAX_PATH];
     get_file_name(file_name, req->dest_cfdp_id, req->my_cfdp_id, req->transaction_sequence_number);
     ssp_printf("deleting %s\n", file_name);
     int error = ssp_remove(file_name);

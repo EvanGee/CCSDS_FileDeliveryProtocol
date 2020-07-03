@@ -20,6 +20,7 @@ INCLUDE += -I$(PROJDIR)/include
 INCLUDE += -I$(PROJDIR)/libcsp/include/csp
 INCLUDE += -I$(PROJDIR)/libcsp/include
 INCLUDE += -I$(PROJDIR)/libcsp/build/include
+INCLUDE += -I$(PROJDIR)/libcsp/src
 #-------------------------------------------------------------------------------
 CC = gcc 
 
@@ -29,7 +30,7 @@ CFILES += file_delivery_app.c
 CFILES += utils.c
 CFILES += tasks.c
 CFILES += posix_server_provider.c  #used for poxix port
-#CFILES += csp_server_provider.c
+CFILES += csp_server_provider.c
 CFILES += protocol_handler.c
 CFILES += mib.c
 CFILES += filesystem_funcs.c
@@ -68,7 +69,7 @@ CWARNS += -Wmissing-prototypes
 LINKFLAGS = 
 LIBS = -pthread
 STATIC_FILES = 
-#STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
+STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
 #STATIC_FILES += $(PROJDIR)/FreeRtos
 
 #---------------------------Compiler flags---------------------------
