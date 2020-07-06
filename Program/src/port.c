@@ -20,6 +20,7 @@ Author: Evan Giese
 #ifdef POSIX_FILESYSTEM
     #include <unistd.h>
     #include <fcntl.h>
+    #include <dirent.h>
 #endif
 
 #ifdef FREE_RTOS_PORT 
@@ -107,6 +108,8 @@ int ssp_mkdir(char *dir_name) {
 
     #endif
 }
+
+
 /*------------------------------------------------------------------------------
     Network port functions, these are used to interchange different network
     stacks

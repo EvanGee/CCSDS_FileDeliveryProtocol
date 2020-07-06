@@ -319,7 +319,6 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     Request *req = init_request(client->buff, client->packet_len);
     
     //build a request 
-    req->transaction_sequence_number = app->transaction_sequence_number++;
     req->dest_cfdp_id = client->remote_entity.cfdp_id;
     req->pdu_header = client->pdu_header;
     req->res.packet_len = client->packet_len;
@@ -351,6 +350,7 @@ Request *put_request(
         req = start_new_client_request(app, dest_id);
         req->transmission_mode = transmission_mode;
         req->procedure = sending_start;
+        req->transaction_sequence_number = app->transaction_sequence_number++;
         return req;
     }
 
@@ -376,12 +376,137 @@ Request *put_request(
 
     req->transmission_mode = transmission_mode;
     req->procedure = sending_start;
+    req->transaction_sequence_number = app->transaction_sequence_number++;
     
     ssp_memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
     ssp_memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
 
     return req;
 }
+
+
+
+/*NULL for source and destination filenames shall indicate that only Meta
+data will be delivered. Side effect: add request to client request list
+returns the request*/
+int schedule_put_request(
+            uint32_t dest_id,
+            char *source_file_name,
+            char *destination_file_name,
+            uint8_t transmission_mode,
+            FTP *app
+            ) {
+
+    Request *req;
+    uint32_t file_size = 0;
+    
+    ssp_printf("scheduling request\n");
+
+    Remote_entity remote;
+    int error = get_remote_entity_from_json(&remote, dest_id);
+    if (error < 0) {
+        ssp_error("couldn't schedule request, reading from MIB failed\n");
+        return -1;
+    }
+
+    Pdu_header pdu_header;
+    error = get_header_from_mib(&pdu_header, remote, dest_id);
+    if (error < 0) {
+        ssp_error("couldn't get PDU header\n");
+        return -1;
+    }
+
+    char temp_buff[remote.mtu];
+    req = init_request(temp_buff, remote.mtu);
+
+    //build a request 
+    req->transaction_sequence_number = app->transaction_sequence_number++;
+    req->dest_cfdp_id = dest_id;
+    req->pdu_header = pdu_header;
+    req->res.packet_len = remote.mtu;
+    req->buff = temp_buff;
+    req->my_cfdp_id = app->my_cfdp_id;
+    req->transmission_mode = transmission_mode;
+    req->procedure = sending_start;
+
+    if (source_file_name == NULL && destination_file_name == NULL) {
+        save_req_to_file(req);
+        return 1;
+    }
+    if (strnlen(source_file_name, MAX_PATH) == 0 || strnlen(destination_file_name, MAX_PATH) == 0) {
+        ssp_printf("ERROR: no file names present in put request, if you want to just send messages, make both source and dest NULL\n");
+        return -1;
+    }
+
+    bool exists = does_file_exist(source_file_name);
+    if (exists == false) {
+        ssp_printf("ERROR: File does not exist\n");
+        return -1;
+    }
+
+    file_size = get_file_size(source_file_name);
+    if (file_size == 0)
+        return -1;
+
+    req->file = create_file(source_file_name, false);
+    req->file_size = file_size;
+
+    ssp_memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
+    ssp_memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
+    save_req_to_file(req);
+    return 1;
+}
+
+int start_scheduled_requests(uint32_t dest_id, FTP *app){
+
+    char dir_name[MAX_PATH];
+    ssp_snprintf(dir_name, MAX_PATH, "%s%u%s", "incomplete_requests/CFID:", dest_id, "_requests");
+    ssp_printf("opening dir %s\n", dir_name);
+
+    DIR *dir;
+    struct dirent *file;
+
+    dir = opendir(dir_name);
+    if(dir == NULL){
+        ssp_error("Unable to open directory");
+        return -1;
+    }
+    int error, fd = 0;
+    Request *req;
+    
+    while( (file=readdir(dir)) )
+    {
+
+        if (strncmp(file->d_name, ".", 1) == 0 || strncmp(file->d_name, "..", 2) == 0)
+            continue;
+
+        fd = ssp_open(file->d_name, O_RDWR);
+        if (fd < 0) {
+            ssp_error("couldn't open request data file");
+            return -1;
+        }
+        
+        req = start_new_client_request(app, dest_id);
+        if (req == NULL) {
+            ssp_error("couldn't start new request");
+            continue;
+        }
+
+        error = read_request_from_file(fd, req);
+        if (error < 0) {
+            return -1;
+        }
+        
+        error = ssp_close(fd);
+        if (error < 0) {
+            ssp_error("there was an error closing the file descriptor");
+        }
+    }
+
+    closedir(dir);
+    return 0;
+}
+
 
 void start_request(Request *req){
     if (req == NULL) {
@@ -391,6 +516,8 @@ void start_request(Request *req){
     ssp_printf("started request\n");
     req->paused = false;
 }
+
+
 
 static void print_messages_callback(Node *node, void *element, void *args) {
     

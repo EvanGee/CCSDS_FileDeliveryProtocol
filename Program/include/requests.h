@@ -47,6 +47,6 @@ Message *create_message(uint8_t type);
 void create_lv(LV *lv, int len, void *value);
 void free_lv(LV lv);
 void print_request_procedure(Request *req);
-
+int start_scheduled_requests(uint32_t dest_id, FTP *app);
 
 #endif

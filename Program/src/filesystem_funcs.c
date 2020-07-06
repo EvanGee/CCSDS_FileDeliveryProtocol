@@ -561,7 +561,7 @@ static int write_file_present_bool(int fd, File *file) {
 static int get_file_name(char *filename, uint32_t dest_cfdp_id, uint32_t cfdp_id, uint64_t trans) {
 
     char dir_name[MAX_PATH];
-    ssp_snprintf(dir_name, MAX_PATH, "%s%u%s", "incomplete_requests/CFID:", cfdp_id, "_requests");
+    ssp_snprintf(dir_name, MAX_PATH, "%s%u%s", "incomplete_requests/CFID:", dest_cfdp_id, "_requests");
 
     int error = ssp_mkdir(dir_name);
     if (error < 0)
@@ -724,21 +724,10 @@ static int get_messages_from_file(int fd, List *messages){
     return 0;
 }
 
-//[REQ][IS_FILE_PRESENT][FILE][MESSAGE_LENGTH][MESSAGES]
-int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint32_t my_cfdp_id, Request *req) {
-    
-    char file_name[255];
+int read_request_from_file(int fd, Request *req){
+
     //will overwrite messages pointer, so we need to save it
     List *messages = req->messages_to_user;
-    
-    get_file_name(file_name, dest_cfdp_id, my_cfdp_id, transaction_seq_num);    
-    ssp_printf("opening %s\n", file_name);
-
-    int fd = ssp_open(file_name, O_RDWR);
-    if (fd < 0) {
-        ssp_error("couldn't open file\n");
-        return -1;
-    }
 
     //read in request struct
     int error = ssp_read(fd, (char *)req, sizeof(Request));
@@ -778,4 +767,24 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint3
     }
 
     return error;
+}
+
+//[REQ][IS_FILE_PRESENT][FILE][MESSAGE_LENGTH][MESSAGES]
+int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint32_t my_cfdp_id, Request *req) {
+    
+    char file_name[255];
+    
+    get_file_name(file_name, dest_cfdp_id, my_cfdp_id, transaction_seq_num);    
+    ssp_printf("opening %s\n", file_name);
+
+    int fd = ssp_open(file_name, O_RDWR);
+    if (fd < 0) {
+        ssp_error("couldn't open file\n");
+        return -1;
+    }
+    int error = read_request_from_file(fd, req);
+    if (error < 0) {
+        return -1;
+    }
+    return 0;
 }

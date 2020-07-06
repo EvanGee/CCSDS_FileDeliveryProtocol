@@ -32,6 +32,8 @@ Author: Evan Giese
 #ifdef POSIX_FILESYSTEM
     #include <fcntl.h>
     #include <sys/stat.h>
+    #include <dirent.h>
+
     #define SSP_O_RDWR O_RDWR
     #define SSP_O_CREAT O_CREAT
     #define SSP_O_TRUNC O_TRUNC
