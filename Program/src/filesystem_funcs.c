@@ -567,7 +567,7 @@ static int get_file_name(char *filename, uint32_t dest_cfdp_id, uint32_t cfdp_id
     if (error < 0)
         return -1;
 
-    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s%llu%s", "incomplete_requests/CFID:", cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".request");
+    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s%llu%s", "incomplete_requests/CFID:", dest_cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".request");
 
     return 1;
 }
@@ -728,6 +728,9 @@ int read_request_from_file(int fd, Request *req){
 
     //will overwrite messages pointer, so we need to save it
     List *messages = req->messages_to_user;
+    int timeout_before_cancel = req->timeout_before_cancel;
+    int timeout_before_journal = req->timeout_before_journal;
+    void *addr = req->res.addr;
 
     //read in request struct
     int error = ssp_read(fd, (char *)req, sizeof(Request));
@@ -755,15 +758,14 @@ int read_request_from_file(int fd, Request *req){
     }
 
     req->messages_to_user = messages;
+    req->timeout_before_cancel = timeout_before_cancel;
+    req->timeout_before_journal = timeout_before_journal;
+    req->res.addr = addr;
+
     error = get_messages_from_file(fd, req->messages_to_user);
     if (error == -1) {
         ssp_free(file);
         return -1;
-    }
-
-    error = ssp_close(fd);
-    if (error < 0) {
-        ssp_error("couldn't close file descriptor \n");
     }
 
     return error;
@@ -786,5 +788,10 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint3
     if (error < 0) {
         return -1;
     }
+    error = ssp_close(fd);
+    if (error < 0) {
+        ssp_error("couldn't close file descriptor \n");
+    }
+    
     return 0;
 }

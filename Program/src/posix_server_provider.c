@@ -132,7 +132,7 @@ static int prepareHost(char *host_name, void *addr, size_t *size_of_addr, char *
 
     if (cur == NULL)
     {
-        ssp_printf("error could not create server\n");
+        ssp_printf("failed connecting with server\n");
         freeaddrinfo(res);
         return -1;
     }

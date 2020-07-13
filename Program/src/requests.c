@@ -300,6 +300,7 @@ Request *init_request(char *buff, uint32_t buff_len) {
     return req;
 }
 
+
 //starts a new client, adding it to app->active_clients, as well as 
 //starting a new request and adding it to the client, returns a pointer
 //to the request
@@ -321,8 +322,6 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     //build a request 
     req->dest_cfdp_id = client->remote_entity.cfdp_id;
     req->pdu_header = client->pdu_header;
-    req->res.packet_len = client->packet_len;
-    req->buff = client->buff;
     req->my_cfdp_id = app->my_cfdp_id;
 
     client->request_list->insert(client->request_list, req, 0);
@@ -410,7 +409,7 @@ int schedule_put_request(
     }
 
     Pdu_header pdu_header;
-    error = get_header_from_mib(&pdu_header, remote, dest_id);
+    error = get_header_from_mib(&pdu_header, remote, app->my_cfdp_id);
     if (error < 0) {
         ssp_error("couldn't get PDU header\n");
         return -1;
@@ -420,41 +419,52 @@ int schedule_put_request(
     req = init_request(temp_buff, remote.mtu);
 
     //build a request 
-    req->transaction_sequence_number = app->transaction_sequence_number++;
     req->dest_cfdp_id = dest_id;
     req->pdu_header = pdu_header;
-    req->res.packet_len = remote.mtu;
-    req->buff = temp_buff;
     req->my_cfdp_id = app->my_cfdp_id;
     req->transmission_mode = transmission_mode;
     req->procedure = sending_start;
 
     if (source_file_name == NULL && destination_file_name == NULL) {
-        save_req_to_file(req);
-        return 1;
+        error = save_req_to_file(req);
+        if (error < 0)
+            ssp_cleanup_req(req);
+        return error;
     }
+
     if (strnlen(source_file_name, MAX_PATH) == 0 || strnlen(destination_file_name, MAX_PATH) == 0) {
         ssp_printf("ERROR: no file names present in put request, if you want to just send messages, make both source and dest NULL\n");
+        ssp_cleanup_req(req);
         return -1;
     }
 
     bool exists = does_file_exist(source_file_name);
     if (exists == false) {
         ssp_printf("ERROR: File does not exist\n");
+        ssp_cleanup_req(req);
         return -1;
     }
 
     file_size = get_file_size(source_file_name);
-    if (file_size == 0)
+    if (file_size == 0) {
+        ssp_cleanup_req(req);
         return -1;
+    }
 
     req->file = create_file(source_file_name, false);
+    if (req->file == NULL) {
+        ssp_cleanup_req(req);
+        return -1;
+    }
     req->file_size = file_size;
-
+    req->transaction_sequence_number = app->transaction_sequence_number++;
+    
     ssp_memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
     ssp_memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
-    save_req_to_file(req);
-    return 1;
+    error = save_req_to_file(req);
+    ssp_cleanup_req(req);
+
+    return error;
 }
 
 int start_scheduled_requests(uint32_t dest_id, FTP *app){
@@ -474,13 +484,18 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
     int error, fd = 0;
     Request *req;
     
+
+    //adding +2 here because file->name is of max 256 size, and then we add a /. 
+    char file_path[MAX_PATH + 2];
+
     while( (file=readdir(dir)) )
     {
-
         if (strncmp(file->d_name, ".", 1) == 0 || strncmp(file->d_name, "..", 2) == 0)
             continue;
 
-        fd = ssp_open(file->d_name, O_RDWR);
+        ssp_snprintf(file_path, sizeof(file_path), "%s/%s", dir_name, file->d_name);
+
+        fd = ssp_open(file_path, O_RDWR);    
         if (fd < 0) {
             ssp_error("couldn't open request data file");
             return -1;
@@ -491,12 +506,15 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
             ssp_error("couldn't start new request");
             continue;
         }
-
+        char *buff = req->buff;
         error = read_request_from_file(fd, req);
         if (error < 0) {
             return -1;
         }
-        
+        req->buff = buff; //add buffer from client
+
+        start_request(req);
+
         error = ssp_close(fd);
         if (error < 0) {
             ssp_error("there was an error closing the file descriptor");
@@ -564,6 +582,17 @@ void print_request_state(Request *req) {
     ssp_printf("current messages: \n");
     req->messages_to_user->iterate(req->messages_to_user, print_messages_callback, NULL);
     
+    ssp_printf("request header destination id: %d\n", req->pdu_header.destination_id);
+    ssp_printf("request header source id: %d\n", req->pdu_header.source_id);
+    ssp_printf("request header crc flag: %d\n", req->pdu_header.CRC_flag);
+    ssp_printf("request header direction: %d\n", req->pdu_header.direction);
+    ssp_printf("request header length of Ids: %d\n", req->pdu_header.length_of_entity_IDs);
+    ssp_printf("request header PDU_data_field_len: %d\n", req->pdu_header.PDU_data_field_len);
+    ssp_printf("request header pdu type: %d\n", req->pdu_header.PDU_type);
+    ssp_printf("request header transaction_seq_num_len: %d\n", req->pdu_header.transaction_seq_num_len);
+    ssp_printf("request header transaction_sequence_number: %d\n", req->pdu_header.transaction_sequence_number);
+    ssp_printf("request header transmission_mode: %d\n", req->pdu_header.transmission_mode);
+    ssp_printf("request header version: %d\n", req->pdu_header.version);
     ssp_printf("---------------------------------------------\n");
 }
 
