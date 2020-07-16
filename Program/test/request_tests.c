@@ -254,6 +254,34 @@ int request_user_input_tests() {
     app->close = true;
     ssp_thread_join(app->server_handle);
 }
+int scheduled_requests_test() {
+
+    FTP *app = init_ftp(2);
+    int error = schedule_put_request(1, "test_files/dest.jpg", "test_files/scheduled_file_sent", ACKNOWLEDGED_MODE, app);
+    ASSERT_EQUALS_INT("couldn't schedule request when should have been able to ", error, 0);
+
+    //error = schedule_put_request(1, "test_files/dest.jp", "test_files/scheduled_file_fail", ACKNOWLEDGED_MODE, app);
+    //ASSERT_EQUALS_INT("couldn't schedule request, file not found", error, -1);
+
+    //error = schedule_put_request(1, NULL, NULL, ACKNOWLEDGED_MODE, app);
+    //ASSERT_EQUALS_INT("scheduling just messages", error, 0);
+    
+    sleep(1);
+    app->close = true;
+    ssp_thread_join(app->server_handle);
+    return 0;
+}
+
+int schedule_requests_start_test(){
+    sleep(1);
+    FTP *app = init_ftp(2);
+   
+    int error = start_scheduled_requests(1, app);
+    ASSERT_EQUALS_INT("start request batch successfully", error, 0);
+
+    //app->close = true;
+    ssp_thread_join(app->server_handle);
+}
 
 int test_process_messages() {
 
@@ -265,6 +293,7 @@ int request_tests() {
 
     int error = 0;
     
+    /*
     error = request_finding_test(); 
     error = request_user_input_tests();
     error = add_proxy_message();
@@ -272,6 +301,11 @@ int request_tests() {
     error = add_continue_partial_message_test();
     error = init_cont_partial_request_test_fail();
     error = init_cont_partial_request_test();
+    */
+
+
+    scheduled_requests_test();
+    schedule_requests_start_test();
 
     return error;
 }

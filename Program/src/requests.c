@@ -275,6 +275,28 @@ void ssp_cleanup_req(void *request) {
 
 }
 
+Request *init_request_new() {
+
+    Request *req = ssp_alloc(1, sizeof(Request));
+    if (req == NULL)
+        return NULL;
+
+    req->file = NULL;
+    //req->buff_len = buff_len;
+    //req->buff = buff;
+    req->procedure = none;
+    req->paused = true;
+    req->timeout_before_cancel = ssp_time_count();
+    req->timeout_before_journal = ssp_time_count();
+    //req->res.msg = req->buff;
+
+    req->messages_to_user = linked_list();
+    if (req->messages_to_user == NULL) {
+        ssp_free(req->buff);
+        return NULL;
+    }
+    return req;
+}
 
 
 Request *init_request(char *buff, uint32_t buff_len) {
@@ -329,7 +351,80 @@ static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
     return req;
 }
 
+Client *start_client(FTP *app, uint8_t dest_id) {
+     //spin up a new client thread
+    Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
 
+    if (client == NULL) {
+        ssp_printf("Spinning up a new client thread\n");
+        client = ssp_client(dest_id, app);
+        if (client == NULL)
+            return NULL;
+
+        app->active_clients->insert(app->active_clients, client, dest_id);
+    } else {
+        ssp_printf("adding request to existing client thread\n");
+    }
+    return client;
+}
+
+
+//adds generic request to client, will set the pdu_header to new client
+void add_request_to_client(Request *req, Client *client) {
+
+    req->dest_cfdp_id = client->remote_entity.cfdp_id;
+    req->pdu_header = client->pdu_header;
+    req->my_cfdp_id = client->app->my_cfdp_id;
+    req->buff = client->buff;
+    req->buff_len = client->packet_len;
+    client->request_list->insert(client->request_list, req, 0);
+    start_request(req);
+}
+
+int put_request_new(
+    Request *req,
+    char *source_file_name,
+    char *destination_file_name,
+    uint8_t transmission_mode,
+    FTP *app) {
+
+    uint32_t file_size = 0;
+    
+    //build a request
+    req->my_cfdp_id = app->my_cfdp_id;
+    req->transmission_mode = transmission_mode;
+    req->procedure = sending_start;
+    
+    if (source_file_name == NULL && destination_file_name == NULL) {
+        req->transaction_sequence_number = app->transaction_sequence_number++;
+        return 0;
+    }
+
+    if (strnlen(source_file_name, MAX_PATH) == 0 || strnlen(destination_file_name, MAX_PATH) == 0) {
+        ssp_printf("ERROR: no file names present in put request, if you want to just send messages, make both source and dest NULL\n");
+        return -1;
+    }
+
+    bool exists = does_file_exist(source_file_name);
+    if (exists == false) {
+        ssp_printf("ERROR: File does not exist\n");
+        return -1;
+    }
+
+    file_size = get_file_size(source_file_name);
+    if (file_size == 0) 
+        return -1;
+
+    req->file = create_file(source_file_name, false);
+    if (req->file == NULL) 
+        return -1;
+    
+    req->file_size = file_size;
+    req->transaction_sequence_number = app->transaction_sequence_number++;
+    ssp_memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
+    ssp_memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
+    return 0;
+}
 /*NULL for source and destination filenames shall indicate that only Meta
 data will be delivered. Side effect: add request to client request list
 returns the request*/
@@ -473,10 +568,10 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
     ssp_snprintf(dir_name, MAX_PATH, "%s%u%s", "incomplete_requests/CFID:", dest_id, "_requests");
     ssp_printf("opening dir %s\n", dir_name);
 
-    DIR *dir;
-    struct dirent *file;
+    void *dir;
+    char file[MAX_PATH];
 
-    dir = opendir(dir_name);
+    dir = ssp_opendir(dir_name);
     if(dir == NULL){
         ssp_error("Unable to open directory");
         return -1;
@@ -484,16 +579,16 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
     int error, fd = 0;
     Request *req;
     
-
     //adding +2 here because file->name is of max 256 size, and then we add a /. 
     char file_path[MAX_PATH + 2];
 
-    while( (file=readdir(dir)) )
+    while( (ssp_readdir(dir, file)) )
     {
-        if (strncmp(file->d_name, ".", 1) == 0 || strncmp(file->d_name, "..", 2) == 0)
+        if (strncmp(file, ".", 1) == 0 || strncmp(file, "..", 2) == 0)
             continue;
 
-        ssp_snprintf(file_path, sizeof(file_path), "%s/%s", dir_name, file->d_name);
+        ssp_snprintf(file_path, sizeof(file_path), "%s/%s", dir_name, file);
+        ssp_printf("reading: %s\n", file_path);
 
         fd = ssp_open(file_path, O_RDWR);    
         if (fd < 0) {
