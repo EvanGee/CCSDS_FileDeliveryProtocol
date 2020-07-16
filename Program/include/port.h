@@ -87,6 +87,9 @@ void ssp_thread_join(void *thread_handle);
 int ssp_remove(char *pathname);
 int ssp_rename(const char *old, const char *new);
 int ssp_mkdir(char *dir_name);
+void *ssp_opendir(char *dir_name);
+int ssp_readdir(void *dir, char *file);
+
 void reset_request(Request *req);
 
 

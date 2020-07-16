@@ -109,6 +109,33 @@ int ssp_mkdir(char *dir_name) {
     #endif
 }
 
+void *ssp_opendir(char *dir_name) {
+
+    #ifdef POSIX_FILESYSTEM
+        DIR *dir;
+        dir = opendir(dir_name);
+        if(dir == NULL){
+            ssp_error("Unable to open directory");
+            return NULL;
+        }
+        return dir;
+    #endif
+}
+
+int ssp_readdir(void *dir, char *file){
+    #ifdef POSIX_FILESYSTEM
+        struct dirent *file_read;
+        DIR *d = (DIR*)dir;
+
+        file_read=readdir(d);
+        if (file_read == NULL) {
+            return 0;
+        }
+        ssp_memcpy(file, file_read->d_name, MAX_PATH);
+
+        return 1;
+    #endif  
+}
 
 /*------------------------------------------------------------------------------
     Network port functions, these are used to interchange different network
