@@ -9,7 +9,7 @@ Author: Evan Giese
 #include "file_delivery_app.h"
 #include "tasks.h"
 
-static void create_ssp_server_drivers(FTP *app) {
+static int create_ssp_server_drivers(FTP *app) {
 
     switch (app->remote_entity.type_of_network)
     {
@@ -29,9 +29,14 @@ static void create_ssp_server_drivers(FTP *app) {
             ssp_printf("server couldn't start, 'type of network' not recognized\n");
             break;
     }
+    if (app->server_handle == NULL) {
+        return -1;
+    }
+    return 0;
+
 }
 
-static void create_ssp_client_drivers(Client *client) {
+static int create_ssp_client_drivers(Client *client) {
     Remote_entity remote_entity = client->remote_entity;
 
     switch (remote_entity.type_of_network)
@@ -52,6 +57,10 @@ static void create_ssp_client_drivers(Client *client) {
             ssp_printf("client couldn't start, 'type of network' not recognized\n");
             break;
     }
+    if (client->client_handle == NULL) {
+        return -1;
+    }
+    return 0;
 }
 
 FTP *init_ftp(uint32_t my_cfdp_address) {
@@ -133,7 +142,13 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
     
     client->current_request = NULL;
     client->app = app;
-    create_ssp_client_drivers(client);
 
+    error = create_ssp_client_drivers(client);
+    if (error < 0) {
+        ssp_free(client);
+        ssp_free(client->buff);
+        client->request_list->freeOnlyList(client->request_list);        
+        return NULL;
+    }
     return client;
 }
