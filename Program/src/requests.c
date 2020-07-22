@@ -275,20 +275,17 @@ void ssp_cleanup_req(void *request) {
 
 }
 
-Request *init_request_new() {
+Request *init_request_no_client() {
 
     Request *req = ssp_alloc(1, sizeof(Request));
     if (req == NULL)
         return NULL;
 
     req->file = NULL;
-    //req->buff_len = buff_len;
-    //req->buff = buff;
     req->procedure = none;
     req->paused = true;
     req->timeout_before_cancel = ssp_time_count();
     req->timeout_before_journal = ssp_time_count();
-    //req->res.msg = req->buff;
 
     req->messages_to_user = linked_list();
     if (req->messages_to_user == NULL) {
@@ -301,55 +298,17 @@ Request *init_request_new() {
 
 Request *init_request(char *buff, uint32_t buff_len) {
 
-    Request *req = ssp_alloc(1, sizeof(Request));
+    Request *req = init_request_no_client();
     if (req == NULL)
         return NULL;
 
-    req->file = NULL;
     req->buff_len = buff_len;
     req->buff = buff;
-    req->procedure = none;
-    req->paused = true;
-    req->timeout_before_cancel = ssp_time_count();
-    req->timeout_before_journal = ssp_time_count();
     req->res.msg = req->buff;
 
-    req->messages_to_user = linked_list();
-    if (req->messages_to_user == NULL) {
-        ssp_free(req->buff);
-        return NULL;
-    }
     return req;
 }
 
-
-//starts a new client, adding it to app->active_clients, as well as 
-//starting a new request and adding it to the client, returns a pointer
-//to the request
-static Request *start_new_client_request(FTP *app, uint8_t dest_id) {
-
-    //spin up a new client thread
-    Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
-
-    if (client == NULL) {
-        ssp_printf("Spinning up a new client thread\n");
-        client = ssp_client(dest_id, app);
-        app->active_clients->insert(app->active_clients, client, dest_id);
-    } else {
-        ssp_printf("adding request to existing client thread\n");
-    }
-
-    Request *req = init_request(client->buff, client->packet_len);
-    
-    //build a request 
-    req->dest_cfdp_id = client->remote_entity.cfdp_id;
-    req->pdu_header = client->pdu_header;
-    req->my_cfdp_id = app->my_cfdp_id;
-
-    client->request_list->insert(client->request_list, req, 0);
-
-    return req;
-}
 
 Client *start_client(FTP *app, uint8_t dest_id) {
      //spin up a new client thread
@@ -381,7 +340,7 @@ void add_request_to_client(Request *req, Client *client) {
     start_request(req);
 }
 
-int put_request_new(
+int put_request_no_client(
     Request *req,
     char *source_file_name,
     char *destination_file_name,
@@ -436,49 +395,27 @@ Request *put_request(
             FTP *app
             ) {
 
-    Request *req;
-    uint32_t file_size = 0;
 
-    ssp_printf("trying to start new request\n");
-    if (source_file_name == NULL && destination_file_name == NULL) {
-        req = start_new_client_request(app, dest_id);
-        req->transmission_mode = transmission_mode;
-        req->procedure = sending_start;
-        req->transaction_sequence_number = app->transaction_sequence_number++;
-        return req;
-    }
+    Request *req = init_request_no_client();
+    if (req == NULL) {
+        ssp_error("couldn't init request");
+        return NULL;
+    } 
 
-    if (strnlen(source_file_name, MAX_PATH) == 0 || strnlen(destination_file_name, MAX_PATH) == 0) {
-        ssp_printf("ERROR: no file names present in put request, if you want to just send messages, make both source and dest NULL\n");
+    if (put_request_no_client(req, source_file_name, destination_file_name, transmission_mode, app) < 0){
+        ssp_error("couldn't configure request");
         return NULL;
     }
 
-    bool exists = does_file_exist(source_file_name);
-    if (exists == false) {
-        ssp_printf("ERROR: File does not exist\n");
+    Client *client = start_client(app, dest_id);
+    if (client == NULL) {
+        ssp_printf("client failed to start\n");
         return NULL;
-    }
-
-    req = start_new_client_request(app, dest_id);
-
-    file_size = get_file_size(source_file_name);
-    if (file_size == 0)
-        return NULL;
-
-    req->file = create_file(source_file_name, false);
-    req->file_size = file_size;
-
-    req->transmission_mode = transmission_mode;
-    req->procedure = sending_start;
-    req->transaction_sequence_number = app->transaction_sequence_number++;
+    } 
     
-    ssp_memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
-    ssp_memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
-
+    add_request_to_client(req, client);
     return req;
 }
-
-
 
 /*NULL for source and destination filenames shall indicate that only Meta
 data will be delivered. Side effect: add request to client request list
@@ -490,76 +427,36 @@ int schedule_put_request(
             uint8_t transmission_mode,
             FTP *app
             ) {
+    int error = -1;
+    Request *req = init_request_no_client();
+    if (req == NULL) {
+        ssp_error("couldn't init request");
+        return error;
+    } 
 
-    Request *req;
-    uint32_t file_size = 0;
-    
-    ssp_printf("scheduling request\n");
-
-    Remote_entity remote;
-    int error = get_remote_entity_from_json(&remote, dest_id);
-    if (error < 0) {
-        ssp_error("couldn't schedule request, reading from MIB failed\n");
-        return -1;
-    }
-
-    Pdu_header pdu_header;
-    error = get_header_from_mib(&pdu_header, remote, app->my_cfdp_id);
-    if (error < 0) {
-        ssp_error("couldn't get PDU header\n");
-        return -1;
-    }
-
-    char temp_buff[remote.mtu];
-    req = init_request(temp_buff, remote.mtu);
-
-    //build a request 
-    req->dest_cfdp_id = dest_id;
-    req->pdu_header = pdu_header;
-    req->my_cfdp_id = app->my_cfdp_id;
-    req->transmission_mode = transmission_mode;
-    req->procedure = sending_start;
-
-    if (source_file_name == NULL && destination_file_name == NULL) {
-        error = save_req_to_file(req);
-        if (error < 0)
-            ssp_cleanup_req(req);
+    if (put_request_no_client(req, source_file_name, destination_file_name, transmission_mode, app) < 0){
+        ssp_error("couldn't configure request");
         return error;
     }
 
-    if (strnlen(source_file_name, MAX_PATH) == 0 || strnlen(destination_file_name, MAX_PATH) == 0) {
-        ssp_printf("ERROR: no file names present in put request, if you want to just send messages, make both source and dest NULL\n");
-        ssp_cleanup_req(req);
-        return -1;
-    }
-
-    bool exists = does_file_exist(source_file_name);
-    if (exists == false) {
-        ssp_printf("ERROR: File does not exist\n");
-        ssp_cleanup_req(req);
-        return -1;
-    }
-
-    file_size = get_file_size(source_file_name);
-    if (file_size == 0) {
-        ssp_cleanup_req(req);
-        return -1;
-    }
-
-    req->file = create_file(source_file_name, false);
-    if (req->file == NULL) {
-        ssp_cleanup_req(req);
-        return -1;
-    }
-    req->file_size = file_size;
-    req->transaction_sequence_number = app->transaction_sequence_number++;
-    
-    ssp_memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));
-    ssp_memcpy(req->destination_file_name, destination_file_name, strnlen(destination_file_name, MAX_PATH));
+    req->dest_cfdp_id = dest_id;
+    req->my_cfdp_id = app->my_cfdp_id;
+    req->transmission_mode = transmission_mode;
+    req->procedure = sending_start;
     error = save_req_to_file(req);
-    ssp_cleanup_req(req);
-
     return error;
+}
+
+static void clean_up_start_scheduled_requests(int fd, Request *req){
+
+    if (req != NULL)
+        ssp_cleanup_req(req);
+    
+    int error = ssp_close(fd);
+    if (error < 0) {
+        ssp_error("there was an error closing the file descriptor");
+    }
+
 }
 
 int start_scheduled_requests(uint32_t dest_id, FTP *app){
@@ -577,7 +474,8 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
         return -1;
     }
     int error, fd = 0;
-    Request *req;
+    Request *req = NULL;
+    Client *client = NULL;
     
     //adding +2 here because file->name is of max 256 size, and then we add a /. 
     char file_path[MAX_PATH + 2];
@@ -588,26 +486,36 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
             continue;
 
         ssp_snprintf(file_path, sizeof(file_path), "%s/%s", dir_name, file);
-        ssp_printf("reading: %s\n", file_path);
 
         fd = ssp_open(file_path, O_RDWR);    
         if (fd < 0) {
+            clean_up_start_scheduled_requests(fd, req);
             ssp_error("couldn't open request data file");
-            return -1;
+            continue;
         }
         
-        req = start_new_client_request(app, dest_id);
-        if (req == NULL) {
+        client = start_client(app, dest_id);
+        if (client == NULL) {
+            clean_up_start_scheduled_requests(fd, req);
             ssp_error("couldn't start new request");
             continue;
         }
-        char *buff = req->buff;
+
+        req = init_request_no_client();
+        if (req == NULL) {
+            clean_up_start_scheduled_requests(fd, req);
+            ssp_error("couldn't init request");
+            continue;
+        } 
+
         error = read_request_from_file(fd, req);
         if (error < 0) {
-            return -1;
+            clean_up_start_scheduled_requests(fd, req);
+            ssp_error("couldn't read in request");
+            continue;
         }
-        req->buff = buff; //add buffer from client
 
+        add_request_to_client(req, client);
         start_request(req);
 
         error = ssp_close(fd);

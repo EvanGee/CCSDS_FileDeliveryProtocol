@@ -51,7 +51,7 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app);
 int schedule_put_request(uint32_t dest_id,char *source_file_name,char *destination_file_name,uint8_t transmission_mode, FTP *app);
 
 //----------------------------new stuff for users starting request---------------
-int put_request_new(
+int put_request_no_client(
     Request *req,
     char *source_file_name,
     char *destination_file_name,
@@ -60,6 +60,6 @@ int put_request_new(
 
 void add_request_to_client(Request *req, Client *client);
 Client *start_client(FTP *app, uint8_t dest_id);
-Request *init_request_new();
+Request *init_request_no_client();
 
 #endif
