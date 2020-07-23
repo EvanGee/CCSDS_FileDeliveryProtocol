@@ -32,6 +32,8 @@ Author: Evan Giese
 #ifdef POSIX_FILESYSTEM
     #include <fcntl.h>
     #include <sys/stat.h>
+    #include <dirent.h>
+
     #define SSP_O_RDWR O_RDWR
     #define SSP_O_CREAT O_CREAT
     #define SSP_O_TRUNC O_TRUNC
@@ -85,6 +87,9 @@ void ssp_thread_join(void *thread_handle);
 int ssp_remove(char *pathname);
 int ssp_rename(const char *old, const char *new);
 int ssp_mkdir(char *dir_name);
+void *ssp_opendir(char *dir_name);
+int ssp_readdir(void *dir, char *file);
+
 void reset_request(Request *req);
 
 

@@ -72,7 +72,7 @@ static void timeout(Request *req) {
         }
         req->procedure = clean_up;
     } 
-
+    
     is_timeout = check_timeout(&req->timeout_before_journal, TIMEOUT_BEFORE_SAVE_REQUEST);
     if (is_timeout) {
         int error = save_req_to_file(req);
@@ -162,6 +162,10 @@ void remove_request_check(Node *node, void *request, void *args) {
     if (req->procedure == clean_up) {
         ssp_printf("removing request\n");
         Request *remove_this = req_list->removeNode(req_list, node);
+        //int error = delete_saved_request(req);
+        //if (error < 0)
+        //    ssp_error("couldn't delete finished request\n");
+
         ssp_cleanup_req(remove_this);
     }
 }

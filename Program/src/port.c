@@ -20,6 +20,7 @@ Author: Evan Giese
 #ifdef POSIX_FILESYSTEM
     #include <unistd.h>
     #include <fcntl.h>
+    #include <dirent.h>
 #endif
 
 #ifdef FREE_RTOS_PORT 
@@ -107,6 +108,35 @@ int ssp_mkdir(char *dir_name) {
 
     #endif
 }
+
+void *ssp_opendir(char *dir_name) {
+
+    #ifdef POSIX_FILESYSTEM
+        DIR *dir;
+        dir = opendir(dir_name);
+        if(dir == NULL){
+            ssp_error("Unable to open directory");
+            return NULL;
+        }
+        return dir;
+    #endif
+}
+
+int ssp_readdir(void *dir, char *file){
+    #ifdef POSIX_FILESYSTEM
+        struct dirent *file_read;
+        DIR *d = (DIR*)dir;
+
+        file_read=readdir(d);
+        if (file_read == NULL) {
+            return 0;
+        }
+        ssp_memcpy(file, file_read->d_name, MAX_PATH);
+
+        return 1;
+    #endif  
+}
+
 /*------------------------------------------------------------------------------
     Network port functions, these are used to interchange different network
     stacks
@@ -231,6 +261,7 @@ int ssp_time_count() {
     return ts.tv_sec;
 }
 
+
 /*------------------------------------------------------------------------------
     Threading and task functions
 ------------------------------------------------------------------------------*/
@@ -256,42 +287,41 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 
     #else //pthreads
     pthread_t *handler = ssp_alloc(1,  sizeof(pthread_t));
-    if (handler == NULL)
+    if (handler == NULL) 
         return NULL;
 
-
     pthread_attr_t *attr = ssp_alloc(1, sizeof(pthread_attr_t)); 
-    
     if (attr == NULL) {
         ssp_free(handler);
         return NULL;
     }
 
     int err = pthread_attr_init(attr);
-    if (0 != err) 
+    if (0 != err) {
         perror("pthread_init failed");
-
-
+        ssp_free(attr);
+        ssp_free(handler);
+    }
     err = pthread_attr_setstacksize(attr, stack_size);
-
     if (0 != err)
         ssp_error("ERROR pthread_attr_setstacksize %d");
-
+        
     if (EINVAL == err) {
-        printf("the stack size is less that PTHREAD_STACK_MIN %d\n", PTHREAD_STACK_MIN);
+        ssp_printf("the stack size is less that PTHREAD_STACK_MIN %d\n", PTHREAD_STACK_MIN);
+        ssp_free(attr);
+        ssp_free(handler);
+        return NULL;
     }
 
     err = pthread_create(handler, attr, thread_func, params);
-    if (0 != err)
+    if (0 != err) {
         perror("ERROR pthread_create");
-
+        ssp_free(handler);
+    }
     ssp_free(attr);
 
     return handler;
     #endif
-
-
-
 }
 
 

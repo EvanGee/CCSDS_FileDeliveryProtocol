@@ -568,12 +568,10 @@ typedef struct response {
     char *msg;
     //this is type (struct sockaddr_in) in posix
     void *addr;
+    size_t size_of_addr;
     
     enum Network_type type_of_network;
     int transmission_mode;
-
-    //getting rid of this soon in favour of client based packet sizes
-    size_t size_of_addr;
 
     uint32_t packet_len;
     
