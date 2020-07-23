@@ -307,7 +307,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
         ssp_error("ERROR pthread_attr_setstacksize %d");
         
     if (EINVAL == err) {
-        ssp_error("the stack size is less that PTHREAD_STACK_MIN %d\n", PTHREAD_STACK_MIN);
+        ssp_printf("the stack size is less that PTHREAD_STACK_MIN %d\n", PTHREAD_STACK_MIN);
         ssp_free(attr);
         ssp_free(handler);
         return NULL;
