@@ -15,6 +15,8 @@ Author: Evan Giese
     #include <stdio.h>
     #include <arpa/inet.h>
     #include <stdarg.h>
+    #include <time.h>
+
 #endif
 
 #ifdef POSIX_FILESYSTEM
@@ -27,6 +29,16 @@ Author: Evan Giese
     #include "FreeRTOS.h"
     #include "task.h"
     #include "portable.h"
+
+    //make sure these are available in FREERTOS
+    #include <errno.h>
+    #include <time.h>
+    #include <limits.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <arpa/inet.h>
+    #include <stdarg.h>
+
 #endif
 
 #ifdef CSP_NETWORK
@@ -280,8 +292,10 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
                     params,    /* Parameter passed into the task. */
                     tskIDLE_PRIORITY,/* Priority at which the task is created. */
                     xHandle );      /* Used to pass out the created task's handle. */
-    if (xReturned == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY)
+    if (xReturned == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY) {
         ssp_error("Not enough memory to start task\n");
+        return NULL;
+    }
 
     return xHandle;
 

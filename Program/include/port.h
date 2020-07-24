@@ -9,9 +9,10 @@ Author: Evan Giese
 
 #define STACK_ALLOCATION 16384
 
-#define POSIX_PORT
+//#define POSIX_PORT
+#define FREE_RTOS_PORT
 #define POSIX_FILESYSTEM
-//#define CSP_NETWORK
+#define CSP_NETWORK
 
 //comment this out if you want to sendto function to actually work
 //#define TEST
@@ -61,8 +62,23 @@ Author: Evan Giese
 #endif
 
 #ifdef FREE_RTOS_PORT 
-    //TODO need the above POSIX_PORT definitions to work, if we are bigendian, then the
-    //htonl etc are empty.
+    #include <arpa/inet.h>
+    #define SSP_INET_ADDRSTRLEN INET_ADDRSTRLEN
+    #define SSP_AF_INET AF_INET
+    #define ssp_htonl htonl 
+    #define ssp_ntohl ntohl
+    #define ssp_htons htons
+    #define ssp_stonl stonl
+    #define ssp_inet_ntop inet_ntop
+
+    #include <string.h>
+    #define ssp_memcpy memcpy
+
+    #include <stdio.h>
+    #define ssp_snprintf snprintf
+    
+    #include "stdlib.h"
+    #define ssp_atol atol
 #endif
 
 

@@ -8,6 +8,7 @@ Author: Evan Giese
 #define SSP_TYPES_H
 
 #include "list.h"
+#include <stdbool.h>
 
 #define MAX_PATH 255
 #define ACKNOWLEDGED_MODE 0
@@ -17,14 +18,6 @@ Author: Evan Giese
 #define _SIZE_T
 typedef unsigned int size_t;
 #endif
-
-typedef enum { false, true } bool; 
-
-
-
-
-
-
 
 
 /*-----------------------------------------------------------------------------

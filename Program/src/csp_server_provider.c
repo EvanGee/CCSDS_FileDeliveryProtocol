@@ -160,6 +160,9 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
 	/* Create socket without any socket options */
 	csp_socket_t *sock = csp_socket(CSP_SO_NONE);
 
+    uint8_t src_id = csp_get_address();
+    ssp_printf("CSP ID: %d\n", src_id);
+
 	/* Bind all ports to socket */
 	csp_bind(sock, my_port);
 
