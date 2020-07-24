@@ -236,7 +236,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         }
         
 		/* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
-		conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 1000, CSP_CONNECTION_SO);
+		conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 1000, CSP_SO_NONE);
 		if (conn == NULL) {
 			/* Connect failed */
 			ssp_printf("Connection failed\n");
