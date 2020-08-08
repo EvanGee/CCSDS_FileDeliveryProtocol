@@ -162,9 +162,12 @@ void remove_request_check(Node *node, void *request, void *args) {
     if (req->procedure == clean_up) {
         ssp_printf("removing request\n");
         Request *remove_this = req_list->removeNode(req_list, node);
-        //int error = delete_saved_request(req);
-        //if (error < 0)
-        //    ssp_error("couldn't delete finished request\n");
+
+        if (req->local_entity.transaction_finished_indication) {
+            int error = delete_saved_request(req);
+            if (error < 0)
+                ssp_error("couldn't delete finished request, the request may have finished before journaling it\n");
+        }
 
         ssp_cleanup_req(remove_this);
     }
