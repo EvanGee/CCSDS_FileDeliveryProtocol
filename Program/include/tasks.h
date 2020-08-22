@@ -22,6 +22,8 @@ void *ssp_csp_connectionless_server_task(void *params);
 void *ssp_csp_connection_client_task(void *params);
 void *ssp_csp_connection_server_task(void *params);
 void ssp_client_join(Client *client);
+void *ssp_generic_client_task(void *params);
+void *ssp_generic_server_task(void *params);
 
 void remove_request_check(Node *node, void *request, void *args);
 
