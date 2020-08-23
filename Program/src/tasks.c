@@ -555,6 +555,17 @@ void *ssp_csp_connection_client_task(void *params) {
     #endif  
     return NULL;
 }
+
+
+void *ssp_generic_client_task(void *params) {
+    ssp_printf("starting generic server task\n");
+    return NULL;
+}
+
+void *ssp_generic_server_task(void *params) {
+    ssp_printf("starting generic server task\n");
+    return NULL;
+}
 /*------------------------------------------------------------------------------
     
     free functions

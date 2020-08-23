@@ -502,6 +502,7 @@ typedef enum Network_type {
     posix_connection,
     csp_connectionless,
     csp_connection,
+    generic
 
 } Network_type;
 
@@ -640,6 +641,15 @@ typedef struct request {
 } Request;
 
 
+typedef struct custom_queue {
+
+    //used for generic drivers (aka no drivers) cast to a QueueHandle_t in our implementation
+    void* queue;
+    //used for csp connection struct
+    void* connection;
+} Custom_queue;
+
+
 //add "client" in here to represent local entity
 typedef struct ftp {
 
@@ -648,9 +658,9 @@ typedef struct ftp {
 
     //buffer for making packets, is length of packet_len
     char* buff;
-
-
     
+    Custom_queue custom_queue;
+
     void *server_handle;
     uint32_t my_cfdp_id;
     

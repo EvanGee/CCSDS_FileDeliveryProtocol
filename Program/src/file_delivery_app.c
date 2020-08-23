@@ -25,6 +25,9 @@ static int create_ssp_server_drivers(FTP *app) {
         case csp_connection:
             app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
             break;
+        case generic:
+            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_generic_server_task, app);
+            break;
         default:
             ssp_printf("server couldn't start, 'type of network' not recognized\n");
             break;
@@ -53,6 +56,9 @@ static int create_ssp_client_drivers(Client *client) {
         case csp_connection:
             client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_client_task, client);
             break;
+        case generic:
+            client->client_handle = ssp_thread_create(STACK_ALLOCATION, ssp_generic_client_task, client);
+            break;
         default:
             ssp_printf("client couldn't start, 'type of network' not recognized\n");
             break;
@@ -62,6 +68,8 @@ static int create_ssp_client_drivers(Client *client) {
     }
     return 0;
 }
+
+
 
 FTP *init_ftp(uint32_t my_cfdp_address) {
 

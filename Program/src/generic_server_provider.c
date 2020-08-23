@@ -1,12 +1,12 @@
 
 /*
 void connection_server(char *host_name, char* port, int initial_buff_size, int connection_limit,
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
-    int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
-    int (*checkExit)(void *other),
-    void (*onExit)(void *other),
-    void *other);
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *app), 
+    int (*onTimeOut)(void *app),
+    int (*onStdIn)(void *app),
+    int (*checkExit)(void *app),
+    void (*onExit)(void *app),
+    void *app);
 */
 #include "port.h"
 #include "csp.h"
@@ -16,14 +16,15 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
 
 extern int exit_now;
 
-void ssp_generic_server(
-    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
+void ssp_generic_connectionless_server(
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *app), 
+    int (*onTimeOut)(void *app),
     int (*checkExit)(void *app),
     void (*onExit)(void *app),
     void *app) {
         
     FTP *ftp = (FTP *)app;
-    QueueHandle_t *xQueue = (QueueHandle_t*) ftp->incoming_packets;
+    csp_packet_t *packet;
 
     for (;;) {
 
@@ -31,8 +32,8 @@ void ssp_generic_server(
             ssp_printf("exiting server thread\n");
             break;
         }
-    
-        csp_packet_t *packet;
+        
+        QueueHandle_t *xQueue = (QueueHandle_t*) ftp->custom_queue.queue;
         bool is_not_empty = xQueueReceive(*xQueue, packet, 5);
 
         if (!is_not_empty)
@@ -61,8 +62,40 @@ void ssp_generic_server(
 }
 
 
+void csp_connection_server(
+    int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *app), 
+    int (*onTimeOut)(void *app),
+    int (*checkExit)(void *app),
+    void (*onExit)(void *app),
+    void *app)
+{
+	/* Pointer to current connection and packet */
+	csp_packet_t *packet;
+            
+    FTP *ftp = (FTP *)app;
 
-void ssp_generic_client() {
+	/* Process incoming connections */
+	for (;;) {
 
-    return;
+        //bit of an issue, since this can change during runtime, this exists outside of the driver
+        csp_conn_t *conn = (csp_conn_t*) ftp->custom_queue.connection;
+        QueueHandle_t *xQueue = (QueueHandle_t*) ftp->custom_queue.queue;
+	
+        bool is_not_empty = xQueueReceive(*xQueue, packet, 5);
+
+        if (!is_not_empty)
+            onTimeOut(app);
+            return;
+        
+        if (exit_now || checkExit(app))
+            break;
+                    
+        if (onRecv(-1, packet->data, packet_len, NULL, conn, sizeof(struct csp_conn_s), app) == -1)
+                ssp_printf("recv failed\n");
+
+        csp_buffer_free(packet);
+            
+        }
+
+    onExit(app);
 }
