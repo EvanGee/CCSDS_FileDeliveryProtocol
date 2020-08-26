@@ -2,8 +2,6 @@
 PROJDIR = $(CURDIR)/..
 INCLUDE += -I$(PROJDIR)/include
 
-
-
 #---------------------------FOR FREE RTOS INTEGRATION---------------------------
 #path to source includes
 #INCLUDE += -I$(PROJDIR)/../../../../Source/include
@@ -37,6 +35,7 @@ CFILES += filesystem_funcs.c
 CFILES += requests.c
 CFILES += list.c
 CFILES += packet.c
+CFILES += generic_server_provider.c
 #----------------------------test files-------------------------
 
 #entrypoint

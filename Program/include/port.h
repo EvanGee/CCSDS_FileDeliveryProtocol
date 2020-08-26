@@ -11,8 +11,8 @@ Author: Evan Giese
 
 #define POSIX_PORT
 #define POSIX_FILESYSTEM
-//#define CSP_NETWORK
-
+#define CSP_NETWORK
+//#define FREE_RTOS_PORT
 //comment this out if you want to sendto function to actually work
 //#define TEST
 
@@ -40,6 +40,11 @@ Author: Evan Giese
     #define SSP_SEEK_SET SEEK_SET
 #endif
 
+//#ifdef FREE_RTOS_PORT 
+    //TODO need the above POSIX_PORT definitions to work, if we are bigendian, then the
+    //htonl etc are empty.
+//#else 
+
 #ifdef POSIX_PORT
     #include <arpa/inet.h>
     #define SSP_INET_ADDRSTRLEN INET_ADDRSTRLEN
@@ -60,10 +65,7 @@ Author: Evan Giese
     #define ssp_atol atol
 #endif
 
-#ifdef FREE_RTOS_PORT 
-    //TODO need the above POSIX_PORT definitions to work, if we are bigendian, then the
-    //htonl etc are empty.
-#endif
+
 
 
 //don't change these in the header file here, if you need to change them
