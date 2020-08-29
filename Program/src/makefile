@@ -1,16 +1,17 @@
 
-PROJDIR = $(CURDIR)/..
-INCLUDE += -I$(PROJDIR)/include
+#PROJDIR = $(CURDIR)/..
+PROJDIR = $(CURDIR)/../../../../../
+INCLUDE += -I$(CURDIR)/../include
 
 #---------------------------FOR FREE RTOS INTEGRATION---------------------------
 #path to source includes
-#INCLUDE += -I$(PROJDIR)/../../../../Source/include
+INCLUDE += -I$(PROJDIR)/Source/include
 
 #path to compiler includes (portmacro.h)
-#INCLUDE += -I$(PROJDIR)/../../../../Source/portable/GCC/POSIX/
+INCLUDE += -I$(PROJDIR)/Source/portable/GCC/POSIX/
 
 #path to FreeRTOSconfig
-#INCLUDE += -I$(PROJDIR)/../../../../Project/
+INCLUDE += -I$(PROJDIR)/Project/
 
 #-------------------------------------------------------------------------------
 #---------------------------FOR CSP INTEGRATION---------------------------------
@@ -67,15 +68,15 @@ CWARNS += -Wmissing-prototypes
 #---------------------------Libs---------------------------
 LINKFLAGS = 
 LIBS = -pthread
-STATIC_FILES = 
-STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
+#STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
 #STATIC_FILES += $(PROJDIR)/FreeRtos
 
 #---------------------------Compiler flags---------------------------
 
 #32 bit machines, leave this out if your machine is 64 bit
-CFLAGS += -m32
-#CFLAGS += -m64
+#CFLAGS += -m32
+CFLAGS += -m64
+
 CFLAGS += -g -UUSE_STDIO -D__GCC_POSIX__=1
 CFLAGS += -pthread
 CFLAGS += -DDEBUG=1
