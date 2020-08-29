@@ -153,12 +153,30 @@ int ssp_readdir(void *dir, char *file){
     Network port functions, these are used to interchange different network
     stacks
 ------------------------------------------------------------------------------*/
+#ifdef FREE_RTOS_PORT 
+extern QueueHandle_t sendQueue;
+#endif
 
 void ssp_sendto(Response res) {
     #ifdef TEST
         return;
      #endif
-    if (res.type_of_network == csp_connectionless) {
+
+    if (res.type_of_network == generic) {
+
+        #ifdef FREE_RTOS_PORT 
+        while (true) {
+            if (xQueueSendToBack(sendQueue, res.msg, 100) != pdPASS)
+                ssp_printf("queue full, failed to post packet, blocking task untill sent\n");
+            else
+                break;
+        }
+        return;
+        #else
+        ssp_printf("FreeRtos not defined, can't use generic queues");
+        #endif
+    }
+    else if (res.type_of_network == csp_connectionless) {
         #ifdef CSP_NETWORK
             csp_packet_t *packet = (csp_packet_t *) res.addr;
             csp_packet_t *packet_sending;

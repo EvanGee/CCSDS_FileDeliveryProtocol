@@ -64,9 +64,12 @@ static void timeout(Request *req) {
     bool is_timeout = check_timeout(&req->timeout_before_cancel, TIMEOUT_BEFORE_CANCEL_REQUEST);
     if (is_timeout) {
         if (req->local_entity.transaction_finished_indication){
-            ssp_printf("file successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
-        } else {
-            ssp_printf("stopped early, timed out without finishing transaction, saving req to be reopened later: %d\n", req->transaction_sequence_number);
+            ssp_printf("ACKNOWLEDGED request successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
+        } else if (req->transmission_mode == UN_ACKNOWLEDGED_MODE){
+            ssp_printf("UN_ACKNOWLEDGED request successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
+        }
+        else { 
+            ssp_printf("stopped early, timed out without finishing request, saving req to be reopened later: %d\n", req->transaction_sequence_number);
             print_request_state(req);
             save_req_to_file(req);
         }
@@ -162,9 +165,12 @@ void remove_request_check(Node *node, void *request, void *args) {
     if (req->procedure == clean_up) {
         ssp_printf("removing request\n");
         Request *remove_this = req_list->removeNode(req_list, node);
-        //int error = delete_saved_request(req);
-        //if (error < 0)
-        //    ssp_error("couldn't delete finished request\n");
+
+        if (req->local_entity.transaction_finished_indication || req->transmission_mode == UN_ACKNOWLEDGED_MODE) {
+            int error = delete_saved_request(req);
+            if (error < 0)
+                ssp_error("couldn't delete finished request, the request may have finished before journaling it\n");
+        }
 
         ssp_cleanup_req(remove_this);
     }
@@ -547,6 +553,17 @@ void *ssp_csp_connection_client_task(void *params) {
     #ifndef CSP_NETWORK
         ssp_printf("can't start csp connection client, no drivers\n");
     #endif  
+    return NULL;
+}
+
+
+void *ssp_generic_client_task(void *params) {
+    ssp_printf("starting generic server task\n");
+    return NULL;
+}
+
+void *ssp_generic_server_task(void *params) {
+    ssp_printf("starting generic server task\n");
     return NULL;
 }
 /*------------------------------------------------------------------------------

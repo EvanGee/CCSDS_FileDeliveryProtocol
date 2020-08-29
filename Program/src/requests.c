@@ -420,6 +420,16 @@ Request *put_request(
 /*NULL for source and destination filenames shall indicate that only Meta
 data will be delivered. Side effect: add request to client request list
 returns the request*/
+
+int schedule_request(Request *req, uint32_t dest_id, uint8_t transmission_mode, FTP *app) {
+    req->dest_cfdp_id = dest_id;
+    req->my_cfdp_id = app->my_cfdp_id;
+    req->transmission_mode = transmission_mode;
+    req->procedure = sending_start;
+    int error = save_req_to_file(req);
+    return error;
+}
+
 int schedule_put_request(
             uint32_t dest_id,
             char *source_file_name,
@@ -427,7 +437,7 @@ int schedule_put_request(
             uint8_t transmission_mode,
             FTP *app
             ) {
-    int error = -1;
+    int error = 0;
     Request *req = init_request_no_client();
     if (req == NULL) {
         ssp_error("couldn't init request");
@@ -439,11 +449,7 @@ int schedule_put_request(
         return error;
     }
 
-    req->dest_cfdp_id = dest_id;
-    req->my_cfdp_id = app->my_cfdp_id;
-    req->transmission_mode = transmission_mode;
-    req->procedure = sending_start;
-    error = save_req_to_file(req);
+    error = schedule_request(req, dest_id, transmission_mode, app);
     return error;
 }
 
