@@ -3,7 +3,6 @@
 #include "generic_server_provider.h"
 
 #ifdef FREE_RTOS_PORT 
-extern int exit_now;
 
 #include "queue.h"
 #include "port.h"
@@ -39,7 +38,7 @@ void csp_generic_server(
             onTimeOut(app);
             return;
         
-        if (exit_now || checkExit(app))
+        if (get_exit() || checkExit(app))
             break;
                     
         if (onRecv(-1, packet->data, packet->length, packet, sizeof(csp_packet_t), 0, app) == -1)
@@ -72,7 +71,7 @@ void csp_generic_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uin
     csp_packet_t *packet_recv;
     
     for (;;) {
-        if (exit_now || checkExit(params)){
+        if (get_exit() || checkExit(params)){
             ssp_printf("exiting client thread\n");
             break;
         }

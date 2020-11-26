@@ -12,8 +12,6 @@ Author: Evan Giese
 #include "posix_server_provider.h"
 #include "port.h"
 #include <sys/select.h>
-
-extern int exit_now;
  
 static int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len) {
     int count = 0;
@@ -149,14 +147,14 @@ static void interuptHandler(int signum)
     switch (signum)
     {
     case SIGINT:
-        exit_now = 1;
+        set_exit();
         break;
     }
 }
 
 
 //see header file
-int *prepareSignalHandler()
+int prepareSignalHandler()
 {
     struct sigaction actionData;
     sigemptyset(&actionData.sa_mask);
@@ -168,6 +166,7 @@ int *prepareSignalHandler()
         ssp_error("sigaction sigint failed\n");
         exit(EXIT_FAILURE);
     }
+    int exit_now = get_exit();
     return &exit_now;
 }
 
@@ -196,7 +195,7 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
 
     int sfd = prepareHost(host_name, addr, &size_of_addr, port, SOCK_STREAM, 1);
     if (sfd < 0)
-        exit_now = 1;
+        set_exit();
 
     int err = listen(sfd, connection_limit);
 
@@ -214,19 +213,19 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
     if (buff_size == NULL)
-        exit_now = true;
+        set_exit();
 
     *buff_size = initial_buff_size;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(sizeof(char), *buff_size);
     if (buff_size == NULL)
-        exit_now = true;
+        set_exit();
     
     for (;;)
     {
         
-        if (exit_now || checkExit(other)){
+        if (get_exit() || checkExit(other)){
             ssp_printf("exiting server thread\n");
             break;
         }
@@ -322,7 +321,7 @@ void connectionless_server(char *host_name, char* port, int initial_buff_size,
 
     int sfd = prepareHost(host_name, addr, &size_of_addr, port, SOCK_DGRAM, 1);
     if (sfd < 0)
-        exit_now = 1;
+        set_exit();
 
     size_t size_of_socket_struct = 0;
 
@@ -335,18 +334,18 @@ void connectionless_server(char *host_name, char* port, int initial_buff_size,
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
     if (buff_size == NULL)
-        exit_now = true;
+        set_exit();
 
     *buff_size = initial_buff_size + 10;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(sizeof(char), *buff_size);
     if (buff == NULL)
-        exit_now = true;
+        set_exit();
 
     for (;;) {
 
-        if (exit_now || checkExit(other)){
+        if (get_exit() || checkExit(other)){
             ssp_printf("exiting server thread\n");
             break;
         }
@@ -417,11 +416,11 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *para
 
     sfd = prepareHost(hostname, addr, &size_of_addr, port, SOCK_DGRAM, 0);
     if (sfd < 0)
-        exit_now = 1;
+        set_exit();
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
     if (buff_size == NULL)
-        exit_now = true;
+        set_exit();
 
     *buff_size = packet_len + 10;
 
@@ -429,11 +428,11 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *para
 
     char *buff = ssp_alloc(sizeof(char), prev_buff_size);
     if (buff == NULL)
-        exit_now = true;
+        set_exit();
 
 
     for (;;) {
-        if (exit_now || checkExit(params))
+        if (get_exit() || checkExit(params))
              break;
         
         if(!resizeBuff(&buff, buff_size, &prev_buff_size)){
@@ -482,23 +481,23 @@ void connection_client(char *hostname, char*port, int packet_len, void *params,
 
     sfd = prepareHost(hostname, addr, &size_of_addr, port, SOCK_STREAM, 0);
     if (sfd < 0)
-        exit_now = 1;
+        set_exit();
 
     uint32_t *buff_size = ssp_alloc(1, sizeof(uint32_t));
     if (buff_size == NULL)
-        exit_now = true;
+        set_exit();
 
     *buff_size = packet_len;
     uint32_t prev_buff_size = *buff_size;
 
     char *buff = ssp_alloc(prev_buff_size, sizeof(char));
     if (buff == NULL)
-        exit_now = true;
+        set_exit();
 
 
     for (;;) {
         
-        if (exit_now || checkExit(params))
+        if (get_exit() || checkExit(params))
              break;
         
         if(!resizeBuff(&buff, buff_size, &prev_buff_size)){
@@ -515,7 +514,7 @@ void connection_client(char *hostname, char*port, int packet_len, void *params,
 
         if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, params) == -1) {
             ssp_error("recv failed\n");
-            exit_now = 1;
+            set_exit();
         }
         
     }

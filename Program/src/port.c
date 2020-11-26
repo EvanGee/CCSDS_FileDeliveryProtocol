@@ -6,6 +6,7 @@ Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #include "port.h"
 
+static int exit_now = 0;
 
 #ifdef POSIX_PORT
     #include <pthread.h>
@@ -45,6 +46,13 @@ Author: Evan Giese
     #include "csp.h"
 #endif
 
+int get_exit() {
+    return exit_now;
+}
+
+void set_exit() {
+    exit_now = 1;
+}
 
 /*------------------------------------------------------------------------------
     File system port functions, these are used to interchange different 

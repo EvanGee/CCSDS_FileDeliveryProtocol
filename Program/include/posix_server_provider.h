@@ -8,7 +8,7 @@ Author: Evan Giese
 #define POSIX_SERVER_H
 
 #include "stdint.h"
-int *prepareSignalHandler(void);
+int prepareSignalHandler(void);
 /*------------------------------------------------------------------------------
     Purpose:    This function creates a udp select server on the socket sfd.
     Perameters: int sfd: The socket descriptor created by prepareUdpHost

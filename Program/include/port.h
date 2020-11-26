@@ -9,11 +9,14 @@ Author: Evan Giese
 
 #define STACK_ALLOCATION 16384
 
-//#define POSIX_PORT
-#define FREE_RTOS_PORT
-#define POSIX_FILESYSTEM
-#define CSP_NETWORK
 //#define FREE_RTOS_PORT
+#define POSIX_PORT
+
+//#define RED_FS
+#define POSIX_FILESYSTEM
+
+//#define CSP_NETWORK
+
 
 //comment this out if you want to sendto function to actually work
 //#define TEST
@@ -42,11 +45,6 @@ Author: Evan Giese
     #define SSP_SEEK_SET SEEK_SET
 #endif
 
-//#ifdef FREE_RTOS_PORT 
-    //TODO need the above POSIX_PORT definitions to work, if we are bigendian, then the
-    //htonl etc are empty.
-//#else 
-
 #ifdef POSIX_PORT
     #include <arpa/inet.h>
     #define SSP_INET_ADDRSTRLEN INET_ADDRSTRLEN
@@ -67,11 +65,10 @@ Author: Evan Giese
     #define ssp_atol atol
 #endif
 
-
 #ifdef FREE_RTOS_PORT 
-    #include <arpa/inet.h>
-    #define SSP_INET_ADDRSTRLEN INET_ADDRSTRLEN
-    #define SSP_AF_INET AF_INET
+    #include <csp_endian.h>
+    #define SSP_INET_ADDRSTRLEN 16
+    #define SSP_AF_INET 2
     #define ssp_htonl htonl 
     #define ssp_ntohl ntohl
     #define ssp_htons htons
@@ -88,6 +85,15 @@ Author: Evan Giese
     #define ssp_atol atol
 #endif
 
+#ifdef RED_FS
+
+    #include <redposix.h>
+    #define SSP_O_RDWR RED_O_RDWR
+    #define SSP_O_CREAT RED_O_CREAT
+    #define SSP_O_TRUNC RED_O_TRUNC
+    #define SSP_SEEK_SET RED_SEEK_SET
+
+#endif
 
 //don't change these in the header file here, if you need to change them
 //change them in the .c file
@@ -112,6 +118,8 @@ int ssp_rename(const char *old, const char *new);
 int ssp_mkdir(char *dir_name);
 void *ssp_opendir(char *dir_name);
 int ssp_readdir(void *dir, char *file);
+int get_exit();
+void set_exit();
 
 void reset_request(Request *req);
 

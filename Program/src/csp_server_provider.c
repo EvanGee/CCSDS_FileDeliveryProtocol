@@ -11,8 +11,6 @@ Author: Evan Giese
 #include "csp_conn.h"
 
 
-int exit_now;
-
 /*------------------------------------------------------------------------------
                                     
                                     CSP STUFF!
@@ -58,14 +56,14 @@ void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_p
     }
     else {
         ssp_error("couldn't get new packet for sending!\n");
-        exit_now = 1;
+        set_exit();
     }
     char buff[packet_len];
     memset(buff, 0, packet_len);
 
     for (;;) {
 
-        if (exit_now || checkExit(params)){
+        if (get_exit() || checkExit(params)){
             ssp_printf("exiting client thread\n");
             break;
         }
@@ -114,7 +112,7 @@ void csp_connectionless_server(uint8_t my_port, uint32_t packet_len,
 
     for (;;) {
 
-        if (exit_now || checkExit(other)){
+        if (get_exit() || checkExit(other)){
             ssp_printf("exiting server thread\n");
             break;
         }
@@ -179,7 +177,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
 	/* Process incoming connections */
 	for (;;) {
 
-        if (exit_now || checkExit(other)){
+        if (get_exit() || checkExit(other)){
             ssp_printf("exiting serv thread\n");
             break;
         }
@@ -192,7 +190,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
 
         for (;;) {
             
-            if (exit_now || checkExit(other))
+            if (get_exit() || checkExit(other))
                 break;
         
             onTimeOut(other);
@@ -230,7 +228,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 
 	while (1) {
 
-        if (exit_now || checkExit(params)){
+        if (get_exit() || checkExit(params)){
             ssp_printf("exiting client thread\n");
             break;
         }
@@ -244,7 +242,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 		}
 
         for (;;) {
-            if (exit_now || checkExit(params)){
+            if (get_exit() || checkExit(params)){
                 ssp_printf("exiting client thread\n");
                 break;
             }
