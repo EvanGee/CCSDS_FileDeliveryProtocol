@@ -9,11 +9,11 @@ Author: Evan Giese
 
 #define STACK_ALLOCATION 16384
 
-//#define FREE_RTOS_PORT
-#define POSIX_PORT
+#define FREE_RTOS_PORT
+//#define POSIX_PORT
 
-//#define RED_FS
-#define POSIX_FILESYSTEM
+#define RED_FS
+//#define POSIX_FILESYSTEM
 
 //#define CSP_NETWORK
 

@@ -1,3 +1,4 @@
+#ifdef POSIX_PORT
 /*------------------------------------------------------------------------------
 This file is protected under copyright. If you want to use it,
 please include this text, that is my only stipulation.  
@@ -184,4 +185,4 @@ int main(int argc, char** argv) {
     //free(conf); 
     return 0;
 }
-
+#endif
