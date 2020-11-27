@@ -493,7 +493,7 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
 
         ssp_snprintf(file_path, sizeof(file_path), "%s/%s", dir_name, file);
 
-        fd = ssp_open(file_path, O_RDWR);    
+        fd = ssp_open(file_path, SSP_O_RDWR);
         if (fd < 0) {
             clean_up_start_scheduled_requests(fd, req);
             ssp_error("couldn't open request data file");

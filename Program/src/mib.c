@@ -80,7 +80,8 @@ static char *parse_list[PARSE_TOTAL] = {
 static void parse_mib(char *key, char *value, void *params) {
 
     int len = 0;
-    for (int i = 0; i < PARSE_TOTAL; i++) {
+    int i = 0;
+    for (i = 0; i < PARSE_TOTAL; i++) {
         len = strnlen(parse_list[i], 50);
         
         if (strncmp(key, parse_list[i], len) != 0)
@@ -173,9 +174,3 @@ int get_remote_entity_from_json (Remote_entity *remote, uint32_t cfdp_id) {
 void ssp_cleanup_pdu_header(Pdu_header *pdu_header) {
     ssp_free(pdu_header);
 }
-
-
-
-
-
-

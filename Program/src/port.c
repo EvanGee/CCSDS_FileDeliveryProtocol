@@ -29,7 +29,7 @@ static int exit_now = 0;
 #ifdef FREE_RTOS_PORT 
     #include "FreeRTOS.h"
     #include "task.h"
-    #include "portable.h"
+    //#include "portable.h" //not sure what i need here for sat build
 
     //make sure these are available in FREERTOS
     #include <errno.h>
@@ -37,7 +37,6 @@ static int exit_now = 0;
     #include <limits.h>
     #include <stdlib.h>
     #include <stdio.h>
-    #include <arpa/inet.h>
     #include <stdarg.h>
 
 #endif
@@ -46,13 +45,6 @@ static int exit_now = 0;
     #include "csp.h"
 #endif
 
-int get_exit() {
-    return exit_now;
-}
-
-void set_exit() {
-    exit_now = 1;
-}
 
 /*------------------------------------------------------------------------------
     File system port functions, these are used to interchange different 
@@ -111,6 +103,15 @@ int ssp_remove(char *pathname){
     return -1;
 }
 
+int get_exit() {
+    return exit_now;
+}
+
+void set_exit() {
+    exit_now = 1;
+}
+
+
 int ssp_mkdir(char *dir_name) {
     #ifdef POSIX_FILESYSTEM
         int error = mkdir(dir_name, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -162,6 +163,7 @@ int ssp_readdir(void *dir, char *file){
     stacks
 ------------------------------------------------------------------------------*/
 #ifdef FREE_RTOS_PORT 
+#include "queue.h"
 extern QueueHandle_t sendQueue;
 #endif
 
@@ -294,9 +296,14 @@ void ssp_printf(char *stuff, ...) {
 
 //returns seconds elapsed, need FREE RTOS realtime clock lib to properly port
 int ssp_time_count() {
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return ts.tv_sec;
+
+    #ifdef FREE_RTOS_PORT
+        return 1;//INSERT TIME FUNCTIONS get delta time since last call
+    #else
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return ts.tv_sec;
+    #endif
 }
 
 

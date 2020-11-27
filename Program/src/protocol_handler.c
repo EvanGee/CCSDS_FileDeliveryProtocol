@@ -385,8 +385,8 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
         uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, &client->pdu_header);
         uint32_t offset_start = 0;
         uint32_t offset_end = 0;
-    
-        for (int i = 0; i < segments; i++){
+        int i = 0;
+        for (i = 0; i < segments; i++){
             //outgoing_packet_index
             ssp_memcpy(&offset_start, &packet[packet_index], 4);
             offset_start = ssp_ntohl(offset_start);

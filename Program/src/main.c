@@ -29,9 +29,6 @@ Author: Evan Giese
 #include "port.h"
 #include "tasks.h"
 
-//exit handler variable for the main thread
-static int *exit_now;
-
 /*------------------------------------------------------------------------------
     Purpose: This struct if our configuration for this program, these elements
     are set with getopt
@@ -108,7 +105,7 @@ int main(int argc, char** argv) {
 
 
     //exit handler for the main thread;
-    exit_now = prepareSignalHandler();
+    prepareSignalHandler();
 
     //get-opt configuration
     Config *conf = configuration(argc, argv);

@@ -139,7 +139,8 @@ uint32_t calc_check_sum(char *data, uint32_t length) {
     uint8_t remaining_bytes = length % 4;
     uint32_t check_sum = 0;
     uint32_t end = length - 4;
-    for (unsigned int i = 0; i < end; i+= 4){
+    unsigned int i = 0;
+    for (i = 0; i < end; i+= 4){
         check_sum += *((uint32_t *) &data[i]);
     }
     
@@ -148,9 +149,9 @@ uint32_t calc_check_sum(char *data, uint32_t length) {
         memset(last_chunk, 0, 4);
 
         end = length - remaining_bytes;
-
-        for (uint8_t i = 0; i < remaining_bytes; i++) {
-            last_chunk[i] = data[end + i];;
+        unsigned int i = 0;
+        for (i = 0; i < remaining_bytes; i++) {
+            last_chunk[i] = data[end + i];
         } 
           
         check_sum += *((uint32_t*) &last_chunk);        
@@ -166,7 +167,8 @@ uint32_t check_sum_file(File *file, uint16_t stack_buffer) {
     char buff[stack_buffer];
     uint32_t checksum = 0;
     uint32_t bytes_read = 0;
-    for (int i = 0; i < file->total_size; i++) {
+    int i = 0;
+    for (i = 0; i < file->total_size; i++) {
         
         bytes_read = get_offset(file, buff, stack_buffer, (int) stack_buffer);
         if (bytes_read > 0)
@@ -308,7 +310,7 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
 
     char buff[total_size];
 
-    int fd = ssp_open(file_name, O_RDWR);
+    int fd = ssp_open(file_name, SSP_O_RDWR);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
         return -1;
@@ -325,8 +327,8 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
         ssp_error("Failed to parse JSON\n");
         return -1;
     }
-    
-    for (int i = 1; i < r; i++) {
+    int i = 1;
+    for (i = 1; i < r; i++) {
 
         int key_size = tok[i].end - tok[i].start;
         int value_size = tok[i+1].end - tok[i+1].start;
@@ -419,8 +421,8 @@ int get_file_from_file(int fd, File *file) {
     if (missing_offsets == NULL) {
         return -1;
     }
-
-    for (int i = 0; i < length; i++) {
+    int i = 0;
+    for (i = 0; i < length; i++) {
 
         r = ssp_read(fd, (char*)&offset, sizeof(Offset));
         
@@ -587,7 +589,7 @@ int save_req_to_file(Request *req) {
     char file_name[255];
     get_file_name(file_name, req->dest_cfdp_id, req->my_cfdp_id, req->transaction_sequence_number);
    
-    int fd = ssp_open(file_name, O_RDWR | O_CREAT);
+    int fd = ssp_open(file_name, SSP_O_RDWR | SSP_O_CREAT);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
         return -1;
@@ -697,7 +699,8 @@ static int get_messages_from_file(int fd, List *messages){
     }
 
     if (number_of_messages > 0) {
-        for (int i = 0; i < number_of_messages; i++) {
+        int i = 0;
+        for (i = 0; i < number_of_messages; i++) {
                 
             uint8_t message_type = 0;
             error = ssp_read(fd, (char *) &message_type, sizeof(uint8_t));
@@ -779,7 +782,7 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint3
     get_file_name(file_name, dest_cfdp_id, my_cfdp_id, transaction_seq_num);    
     ssp_printf("opening %s\n", file_name);
 
-    int fd = ssp_open(file_name, O_RDWR);
+    int fd = ssp_open(file_name, SSP_O_RDWR);
     if (fd < 0) {
         ssp_error("couldn't open file\n");
         return -1;
