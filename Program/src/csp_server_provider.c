@@ -7,9 +7,9 @@ Author: Evan Giese
 ------------------------------------------------------------------------------*/
 
 #include "port.h"
-#include "csp.h"
+#include "csp/csp.h"
 #include "csp_server_provider.h"
-//#include "csp_conn.h"
+#include "csp_conn.h"
 
 
 /*------------------------------------------------------------------------------

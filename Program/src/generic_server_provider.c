@@ -3,13 +3,14 @@
 #include "generic_server_provider.h"
 
 #ifdef FREE_RTOS_PORT 
-
+#include "FreeRTOS.h"
 #include "queue.h"
 #include "port.h"
-#include "csp.h"
+#include "csp/csp.h"
 
 QueueHandle_t xQueueFtpServerReceive;
 QueueHandle_t xQueueFtpClientReceive;
+QueueHandle_t sendQueue;
 
 
 void _init_queues(int server_size, int client_size){

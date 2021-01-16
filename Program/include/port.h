@@ -66,7 +66,7 @@ Author: Evan Giese
 #endif
 
 #ifdef FREE_RTOS_PORT 
-    #include <csp_endian.h>
+    #include <csp/csp_endian.h>
     #define SSP_INET_ADDRSTRLEN 16
     #define SSP_AF_INET 2
     #define ssp_htonl htonl 
