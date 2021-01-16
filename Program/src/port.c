@@ -338,7 +338,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
         return NULL;
 
     pthread_attr_t *attr = ssp_alloc(1, sizeof(pthread_attr_t)); 
-    if (attr == NULL) {
+    if (attr == NULL)
         ssp_free(handler);
         return NULL;
     }
