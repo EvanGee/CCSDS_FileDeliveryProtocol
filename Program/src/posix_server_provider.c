@@ -1,3 +1,4 @@
+#include "port.h"
 #ifdef POSIX_PORT
 
 /*------------------------------------------------------------------------------
@@ -12,7 +13,7 @@ Author: Evan Giese
 #include <signal.h>
 #include <errno.h>
 #include "posix_server_provider.h"
-#include "port.h"
+
 #include <sys/select.h>
  
 static int ssp_recvfrom(int sfd, void *buff, size_t packet_len, int flags, void *server_addr, uint32_t *server_addr_len) {
