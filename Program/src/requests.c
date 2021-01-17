@@ -530,7 +530,7 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
         }
     }
 
-    closedir(dir);
+    ssp_closedir(dir);
     return 0;
 }
 

@@ -143,6 +143,18 @@ void *ssp_opendir(char *dir_name) {
     #endif
 }
 
+int ssp_closedir(char *dir_name) {
+
+    #ifdef POSIX_FILESYSTEM
+        int error = closedir(dir_name);
+        if(error < 0){
+            ssp_error("Unable to close directory");
+            return NULL;
+        }
+        return error;
+    #endif
+}
+
 int ssp_readdir(void *dir, char *file){
     #ifdef POSIX_FILESYSTEM
         struct dirent *file_read;
