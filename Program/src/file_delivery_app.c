@@ -73,9 +73,53 @@ static int create_ssp_client_drivers(Client *client) {
 
 FTP *init_ftp(uint32_t my_cfdp_address) {
 
+    int error = ssp_mkdir("incomplete_requests");
+    if (error < 0) {
+        ssp_error("couldn't make directory incomplete_requests \n");
+        return NULL;
+    }
+    error = ssp_mkdir("mib");
+    if (error < 0) {
+        ssp_error("couldn't make directory mib\n");
+        return NULL;
+    }
+
+    int fd = ssp_open("mib/peer_0.json", SSP_O_CREAT | SSP_O_RDWR);
+    if (fd < 0) {
+        ssp_error("couldn't create default peer_0.json file\n");
+        return NULL;
+    }
+
+    const char *peer_file = "{\n\
+    \"cfdp_id\": 7,\n\
+    \"UT_address\" : 0,\n\
+    \"UT_port\" : 1,\n\
+    \"type_of_network\" : 3,\n\
+    \"default_transmission_mode\" : 1,\n\
+    \"MTU\" : 250,\n\
+    \"one_way_light_time\" : 123,\n\
+    \"total_round_trip_allowance\" : 123,\n\
+    \"async_NAK_interval\" : 123,\n\
+    \"async_keep_alive_interval\" : 123,\n\
+    \"async_report_interval\" : 123,\n\
+    \"immediate_nak_mode_enabled\" : 123,\n\
+    \"prompt_transmission_interval\" : 123,\n\
+    \"disposition_of_incomplete\" : 123,\n\
+    \"CRC_required\" : 0,\n\
+    \"keep_alive_discrepancy_limit\" : 8,\n\
+    \"positive_ack_timer_expiration_limit\" : 123,\n\
+    \"nak_timer_expiration_limit\" : 123,\n\
+    \"transaction_inactivity_limit\" : 123\n\
+}";
+    
+    error = ssp_write(fd, peer_file, strnlen(peer_file, 1000));
+    if (error < 0) {
+        ssp_error("couldn't write default file\n");
+    }
+
     
     Remote_entity remote_entity;
-    int error = get_remote_entity_from_json(&remote_entity, my_cfdp_address);
+    error = get_remote_entity_from_json(&remote_entity, my_cfdp_address);
     if (error == -1) {
         ssp_error("can't get configuration data, can't start server.\n");
         return NULL;
