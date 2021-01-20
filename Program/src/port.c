@@ -26,6 +26,10 @@ static int exit_now = 0;
     #include <dirent.h>
 #endif
 
+#ifdef RED_FS
+    #include <redposix.h>
+#endif
+
 #ifdef FREE_RTOS_PORT 
     #include "FreeRTOS.h"
     #include "task.h"
@@ -71,11 +75,30 @@ int ssp_mkdir(char *dir_name) {
             return -1;   
         }     
         else {
+            ssp_printf("%s directory already exists\n", dirname);
             return 1;
         }
         return -1;
 
     #endif
+    #ifdef RED_FS
+
+        int error = red_mkdir(dir_name);
+        if (error < 0) {
+            if(red_errno == RED_EEXIST) {
+                return 1;
+            } 
+            ssp_printf("couldn't make dir\n");
+            return -1;   
+        }     
+        else {
+            ssp_printf("%s directory already exists\n", dirname);
+            return 1;
+        }
+        return -1;
+    #endif
+    return -1;
+
 }
 
 void *ssp_opendir(char *dir_name) {
@@ -89,6 +112,18 @@ void *ssp_opendir(char *dir_name) {
         }
         return dir;
     #endif
+    #ifdef RED_FS
+
+        REDDIR *dir:
+        dir = red_opendir(dir_name);
+        if(dir == NULL){
+            ssp_error("Unable to open directory");
+            return NULL;
+        }
+        return dir;
+
+    #endif
+    return NULL;
 }
 
 int ssp_readdir(void *dir, char *file){
@@ -103,7 +138,23 @@ int ssp_readdir(void *dir, char *file){
         ssp_memcpy(file, file_read->d_name, MAX_PATH);
 
         return 1;
-    #endif  
+    #endif
+    #ifdef RED_FS 
+    
+        REDDIRENT *file_read;
+        REDDIR *d = (REDDIR*)dir;
+
+        file_read=red_readdir(d);
+        if (file_read == NULL) {
+            return 0;
+        }
+        ssp_memcpy(file, file_read->d_name, MAX_PATH);
+
+        return 1;
+    #endif    
+
+    return -1;
+    
 }
 
 /*------------------------------------------------------------------------------

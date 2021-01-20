@@ -55,7 +55,24 @@ Author: Evan Giese
 
 #endif
 
+#ifdef RED_FS
 
+    #include <redposix.h>
+    #define SSP_O_RDWR RED_O_RDWR
+    #define SSP_O_CREAT RED_O_CREAT
+    #define SSP_O_TRUNC RED_O_TRUNC
+    #define SSP_SEEK_SET RED_SEEK_SET
+    #define ssp_open red_open
+    #define ssp_rename red_rename
+    #define ssp_close red_close
+    #define ssp_read red_read
+    #define ssp_write red_write
+    #define ssp_closedir red_closedir
+    #define ssp_lseek red_lseek
+    #define ssp_remove red_remove
+    
+
+#endif
 
 #ifdef POSIX_PORT
     #include <arpa/inet.h>
@@ -95,25 +112,6 @@ Author: Evan Giese
     
     #include "stdlib.h"
     #define ssp_atol atol
-#endif
-
-#ifdef RED_FS
-
-    #include <redposix.h>
-    #define SSP_O_RDWR RED_O_RDWR
-    #define SSP_O_CREAT RED_O_CREAT
-    #define SSP_O_TRUNC RED_O_TRUNC
-    #define SSP_SEEK_SET RED_SEEK_SET
-    #define ssp_open red_open
-    #define ssp_rename red_rename
-    #define ssp_close red_close
-    #define ssp_read red_read
-    #define ssp_write red_write
-    #define ssp_closedir red_closedir
-    #define ssp_lseek red_lseek
-    #define ssp_remove red_remove
-    
-
 #endif
 
 //don't change these in the header file here, if you need to change them
