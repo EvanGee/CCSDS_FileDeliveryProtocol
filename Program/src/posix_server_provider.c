@@ -167,10 +167,10 @@ int prepareSignalHandler()
     if (sigaction(SIGINT, &actionData, NULL) == -1)
     {
         ssp_error("sigaction sigint failed\n");
-        exit(EXIT_FAILURE);
+        return -1;
     }
-    int exit_now = get_exit();
-    return &exit_now;
+    return 1;
+
 }
 
 static int resizeBuff(char **buffer, uint32_t *newBufferSize, uint32_t *prev_buff_size) {

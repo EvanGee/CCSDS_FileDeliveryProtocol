@@ -149,7 +149,7 @@ uint32_t calc_check_sum(char *data, uint32_t length) {
         memset(last_chunk, 0, 4);
 
         end = length - remaining_bytes;
-        unsigned int i = 0;
+        i = 0;
         for (i = 0; i < remaining_bytes; i++) {
             last_chunk[i] = data[end + i];
         } 
