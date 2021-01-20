@@ -9,13 +9,13 @@ Author: Evan Giese
 
 #define STACK_ALLOCATION 16384
 
-#define FREE_RTOS_PORT
-//#define POSIX_PORT
+//#define FREE_RTOS_PORT
+#define POSIX_PORT
 
-#define RED_FS
-//#define POSIX_FILESYSTEM
+//#define RED_FS
+#define POSIX_FILESYSTEM
 
-//#define CSP_NETWORK
+#define CSP_NETWORK
 
 
 //comment this out if you want to sendto function to actually work
@@ -38,12 +38,24 @@ Author: Evan Giese
     #include <fcntl.h>
     #include <sys/stat.h>
     #include <dirent.h>
-
+    #include <unistd.h>
+    
     #define SSP_O_RDWR O_RDWR
     #define SSP_O_CREAT O_CREAT
     #define SSP_O_TRUNC O_TRUNC
     #define SSP_SEEK_SET SEEK_SET
+    #define ssp_open open
+    #define ssp_rename rename
+    #define ssp_close close
+    #define ssp_read read
+    #define ssp_write write
+    #define ssp_closedir closedir
+    #define ssp_lseek lseek
+    #define ssp_remove remove
+
 #endif
+
+
 
 #ifdef POSIX_PORT
     #include <arpa/inet.h>
@@ -92,6 +104,15 @@ Author: Evan Giese
     #define SSP_O_CREAT RED_O_CREAT
     #define SSP_O_TRUNC RED_O_TRUNC
     #define SSP_SEEK_SET RED_SEEK_SET
+    #define ssp_open red_open
+    #define ssp_rename red_rename
+    #define ssp_close red_close
+    #define ssp_read red_read
+    #define ssp_write red_write
+    #define ssp_closedir red_closedir
+    #define ssp_lseek red_lseek
+    #define ssp_remove red_remove
+    
 
 #endif
 
@@ -101,20 +122,11 @@ void ssp_error(char *msg);
 void ssp_printf(char *stuff, ...);
 void *ssp_alloc(uint32_t u_memb, size_t size);
 void ssp_sendto(Response res);
-
 void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void *params);
 int ssp_time_count(void);
-
-int ssp_open(char *pathname, int flags);
-int ssp_read(int fd, char* buff, size_t size);
-int ssp_lseek(int fd, int offset, int whence);
 void ssp_error(char *error);
-int ssp_write(int fd, const void *buf, size_t count);
-int ssp_close(int fd);
 void ssp_free(void *pointer);
 void ssp_thread_join(void *thread_handle);
-int ssp_remove(char *pathname);
-int ssp_rename(const char *old, const char *new);
 int ssp_mkdir(char *dir_name);
 void *ssp_opendir(char *dir_name);
 int ssp_readdir(void *dir, char *file);

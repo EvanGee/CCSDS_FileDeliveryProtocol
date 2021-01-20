@@ -50,58 +50,6 @@ static int exit_now = 0;
     File system port functions, these are used to interchange different 
     File systems, will add RELIANCE_EDGE here in the future
 ------------------------------------------------------------------------------*/
-int ssp_rename(const char *old, const char *new) {
-    #ifdef POSIX_FILESYSTEM
-        return rename(old, new);
-    #endif
-    return -1;
-}
-
-int ssp_write(int fd, const void *buf, size_t count) {
-    #ifdef POSIX_FILESYSTEM
-        return write(fd, buf, count);
-    #endif
-    return -1;
-}
-
-
-int ssp_read(int fd, char* buff, size_t size) {
-    #ifdef POSIX_FILESYSTEM
-        return read(fd, buff, size);
-    #endif
-    return -1;
-
-}
-
-//SEEK_END 2  SEEK_CUR 1  SEEK_SET 0 
-int ssp_lseek(int fd, int offset, int whence) {
-    #ifdef POSIX_FILESYSTEM
-        return lseek(fd, offset, whence);
-    #endif
-    return -1;
-} 
-
-int ssp_open(char *pathname, int flags) {
-    #ifdef POSIX_FILESYSTEM
-        //open with read and write permissions
-        return open(pathname, flags, 0666);
-    #endif
-    return -1;
-}
-
-int ssp_close(int fd) {
-    #ifdef POSIX_FILESYSTEM
-        return close(fd);
-    #endif
-    return -1;
-}
-
-int ssp_remove(char *pathname){
-    #ifdef POSIX_FILESYSTEM
-        return remove(pathname);
-    #endif
-    return -1;
-}
 
 int get_exit() {
     return exit_now;
@@ -140,18 +88,6 @@ void *ssp_opendir(char *dir_name) {
             return NULL;
         }
         return dir;
-    #endif
-}
-
-int ssp_closedir(char *dir_name) {
-
-    #ifdef POSIX_FILESYSTEM
-        int error = closedir(dir_name);
-        if(error < 0){
-            ssp_error("Unable to close directory");
-            return NULL;
-        }
-        return error;
     #endif
 }
 
