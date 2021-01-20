@@ -46,7 +46,7 @@ static int exit_now = 0;
 #endif
 
 #ifdef CSP_NETWORK
-    #include "csp.h"
+    #include "csp/csp.h"
 #endif
 
 
@@ -75,7 +75,7 @@ int ssp_mkdir(char *dir_name) {
             return -1;   
         }     
         else {
-            ssp_printf("%s directory already exists\n", dirname);
+            ssp_printf("%s directory already exists\n", dir_name);
             return 1;
         }
         return -1;
@@ -92,7 +92,7 @@ int ssp_mkdir(char *dir_name) {
             return -1;   
         }     
         else {
-            ssp_printf("%s directory already exists\n", dirname);
+            ssp_printf("%s directory already exists\n", dir_name);
             return 1;
         }
         return -1;

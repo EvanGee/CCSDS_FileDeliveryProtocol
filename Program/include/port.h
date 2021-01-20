@@ -24,7 +24,7 @@ Author: Evan Giese
 #include "types.h"
 
 #ifdef CSP_NETWORK
-    #include "csp.h"
+    #include "csp/csp.h"
     typedef struct csp_packet_wrapper {
         uint8_t dest_id;
         uint8_t dest_port;
