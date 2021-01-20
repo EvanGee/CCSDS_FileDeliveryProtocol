@@ -280,8 +280,8 @@ uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
     uint32_t start_scope = ((Offset *)req->file->missing_offsets->head->next->element)->start;
     uint32_t end_scope = ((Offset *)req->file->missing_offsets->tail->prev->element)->end;
 
-    pdu_nak->start_scope = htonl(start_scope);
-    pdu_nak->end_scope = htonl(end_scope);
+    pdu_nak->start_scope = ssp_htonl(start_scope);
+    pdu_nak->end_scope = ssp_htonl(end_scope);
     pdu_nak->segment_requests = htonll(holder.current_number_of_segments);
 
     packet_index += sizeof(Offset) * holder.current_number_of_segments;
@@ -317,7 +317,7 @@ uint8_t build_nak_directive(char *packet, uint32_t start, uint8_t directive) {
 
 void set_data_length(char*packet, uint16_t data_len){
     Pdu_header *header = (Pdu_header*) packet;
-    header->PDU_data_field_len =  htons(data_len);;
+    header->PDU_data_field_len =  ssp_htons(data_len);;
 }
 
 uint16_t get_data_length(char*packet) {

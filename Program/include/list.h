@@ -52,5 +52,4 @@ Node *createNode(void *element, uint32_t id);
     Return:     returns a pointer to an initilized LIST * 
 ------------------------------------------------------------------------------*/
 List *linked_list(void);
-
 #endif

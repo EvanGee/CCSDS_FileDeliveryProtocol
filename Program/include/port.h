@@ -9,11 +9,11 @@ Author: Evan Giese
 
 #define STACK_ALLOCATION 16384
 
-//#define FREE_RTOS_PORT
-#define POSIX_PORT
+#define FREE_RTOS_PORT
+//#define POSIX_PORT
 
-//#define RED_FS
-#define POSIX_FILESYSTEM
+#define RED_FS
+//#define POSIX_FILESYSTEM
 
 #define CSP_NETWORK
 
@@ -32,6 +32,16 @@ Author: Evan Giese
         uint8_t src_port;
         csp_packet_t *packet;
     } csp_packet_wrapper;
+
+    #include <csp/csp_endian.h>
+    #define SSP_INET_ADDRSTRLEN 16
+    #define SSP_AF_INET 2
+    #define ssp_htonl csp_hton32
+    #define ssp_ntohl csp_ntoh32
+    #define ssp_htons csp_ntoh16
+    #define ssp_stonl csp_hton16
+    #define ssp_inet_ntop inet_ntop
+
 #endif
 
 #ifdef POSIX_FILESYSTEM
@@ -69,7 +79,7 @@ Author: Evan Giese
     #define ssp_write red_write
     #define ssp_closedir red_closedir
     #define ssp_lseek red_lseek
-    #define ssp_remove red_remove
+    #define ssp_remove red_unlink
     
 
 #endif
@@ -94,15 +104,7 @@ Author: Evan Giese
     #define ssp_atol atol
 #endif
 
-#ifdef FREE_RTOS_PORT 
-    #include <csp/csp_endian.h>
-    #define SSP_INET_ADDRSTRLEN 16
-    #define SSP_AF_INET 2
-    #define ssp_htonl htonl 
-    #define ssp_ntohl ntohl
-    #define ssp_htons htons
-    #define ssp_stonl stonl
-    #define ssp_inet_ntop inet_ntop
+#ifdef FREE_RTOS_PORT
 
     #include <string.h>
     #define ssp_memcpy memcpy

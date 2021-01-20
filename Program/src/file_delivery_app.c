@@ -78,6 +78,7 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
         ssp_error("couldn't make directory incomplete_requests \n");
         return NULL;
     }
+
     error = ssp_mkdir("mib");
     if (error < 0) {
         ssp_error("couldn't make directory mib\n");

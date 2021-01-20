@@ -114,7 +114,7 @@ void *ssp_opendir(char *dir_name) {
     #endif
     #ifdef RED_FS
 
-        REDDIR *dir:
+        REDDIR *dir;
         dir = red_opendir(dir_name);
         if(dir == NULL){
             ssp_error("Unable to open directory");

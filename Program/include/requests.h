@@ -62,5 +62,4 @@ int put_request_no_client(
 
 void add_request_to_client(Request *req, Client *client);
 Client *start_client(FTP *app, uint8_t dest_id);
-
 #endif
