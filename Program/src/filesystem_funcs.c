@@ -13,7 +13,7 @@ Author: Evan Giese
 
 uint32_t get_file_size(char *source_file_name) {
 
-    int fd = ssp_open(source_file_name, 0);
+    int fd = ssp_open(source_file_name, SSP_O_RDWR);
     if (fd == -1){
         ssp_error("could not open file\n");
         return 0;
@@ -296,11 +296,11 @@ int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t 
 
 int read_json(char *file_name, void (*callback)(char *key, char *value, void *params), void *params) {
 
-    jsmn_parser p;
     int number_of_tokens = 255;
-    jsmntok_t tok[number_of_tokens];
-
+    jsmn_parser p;
     jsmn_init(&p);
+
+    jsmntok_t *tok = ssp_alloc(number_of_tokens, sizeof(jsmntok_t));
 
     uint32_t total_size = get_file_size(file_name);
     if (total_size == 0){
@@ -308,7 +308,7 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
         return -1;
     }
 
-    char buff[total_size];
+    char *buff = ssp_alloc(total_size, sizeof(char));
 
     int fd = ssp_open(file_name, SSP_O_RDWR);
     if (fd < 0) {
@@ -316,7 +316,7 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
         return -1;
     }
     
-    int r = ssp_read(fd, buff, sizeof(buff));
+    int r = ssp_read(fd, buff, total_size);
     if (r < 0) {
         ssp_error("read failed\n");
         return -1;
@@ -333,18 +333,24 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
         int key_size = tok[i].end - tok[i].start;
         int value_size = tok[i+1].end - tok[i+1].start;
 
-        char key[key_size + 1];
+        //char key[key_size + 1];
+        char *key = ssp_alloc(key_size + 1, sizeof(char));
         key[key_size] = '\0';
         strncpy(key, &buff[tok[i].start], key_size);
 
-        char value[value_size + 1];
+        char *value = ssp_alloc(value_size + 1, sizeof(char));
         value[value_size] = '\0';
         strncpy(value, &buff[tok[i+1].start], value_size);
 
         callback(key, value, params);
+        ssp_free(key);
+        ssp_free(value);
         i++;
         
     }
+    ssp_free(buff);
+    ssp_free(tok);
+
     return 0;
 }
 
