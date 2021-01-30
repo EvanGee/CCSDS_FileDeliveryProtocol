@@ -9,30 +9,32 @@ Author: Evan Giese
 #include "file_delivery_app.h"
 #include "tasks.h"
 
-static int create_ssp_server_drivers(FTP *app) {
 
+int create_ssp_server_drivers(FTP *app) {
+
+    void *error = NULL;
     switch (app->remote_entity.type_of_network)
     {
         case posix_connectionless:
-            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connectionless_server_task, app);
+            error = ssp_connectionless_server_task(app);
             break;
         case posix_connection:
-            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_connection_server_task, app);
+            error = ssp_connection_server_task(app);
             break;
         case csp_connectionless:
-            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connectionless_server_task, app);
+            error = ssp_csp_connectionless_server_task(app);
             break;
         case csp_connection:
-            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_csp_connection_server_task, app);
+            error = ssp_csp_connection_server_task(app);
             break;
         case generic:
-            app->server_handle = ssp_thread_create(STACK_ALLOCATION, ssp_generic_server_task, app);
+            error = ssp_generic_server_task(app);
             break;
         default:
             ssp_printf("server couldn't start, 'type of network' not recognized\n");
             break;
     }
-    if (app->server_handle == NULL) {
+    if (error = NULL) {
         return -1;
     }
     return 0;
@@ -72,29 +74,31 @@ static int create_ssp_client_drivers(Client *client) {
 
 
 FTP *init_ftp(uint32_t my_cfdp_address) {
+    int error = 0;
 
-    int error = ssp_mkdir("incomplete_requests");
+    error = ssp_mkdir("incomplete_requests");
     if (error < 0) {
-        ssp_error("couldn't make directory incomplete_requests \n");
-        return NULL;
+        ssp_error("couldn't make directory incomplete_requests it either already exists or there is an issue\n");
     }
 
     error = ssp_mkdir("mib");
     if (error < 0) {
-        ssp_error("couldn't make directory mib\n");
-        return NULL;
+        ssp_error("couldn't make directory mib it either already exists or there is an issue\n");
     }
 
-    int fd = ssp_open("mib/peer_0.json", SSP_O_CREAT | SSP_O_RDWR);
+    int fd = ssp_open("mib/peer_0.json", SSP_O_CREAT | RED_O_RDWR);
     if (fd < 0) {
-        ssp_error("couldn't create default peer_0.json file\n");
-        return NULL;
+        if (fd == SSP_EEXIST) {
+            ssp_error("file exists\n");
+        }
+        else
+            ssp_error("couldn't create default peer_0.json it either already exists or there is an issue\n");
     }
 
     const char *peer_file = "{\n\
     \"cfdp_id\": 7,\n\
     \"UT_address\" : 0,\n\
-    \"UT_port\" : 1,\n\
+    \"UT_port\" : 20,\n\
     \"type_of_network\" : 3,\n\
     \"default_transmission_mode\" : 1,\n\
     \"MTU\" : 250,\n\
@@ -118,11 +122,10 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
         ssp_error("couldn't write default file\n");
     }
 
-    
     Remote_entity remote_entity;
     error = get_remote_entity_from_json(&remote_entity, my_cfdp_address);
     if (error == -1) {
-        ssp_error("can't get configuration data, can't start server.\n");
+        ssp_error("can't get configuration data, can't start server failed to start ftp.\n");
         return NULL;
     }
     
@@ -157,11 +160,25 @@ FTP *init_ftp(uint32_t my_cfdp_address) {
     }
 
     app->current_request = NULL;
+
     create_ssp_server_drivers(app);
+
     return app;
 }
 
+static void init_ftp_task(void *arg){
+    FTP *app = init_ftp(0);
+}
 
+
+int create_ftp_task(){
+
+    if (xTaskCreate((TaskFunction_t)init_ftp_task, "FTP_CSP_SERVER", STACK_ALLOCATION, NULL,
+                    1, NULL) != pdPASS) {
+        return -1;
+    }
+    return 0;
+}
 
 Client *ssp_client(uint32_t cfdp_id, FTP *app) {
 
