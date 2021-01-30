@@ -288,9 +288,9 @@ void ssp_error(char *error){
 void ssp_printf(char *stuff, ...) {
     va_list args;
     va_start(args, stuff);
-    vfprintf(stdout, stuff, args);
+    //vfprintf(stdout, stuff, args);
     va_end (args);
-    fflush(stdout);
+    //fflush(stdout);
 }
 
 //returns seconds elapsed, need FREE RTOS realtime clock lib to properly port
@@ -316,20 +316,21 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     TaskHandle_t *xHandle = ssp_alloc(1, sizeof(TaskHandle_t));
     BaseType_t xReturned;
     
-    /* Create the task, storing the handle. */
+    // Create the task, storing the handle.
     xReturned = xTaskCreate(
-                    thread_func,       /* Function that implements the task. */
-                    "FTP",          /* Text name for the task. */
-                    stack_size,      /* Stack size in words, not bytes. */
-                    params,    /* Parameter passed into the task. */
-                    tskIDLE_PRIORITY,/* Priority at which the task is created. */
-                    xHandle );      /* Used to pass out the created task's handle. */
+                    thread_func,       // Function that implements the task.
+                    "FTP",          // Text name for the task.
+                    stack_size,      // Stack size in words, not bytes.
+                    params,    // Parameter passed into the task.
+                    1,// Priority at which the task is created.
+                    xHandle );      // Used to pass out the created task's handle.
+
     if (xReturned == errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY) {
         ssp_error("Not enough memory to start task\n");
         return NULL;
     }
 
-    return xHandle;
+    return xReturned;
 
     #else //pthreads
     pthread_t *handler = ssp_alloc(1,  sizeof(pthread_t));
