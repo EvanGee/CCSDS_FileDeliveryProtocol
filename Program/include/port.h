@@ -7,7 +7,7 @@ Author: Evan Giese
 #ifndef PORT_H
 #define PORT_H
 
-#define STACK_ALLOCATION 16384
+#define STACK_ALLOCATION 5000
 
 #define FREE_RTOS_PORT
 //#define POSIX_PORT
@@ -54,6 +54,7 @@ Author: Evan Giese
     #define SSP_O_CREAT O_CREAT
     #define SSP_O_TRUNC O_TRUNC
     #define SSP_SEEK_SET SEEK_SET
+    #define SSP_EEXIST EEXIST
     #define ssp_open open
     #define ssp_rename rename
     #define ssp_close close
@@ -63,14 +64,21 @@ Author: Evan Giese
     #define ssp_lseek lseek
     #define ssp_remove remove
 
+
 #endif
 
 #ifdef RED_FS
 
+    #include <redconf.h>
+    #include <redfs.h>
+    #include <redfse.h>
+    #include <redposix.h>
+    #include <redvolume.h>
     #include <redposix.h>
     #define SSP_O_RDWR RED_O_RDWR
     #define SSP_O_CREAT RED_O_CREAT
     #define SSP_O_TRUNC RED_O_TRUNC
+    #define SSP_EEXIST RED_EEXIST
     #define SSP_SEEK_SET RED_SEEK_SET
     #define ssp_open red_open
     #define ssp_rename red_rename
