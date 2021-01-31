@@ -9,7 +9,6 @@ Author: Evan Giese
 static int exit_now = 0;
 
 #ifdef POSIX_PORT
-    #include <pthread.h>
     #include <errno.h>
     #include <limits.h>
     #include <stdlib.h>
@@ -260,9 +259,7 @@ void *ssp_alloc(uint32_t n_memb, size_t size) {
         if (mem == NULL)
             ssp_error("Memory failed to alloc!\n");
         return mem;
-    #endif
-
-    
+    #endif    
 }
 
 void ssp_free(void *pointer) {
@@ -288,9 +285,9 @@ void ssp_error(char *error){
 void ssp_printf(char *stuff, ...) {
     va_list args;
     va_start(args, stuff);
-    //vfprintf(stdout, stuff, args);
+    vfprintf(stdout, stuff, args);
     va_end (args);
-    //fflush(stdout);
+    fflush(stdout);
 }
 
 //returns seconds elapsed, need FREE RTOS realtime clock lib to properly port

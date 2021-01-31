@@ -300,30 +300,38 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
     jsmn_parser p;
     jsmn_init(&p);
 
-    jsmntok_t *tok = ssp_alloc(number_of_tokens, sizeof(jsmntok_t));
+    ssp_printf("%s\n", file_name);
+
+    jsmntok_t tok[255];
 
     uint32_t total_size = get_file_size(file_name);
+
     if (total_size == 0){
         ssp_error("couldn't get file size\n");
         return -1;
     }
 
     char *buff = ssp_alloc(total_size, sizeof(char));
+    if (buff == NULL) 
+        return -1;
 
     int fd = ssp_open(file_name, SSP_O_RDWR);
     if (fd < 0) {
+        ssp_free(buff);
         ssp_error("couldn't open file\n");
         return -1;
     }
     
     int r = ssp_read(fd, buff, total_size);
     if (r < 0) {
+        ssp_free(buff);
         ssp_error("read failed\n");
         return -1;
     }
 
     r = jsmn_parse(&p, buff, total_size, tok, number_of_tokens);
     if (r < 0) {
+        ssp_free(buff);
         ssp_error("Failed to parse JSON\n");
         return -1;
     }
@@ -335,10 +343,21 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
 
         //char key[key_size + 1];
         char *key = ssp_alloc(key_size + 1, sizeof(char));
+        if (key == NULL) {
+            ssp_free(buff);
+            return -1;
+        }
+            
         key[key_size] = '\0';
         strncpy(key, &buff[tok[i].start], key_size);
 
         char *value = ssp_alloc(value_size + 1, sizeof(char));
+        if (value == NULL) {
+            ssp_free(buff);
+            ssp_free(value);
+            return -1;
+        }
+
         value[value_size] = '\0';
         strncpy(value, &buff[tok[i+1].start], value_size);
 
@@ -346,10 +365,9 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
         ssp_free(key);
         ssp_free(value);
         i++;
-        
     }
+
     ssp_free(buff);
-    ssp_free(tok);
 
     return 0;
 }

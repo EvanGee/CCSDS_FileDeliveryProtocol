@@ -7,15 +7,14 @@ Author: Evan Giese
 #ifndef PORT_H
 #define PORT_H
 
-#define STACK_ALLOCATION 5000
 
-#define FREE_RTOS_PORT
-//#define POSIX_PORT
+//#define FREE_RTOS_PORT
+//#define RED_FS
 
-#define RED_FS
-//#define POSIX_FILESYSTEM
+//#define CSP_NETWORK
+#define POSIX_FILESYSTEM
+#define POSIX_PORT
 
-#define CSP_NETWORK
 
 
 //comment this out if you want to sendto function to actually work
@@ -49,6 +48,7 @@ Author: Evan Giese
     #include <sys/stat.h>
     #include <dirent.h>
     #include <unistd.h>
+    #include <errno.h>
     
     #define SSP_O_RDWR O_RDWR
     #define SSP_O_CREAT O_CREAT
@@ -94,14 +94,19 @@ Author: Evan Giese
 
 #ifdef POSIX_PORT
     #include <arpa/inet.h>
+    #include <pthread.h>
+    #include <limits.h>
+
     #define SSP_INET_ADDRSTRLEN INET_ADDRSTRLEN
+    #define STACK_ALLOCATION 20000
+    
     #define SSP_AF_INET AF_INET
     #define ssp_htonl htonl 
     #define ssp_ntohl ntohl
     #define ssp_htons htons
     #define ssp_stonl stonl
     #define ssp_inet_ntop inet_ntop
-
+    
     #include <string.h>
     #define ssp_memcpy memcpy
 

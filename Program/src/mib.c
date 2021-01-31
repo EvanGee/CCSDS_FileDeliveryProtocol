@@ -157,6 +157,7 @@ static void parse_mib(char *key, char *value, void *params) {
 int get_remote_entity_from_json (Remote_entity *remote, uint32_t cfdp_id) {
 
     char file_name[50];
+    memset(file_name, 0, 50);
     ssp_snprintf(file_name, 50, "%s%d%s", "mib/peer_", cfdp_id, ".json");
     
     int error = read_json(file_name, parse_mib, remote);

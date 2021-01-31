@@ -594,5 +594,4 @@ void ssp_cleanup_ftp(FTP *app) {
     app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
     app->active_clients->freeOnlyList(app->active_clients);
     ssp_free(app->buff);
-    ssp_free(app);
 }

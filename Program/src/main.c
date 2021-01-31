@@ -1,4 +1,3 @@
-#ifdef POSIX_PORT
 /*------------------------------------------------------------------------------
 This file is protected under copyright. If you want to use it,
 please include this text, that is my only stipulation.  
@@ -12,6 +11,7 @@ Author: Evan Giese
 #include <unistd.h>
 #include <arpa/inet.h>
 
+#include "port.h"
 //Have to include these files
 #include <libgen.h>
 //for types
@@ -27,8 +27,14 @@ Author: Evan Giese
 //for signal handler, because its nice
 #include "posix_server_provider.h"
 //for ssp_thread_join, can use p_thread join on linux
-#include "port.h"
+
 #include "tasks.h"
+#include "mib.h"
+
+#ifdef CSP_NETWORK
+    #include <csp/csp.h>
+    #include <csp/drivers/usart.h>
+#endif
 
 /*------------------------------------------------------------------------------
     Purpose: This struct if our configuration for this program, these elements
@@ -40,6 +46,8 @@ typedef struct config
     uint32_t client_cfdp_id;
     uint32_t my_cfdp_id;
     uint8_t verbose_level;
+    uint32_t baudrate;
+    char *uart_device;
 } Config;
 
 
@@ -55,9 +63,12 @@ static Config *configuration(int argc, char **argv)
     conf->verbose_level = 0;
     conf->client_cfdp_id = 0;
     conf->my_cfdp_id = 0;
+    conf->baudrate = 9600;
+    conf->uart_device = NULL;
+    
 
     uint32_t tmp;
-    while ((ch = getopt(argc, argv, "t: i: c: v: h")) != -1)
+    while ((ch = getopt(argc, argv, "t: i: c: v: k: h ")) != -1)
     {
         switch (ch)
         {
@@ -81,17 +92,28 @@ static Config *configuration(int argc, char **argv)
             conf->client_cfdp_id = tmp;
             break;
 
+        case 'k':
+            conf->uart_device = optarg;
+            break;
+
+        case 'b':
+            tmp = strtol(optarg, NULL, 10);
+            conf->baudrate = tmp;
+            break;
+
         case 'h':
             ssp_printf("\n-----------HELP MESSAGE------------\n");
             ssp_printf("\nusage: %s [options] \n\n", basename(argv[0]));
             ssp_printf("Options: %s%s%s%s\n",
-                    "-t timeout\n",
-                    "-i my cfdp id for server\n",
-                    "-c client id\n",
-                    "-v verbose level (1-3)"
+                    "-t <timeout>\n",
+                    "-i <my cfdp id for server>\n",
+                    "-c <client id>\n",
+                    "-v <verbose level> eg (1-3)"
+                    "-k <uart-device> eg /dev/ttyUSB0\n"
+                    "-b <baudrate> default is 9600"
                     "-h HelpMessage");
 
-            ssp_printf("Default port number mis 1111\n");
+            ssp_printf("Default port number is 1111\n");
             ssp_printf("\n---------------END----------------\n");
             break;
         default:
@@ -117,30 +139,78 @@ int main(int argc, char** argv) {
     
 
     #ifdef CSP_NETWORK
-            ssp_printf("Initialising CSP\r\n");
 
-            /* Init CSP with address MY_ADDRESS */
-            csp_init(1);
+        csp_debug_level_t debug_level = CSP_INFO;
+        // enable/disable debug levels
+        for (csp_debug_level_t i = 0; i <= CSP_LOCK; ++i) {
+            csp_debug_set_level(i, (i <= debug_level) ? true : false);
+        }
 
-            /* Init buffer system with 10 packets of maximum bytes each */
-            csp_buffer_init(1000, 250);
+        Remote_entity remote_entity;
+        int error = get_remote_entity_from_json(&remote_entity, conf->my_cfdp_id);
+        if (error < 0) {
+            ssp_error("couldn't get client remote_entity from mib\n");
+            return 1;
+        }
 
-            /* Start router task with 500 word stack, OS task priority 1 */
-            csp_route_start_task(5000, 1);
-    
+        csp_conf_t csp_conf;
+        csp_conf_get_defaults(&csp_conf);        
+        csp_conf.address = remote_entity.UT_address;
+
+        error = csp_init(&csp_conf);
+        if (error != CSP_ERR_NONE) {
+            csp_log_error("csp_init() failed, error: %d", error);
+            exit(1);
+        }
+
+        // Start router task with 10000 bytes of stack (priority is only supported on FreeRTOS) 
+        csp_route_start_task(500, 0);
+
+        // Add interface(s) 
+        csp_iface_t * default_iface = NULL;
+        if (conf->uart_device != NULL) {
+            csp_usart_conf_t uart_conf = {.device = conf->uart_device,
+                            .baudrate = conf->baudrate, // supported on all platforms 
+                            .databits = 8,
+                            .stopbits = 2,
+                            .paritysetting = 0,
+                            .checkparity = 0};
+            error = csp_usart_open_and_add_kiss_interface(&uart_conf, CSP_IF_KISS_DEFAULT_NAME,  &default_iface);
+            if (error != CSP_ERR_NONE) {
+                ssp_printf("failed to add KISS interface, error: %d", error);
+                exit(1);
+            }
+        }
+
+        //printf("Connection table\r\n");
+        //csp_conn_print_table();
+
+        printf("Interfaces\r\n");
+        csp_route_print_interfaces();
+
+        //printf("Route table\r\n");
+        //csp_route_print_table();
     #endif
 
-    FTP *app = init_ftp(conf->my_cfdp_id);
-    if (app == NULL) {
+
+
+    FTP app;
+    //init_ftp(conf->my_cfdp_id, &app);
+    uint32_t id = conf->my_cfdp_id;
+    void *handler = create_ftp_task(id, &app);
+    if (handler == NULL) {
         return 1;
     }
-    sleep(1);
+    
+    uint32_t client_id = conf->client_cfdp_id;
+    Request *req = put_request(client_id, "pictures/pic.jpeg", "pictures/udp.jpg", ACKNOWLEDGED_MODE, &app);
 
+/*
     if (conf->client_cfdp_id == 1) {
-        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled.jpg", ACKNOWLEDGED_MODE, app);
-        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled2.jpg", ACKNOWLEDGED_MODE, app);
-        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled3.jpg", ACKNOWLEDGED_MODE, app);
-        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled4.jpg", ACKNOWLEDGED_MODE, app);
+        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled5.jpg", ACKNOWLEDGED_MODE, app);
+        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled6.jpg", ACKNOWLEDGED_MODE, app);
+        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled7.jpg", UN_ACKNOWLEDGED_MODE, app);
+        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled8.jpg", UN_ACKNOWLEDGED_MODE, app);
         start_scheduled_requests(conf->client_cfdp_id, app);
     }
     else if (conf->client_cfdp_id == 2) {
@@ -160,6 +230,8 @@ int main(int argc, char** argv) {
         //start_request(req);
 
     }
+
+*/
     //Request *req = put_request(conf->my_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy2.jpg", ACKNOWLEDGED_MODE, app);
     //start_request(req);
     
@@ -180,9 +252,11 @@ int main(int argc, char** argv) {
         start_request(req);
     }
     */
-    ssp_thread_join(app->server_handle);
+
+    free(conf); 
+    ssp_thread_join(handler);
+
     //ssp_thread_join(app2->server_handle);
-    //free(conf); 
+  
     return 0;
 }
-#endif
