@@ -154,25 +154,37 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
     void *other)
 {
 
+    int error = 0;
     //csp_socket_t *socket = csp_socket(CSP_SO_XTEAREQ | CSP_SO_HMACREQ | CSP_SO_CRC32REQ);
-
-	/* Create socket without any socket options */
-	csp_socket_t *sock = csp_socket(CSP_SO_NONE);
+	//Create socket without any socket options
+    csp_socket_t *sock = csp_socket(CSP_SO_NONE);
+    if (sock == NULL) {
+        ssp_error("csp socket failed to initialize");
+        return;
+    }
 
     uint8_t src_id = csp_get_address();
-    ssp_printf("CSP ID: %d\n", src_id);
 
-	/* Bind all ports to socket */
-	csp_bind(sock, my_port);
-
-	/* Create 10 connections backlog queue */
-	csp_listen(sock, 10);
-
-	/* Pointer to current connection and packet */
+	//Bind all ports to socket
+	error = csp_bind(sock, my_port);
+	if (error != CSP_ERR_NONE) {
+	    ssp_error("csp socket failed to bind");
+	    return;
+	}
+	//Create 10 connections backlog queue
+	error = csp_listen(sock, 10);
+    if (error != CSP_ERR_NONE) {
+        ssp_error("csp socket failed to listen");
+        return;
+    }
+	//Pointer to current connection and packet
 	csp_conn_t *conn;
 	csp_packet_t *packet;
 
-    char buff[packet_len];
+    char *buff = ssp_alloc(packet_len, sizeof(char));
+    if (buff == NULL) {
+        return;
+    }
     memset(buff, 0, packet_len);
 
 	/* Process incoming connections */
@@ -205,10 +217,13 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
                 csp_buffer_free(packet);
             }
         }
+
         csp_close(conn);
         onExit(other);
 
 	}
+
+    ssp_free(buff);
 }
 
 

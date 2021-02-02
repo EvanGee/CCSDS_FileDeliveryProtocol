@@ -74,7 +74,7 @@ int ssp_mkdir(char *dir_name) {
             return -1;   
         }     
         else {
-            ssp_printf("%s directory already exists\n", dir_name);
+            ssp_printf("%s directory created\n", dir_name);
             return 1;
         }
         return -1;
@@ -91,7 +91,7 @@ int ssp_mkdir(char *dir_name) {
             return -1;   
         }     
         else {
-            ssp_printf("%s directory already exists\n", dir_name);
+            ssp_printf("%s directory created\n", dir_name);
             return 1;
         }
         return -1;

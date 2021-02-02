@@ -8,12 +8,12 @@ Author: Evan Giese
 #define PORT_H
 
 
-//#define FREE_RTOS_PORT
-//#define RED_FS
+#define FREE_RTOS_PORT
+#define RED_FS
+#define CSP_NETWORK
 
-//#define CSP_NETWORK
-#define POSIX_FILESYSTEM
-#define POSIX_PORT
+//#define POSIX_FILESYSTEM
+//#define POSIX_PORT
 
 
 
@@ -21,6 +21,7 @@ Author: Evan Giese
 //#define TEST
 
 #include "types.h"
+#define STACK_ALLOCATION 20000
 
 #ifdef CSP_NETWORK
     #include "csp/csp.h"
@@ -98,7 +99,6 @@ Author: Evan Giese
     #include <limits.h>
 
     #define SSP_INET_ADDRSTRLEN INET_ADDRSTRLEN
-    #define STACK_ALLOCATION 20000
     
     #define SSP_AF_INET AF_INET
     #define ssp_htonl htonl 
