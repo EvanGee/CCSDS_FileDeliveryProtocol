@@ -300,8 +300,6 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
     jsmn_parser p;
     jsmn_init(&p);
 
-    ssp_printf("%s\n", file_name);
-
     jsmntok_t tok[255];
 
     uint32_t total_size = get_file_size(file_name);

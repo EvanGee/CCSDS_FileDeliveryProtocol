@@ -76,6 +76,8 @@ static int create_ssp_client_drivers(Client *client) {
 int init_ftp(uint32_t my_cfdp_address, FTP *app) {
     int error = 0;
 
+    memset(app, 0, sizeof(FTP));
+    
     error = ssp_mkdir("incomplete_requests");
     if (error < 0) {
         ssp_error("couldn't make directory incomplete_requests it either already exists or there is an issue\n");

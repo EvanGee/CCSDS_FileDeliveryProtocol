@@ -39,5 +39,5 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
     int (*checkExit)(void *checkExitParams),
     void (*onExit)(void *params),
     void *params);
-
+int csp_custom_ftp_ping(uint32_t dest_id);
 #endif

@@ -37,21 +37,25 @@ uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uin
     Pdu_header *header = (Pdu_header *)packet;
     header->transmission_mode = transmission_mode;
 
+    uint64_t tsn = htonll(transaction_sequence_number);
+    uint32_t src_id = htonl(pdu_header->source_id);
+    uint32_t dest_id = htonl(pdu_header->destination_id);
+    
     //copy variable length src id
     memcpy(&packet[packet_index], 
-    &pdu_header->source_id, 
+    &src_id, 
     pdu_header->length_of_entity_IDs);
     packet_index += pdu_header->length_of_entity_IDs;
 
     //copy variable length transaction number id
     memcpy(&packet[packet_index],
-    &transaction_sequence_number, 
+    &tsn, 
     pdu_header->transaction_seq_num_len);
     packet_index += pdu_header->transaction_seq_num_len;
 
     //copy variable length destination id
     memcpy(&packet[packet_index],
-    &pdu_header->destination_id,
+    &dest_id,
     pdu_header->length_of_entity_IDs);
     
     uint8_t total_bytes = PACKET_STATIC_HEADER_LEN 

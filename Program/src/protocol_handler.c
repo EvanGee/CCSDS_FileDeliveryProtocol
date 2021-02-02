@@ -136,15 +136,18 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
 
     uint32_t source_id = 0;
     ssp_memcpy(&source_id, &packet[packet_index], header->length_of_entity_IDs);
+    source_id = ntohl(source_id);
     packet_index += header->length_of_entity_IDs;
 
     //TODO the transaction number should get the request from data structure hosting requests
     uint32_t transaction_sequence_number = 0;
     ssp_memcpy(&transaction_sequence_number, &packet[packet_index], header->transaction_seq_num_len);
+    transaction_sequence_number = ntohl(transaction_sequence_number);
     packet_index += header->transaction_seq_num_len;
 
     uint32_t dest_id = 0;
     ssp_memcpy(&dest_id, &packet[packet_index], header->length_of_entity_IDs);
+    dest_id = ntohl(dest_id);
     packet_index += header->length_of_entity_IDs;
 
     if (app->my_cfdp_id != dest_id){
@@ -687,7 +690,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
     if (header->PDU_type == 1) {
         if (!req->local_entity.Metadata_recv_indication) {
             if (req->file == NULL) {
-                printf("file is null\n");
+                ssp_printf("file is null\n");
                 build_temperary_file(req, TEMP_FILESIZE);
             }
         }

@@ -145,6 +145,51 @@ void csp_connectionless_server(uint8_t my_port, uint32_t packet_len,
     }
 }
 
+int csp_custom_ftp_ping(uint32_t dest_id){
+
+    char buff[255];
+    memset(buff, 0, 255);
+
+    csp_packet_t * packet;
+    csp_conn_t * conn;
+    /* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
+    conn = csp_connect(CSP_PRIO_NORM, dest_id, 1, 1000, CSP_SO_NONE);
+    if (conn == NULL) {
+        /* Connect failed */
+        ssp_printf("Connection failed\n");
+        return;
+    }
+
+    ssp_printf("connection established, sending ping to id %d port %d \n", dest_id, 1);
+    packet = csp_buffer_get(100);
+    if (packet == NULL) {
+        ssp_printf("couldn't get packet for ping\n");
+    }
+
+    snprintf((char *) packet->data, csp_buffer_data_size(), "FTP ping");
+    packet->length = (strlen((char *) packet->data) + 1); 
+    if (!csp_send(conn, packet, 1000)) {
+        ssp_printf("Send failed");	
+        csp_buffer_free(packet);
+    }
+
+    csp_packet_t *p = csp_read(conn, 1000);
+    if (p == NULL) {
+        ssp_printf("ping failed\n");
+    } else {
+        
+        memcpy(buff, (char *)p->data, p->length);
+        ssp_printf("%s\n", buff);
+
+        csp_close(conn);
+        return 1;
+    }
+
+    csp_close(conn);
+    return -1;
+}
+
+
 void csp_connection_server(uint8_t my_port, uint32_t packet_len,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
