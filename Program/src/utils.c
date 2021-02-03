@@ -19,3 +19,28 @@ void ssp_print_hex(char *stuff, int size){
         }
         ssp_printf("\n");
 }   
+
+void ssp_print_bits(char *stuff, int size){
+    
+    uint32_t current_packet_index = 0;
+    ssp_printf("printing number of bytes: %u\n", size);
+    int j, i, bit_set, byte = 0;
+    unsigned char bit_mask = 0;
+
+    for (i = size - 1; i >= 0; i--) {
+        byte = stuff[i];
+        bit_mask = 128;
+        for (j = 7; j >= 0 ; j--) {
+            bit_set = bit_mask & byte;
+            bit_mask = bit_mask >> 1;
+
+            if (bit_set){
+                ssp_printf("1");
+            } else {
+                ssp_printf("0");
+            }
+        }
+        ssp_printf(" ");
+    }
+    ssp_printf("\n");
+}

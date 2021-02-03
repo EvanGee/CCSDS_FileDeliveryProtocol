@@ -14,6 +14,6 @@ Author: Evan Giese
 #define ntohll(x) ((1==ssp_ntohl(1)) ? (x) : ((uint64_t)ssp_ntohl((x) & 0xFFFFFFFF) << 32) | ssp_ntohl((x) >> 32))
 
 void ssp_print_hex(char *stuff, int size);
-
+void ssp_print_bits(char *stuff, int size);
 
 #endif //UTILS_H
