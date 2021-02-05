@@ -8,12 +8,12 @@ Author: Evan Giese
 #define PORT_H
 
 
-#define FREE_RTOS_PORT
-#define RED_FS
+//#define FREE_RTOS_PORT
+//#define RED_FS
 #define CSP_NETWORK
 
-//#define POSIX_FILESYSTEM
-//#define POSIX_PORT
+#define POSIX_FILESYSTEM
+#define POSIX_PORT
 
 
 
@@ -38,8 +38,8 @@ Author: Evan Giese
     #define SSP_AF_INET 2
     #define ssp_htonl csp_hton32
     #define ssp_ntohl csp_ntoh32
-    #define ssp_htons csp_ntoh16
-    #define ssp_stonl csp_hton16
+    #define ssp_ntohs csp_ntoh16
+    #define ssp_htons csp_hton16
     #define ssp_inet_ntop inet_ntop
 
 #endif
@@ -104,7 +104,7 @@ Author: Evan Giese
     #define ssp_htonl htonl 
     #define ssp_ntohl ntohl
     #define ssp_htons htons
-    #define ssp_stonl stonl
+    #define ssp_ntohs ntohs
     #define ssp_inet_ntop inet_ntop
     
     #include <string.h>

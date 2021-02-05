@@ -129,52 +129,42 @@ static int find_request(void *element, void *args) {
 /*creates a request struct if there is none for the incomming request based on transaction sequence number or
 finds the correct request struct and replaces req with the new pointer. Returns the possition in the packet 
 where the data portion is, returns -1 on fail*/
+
 int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **req, List *request_list, FTP *app) {
 
     uint8_t packet_index = PACKET_STATIC_HEADER_LEN;
-    Pdu_header *header = ssp_ntohl((Pdu_header *) packet);
+    ssp_print_bits(packet, 10);
 
-    ssp_printf("packet header values\n");
-    ssp_print_bits(header, 4);
-    ssp_printf("%d\n", header->length_of_entity_IDs);
+    Pdu_header header;
+    memset(&header, 0, sizeof(Pdu_header));
 
-    uint32_t source_id = 0;
-    ssp_memcpy(&source_id, &packet[packet_index], header->length_of_entity_IDs);
-    packet_index += header->length_of_entity_IDs;
-    ssp_printf("source_id %d\n", source_id);
-
-    //TODO the transaction number should get the request from data structure hosting requests
-    uint32_t transaction_sequence_number = 0;
-    ssp_memcpy(&transaction_sequence_number, &packet[packet_index], header->transaction_seq_num_len);
-    packet_index += header->transaction_seq_num_len;
-    ssp_printf("transaction_sequence_number %d\n", transaction_sequence_number);
-
-    uint32_t dest_id = 0;
-    ssp_memcpy(&dest_id, &packet[packet_index], header->length_of_entity_IDs);
-    packet_index += header->length_of_entity_IDs;
-    ssp_printf("dest_id %d\n", dest_id );
-
-    if (app->my_cfdp_id != dest_id){
-        ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", app->my_cfdp_id, dest_id);
+    int error = get_pdu_header_from_packet(packet, &header);
+    if (error < 0) {
+        ssp_error("failed to get pdu header, bad formatting");
         return -1;
     }
-    //if packet is from the same request, don't' change current request
-    Request *current_req = (*req);
+    if (app->my_cfdp_id != header.destination_id){
+        ssp_printf("someone is sending packets here that are not for my id %u, dest_id: %u\n", app->my_cfdp_id, header.destination_id);
+        return -1;
+    }
 
-    uint16_t len = get_data_length(packet);
+    uint16_t len = header.PDU_data_field_len;
     if (len > app->packet_len){
         ssp_printf("packet received %d that was too big for our buffer %d\n", len, app->packet_len);
         return -1;
     }
 
-    if (current_req != NULL && current_req->transaction_sequence_number == transaction_sequence_number && current_req->dest_cfdp_id == source_id){        
-        return packet_index;
+    //if packet is from the same request, don't' change current request
+    Request *current_req = (*req);
+
+    if (current_req != NULL && current_req->transaction_sequence_number == header.transaction_sequence_number && current_req->dest_cfdp_id == header.source_id){        
+        return header.reserved_space_for_header;
     }
 
     //look for active request in list
     struct request_search_params params = {
-        source_id,
-        transaction_sequence_number,
+        header.source_id,
+        header.transaction_sequence_number,
     };
 
     Request *found_req = (Request *) request_list->find(request_list, 0, find_request, &params);
@@ -183,9 +173,9 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     if (found_req == NULL && is_server) 
     {
    
-        found_req = new_incomming_request(source_id, 
-            header->transmission_mode, 
-            transaction_sequence_number,
+        found_req = new_incomming_request(header.source_id, 
+            header.transmission_mode, 
+            header.transaction_sequence_number,
             res,
             app);
             
@@ -194,7 +184,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
             return -1;
         }
 
-        app->request_list->push(app->request_list, found_req, transaction_sequence_number);
+        app->request_list->push(app->request_list, found_req, header.transaction_sequence_number);
     } 
 
     else if (found_req == NULL) {
@@ -203,7 +193,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     }
 
     *req = found_req;
-    return packet_index;
+    return header.reserved_space_for_header;
 
 }
 

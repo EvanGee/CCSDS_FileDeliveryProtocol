@@ -248,39 +248,41 @@ int test_build_ack_eof_pdu(char *packet, uint32_t start) {
 int test_build_pdu_header(char *packet, Pdu_header *header, uint64_t sequence_number) {
 
 
+    header->PDU_data_field_len = 0;
+    header->destination_id = 32;
+    header->source_id = 35;
+    header->length_of_entity_IDs = 1;
+    header->transaction_sequence_number = 12;
+    header->transaction_seq_num_len = 1;
+
     DECLARE_NEW_TEST("testing header creation");
+    uint32_t packet_index = 0;
+    //ssp_print_bits(header, 4);
+    Pdu_header new_header;
+    memset(&new_header, 0, 4);
+    
     uint8_t length = build_pdu_header(packet, sequence_number, 0, header);
-    uint32_t packet_index = PACKET_STATIC_HEADER_LEN;
+    
+    get_pdu_header_from_packet(packet, &new_header);
 
-    ASSERT_EQUALS_INT("packet length: ", length, 9);
-    ASSERT_EQUALS_STR("packet source id ", &packet[packet_index], &header->source_id, header->length_of_entity_IDs);
+    ASSERT_EQUALS_INT("CRC = CRC", header->CRC_flag, new_header.CRC_flag);
+    ASSERT_EQUALS_INT("direction = direction", header->direction, new_header.direction);
+    ASSERT_EQUALS_INT("length_of_entity_IDs = length_of_entity_IDs ", header->length_of_entity_IDs, new_header.length_of_entity_IDs);
+    ASSERT_EQUALS_INT("PDU data_field_len = PDU_data_field_len ", header->PDU_data_field_len, new_header.PDU_data_field_len);
+    ASSERT_EQUALS_INT("PDU_type = PDU_type", header->PDU_type, new_header.PDU_type);
+    ASSERT_EQUALS_INT("reserved_bit_0 = reserved_bit_0 ", header->reserved_bit_0, new_header.reserved_bit_0);
+    ASSERT_EQUALS_INT("reserved_bit_1 = reserved_bit_1 ", header->reserved_bit_1, new_header.reserved_bit_1);
+    ASSERT_EQUALS_INT("reserved_bit_2 = reserved_bit_2 ", header->reserved_bit_2, new_header.reserved_bit_2);
+    ASSERT_EQUALS_INT("version = version", header->version, new_header.version);
+    ASSERT_EQUALS_INT("transaction_seq_num_len = transaction_seq_num_len ", header->transaction_seq_num_len,  new_header.transaction_seq_num_len);
+    ASSERT_EQUALS_INT("transmission_mode = transmission_mode ", header->transmission_mode, new_header.transmission_mode);
 
-
-    packet_index += header->length_of_entity_IDs;
-
-    ASSERT_NOT_EQUALS_INT("transaction_sequence_number correctly placed ", packet[packet_index], sequence_number);
-    packet_index += header->transaction_seq_num_len;
-
-    ASSERT_NOT_EQUALS_STR("packet destination not equal to source id ", &packet[packet_index], &header->source_id, header->length_of_entity_IDs);
-    ASSERT_EQUALS_STR("packet destination id ", &packet[packet_index], &header->destination_id, header->length_of_entity_IDs);
-
-    packet_index += header->length_of_entity_IDs;
-    Pdu_header *new_header = (Pdu_header *)packet;
-
-    ASSERT_EQUALS_INT("CRC = CRC", header->CRC_flag, new_header->CRC_flag);
-    ASSERT_EQUALS_INT("direction = direction", header->direction, new_header->direction);
-    ASSERT_EQUALS_INT("length_of_entity_IDs = length_of_entity_IDs ", header->length_of_entity_IDs, new_header->length_of_entity_IDs);
-    //ASSERT_EQUALS_INT("PDU data_field_len = PDU_data_field_len ", header->PDU_data_field_len, new_header->PDU_data_field_len);
-    ASSERT_EQUALS_INT("PDU_type = PDU_type", header->PDU_type, new_header->PDU_type);
-    ASSERT_EQUALS_INT("reserved_bit_0 = reserved_bit_0 ", header->reserved_bit_0, new_header->reserved_bit_0);
-    ASSERT_EQUALS_INT("reserved_bit_1 = reserved_bit_1 ", header->reserved_bit_1, new_header->reserved_bit_1);
-    ASSERT_EQUALS_INT("reserved_bit_2 = reserved_bit_2 ", header->reserved_bit_2, new_header->reserved_bit_2);
-    //ASSERT_EQUALS_INT("version = version", header->version, new_header->version);
-    ASSERT_EQUALS_INT("transaction_seq_num_len = transaction_seq_num_len ", header->transaction_seq_num_len,  new_header->transaction_seq_num_len);
-    ASSERT_EQUALS_INT("transmission_mode = transmission_mode ", 0, new_header->transmission_mode);
-    ASSERT_EQUALS_INT("total header length equal ", packet_index, length);
-
-    return packet_index;
+    ASSERT_EQUALS_INT("packet length: ", length, (header->transaction_seq_num_len + (header->length_of_entity_IDs * 2) + 4));
+    ASSERT_EQUALS_INT("packet source id ", header->source_id, new_header.source_id);
+    ASSERT_EQUALS_INT("transaction_sequence_number correctly placed ", header->source_id, new_header.source_id);
+    ASSERT_EQUALS_INT("packet destination id ",  header->destination_id, new_header.destination_id);
+    
+    return length;
 }
 
 
@@ -509,11 +511,14 @@ int packet_tests() {
     int error = get_remote_entity_from_json (&remote_entity, 1);
     get_header_from_mib(&pdu_header, remote_entity, 2);
 
-    int data_start_index = test_build_pdu_header(packet, &pdu_header, sequence_number);
 
-    test_build_ack_eof_pdu(packet, data_start_index);
-    test_build_nak_packet(packet, data_start_index);
-    test_build_very_large_nak_packet(packet, data_start_index);
+    
+    int data_start_index = test_build_pdu_header(packet, &pdu_header, sequence_number);
+    
+
+    //test_build_ack_eof_pdu(packet, data_start_index);
+    //test_build_nak_packet(packet, data_start_index);
+    //test_build_very_large_nak_packet(packet, data_start_index);
     /*
     test_respond_to_naks(packet, data_start_index);
 

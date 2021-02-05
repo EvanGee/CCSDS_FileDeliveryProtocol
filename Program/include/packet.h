@@ -14,7 +14,7 @@ Author: Evan Giese
 #include "types.h"
 #include "list.h"
 
-uint8_t build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_t transmission_mode, Pdu_header *pdu_header);
+int build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_t transmission_mode, Pdu_header *pdu_header);
 uint8_t build_finished_pdu(char *packet, uint32_t start);
 uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req);
 uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Request *req, Client* client);
@@ -27,6 +27,8 @@ uint8_t build_ack(char*packet, uint32_t start, uint8_t type);
 uint8_t build_nak_directive(char *packet, uint32_t start, uint8_t directive) ;
 void set_data_length(char*packet, uint16_t data_len);
 uint16_t get_data_length(char*packet);
+int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header);
+
 
 uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req);
 uint32_t get_messages_from_packet(char *packet, uint32_t start, uint32_t data_length, Request *req);

@@ -27,7 +27,7 @@ void ssp_print_bits(char *stuff, int size){
     int j, i, bit_set, byte = 0;
     unsigned char bit_mask = 0;
 
-    for (i = size - 1; i >= 0; i--) {
+    for (i = 0; i < size; i++) {
         byte = stuff[i];
         bit_mask = 128;
         for (j = 7; j >= 0 ; j--) {

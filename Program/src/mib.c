@@ -19,7 +19,7 @@ int get_header_from_mib(Pdu_header *pdu_header, Remote_entity remote, uint32_t m
     pdu_header->CRC_flag = remote.CRC_required;
     pdu_header->direction = 1;
     pdu_header->PDU_type = 0;
-    pdu_header->transaction_seq_num_len = 3;
+    pdu_header->transaction_seq_num_len = 2;
     pdu_header->length_of_entity_IDs = 1; 
     pdu_header->transmission_mode = remote.default_transmission_mode;
     pdu_header->destination_id = remote.cfdp_id;

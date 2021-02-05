@@ -248,16 +248,18 @@ int test_lv_functions() {
 
 int request_user_input_tests() {
 
-    FTP *app = init_ftp(1);
-    put_request(2, "", "", 0, app);
-    put_request(2, NULL, NULL, 0, app);
-    app->close = true;
-    ssp_thread_join(app->server_handle);
+    FTP app;
+    void *handler = create_ftp_task(1, &app);
+    put_request(2, "", "", 0, &app);
+    put_request(2, NULL, NULL, 0, &app);
+    (&app)->close = true;
+    ssp_thread_join(handler);
 }
 int scheduled_requests_test() {
 
-    FTP *app = init_ftp(2);
-    int error = schedule_put_request(1, "test_files/dest.jpg", "test_files/scheduled_file_sent", ACKNOWLEDGED_MODE, app);
+    FTP app;
+    void *handler = create_ftp_task(1, &app);
+    int error = schedule_put_request(1, "test_files/dest.jpg", "test_files/scheduled_file_sent", ACKNOWLEDGED_MODE, &app);
     ASSERT_EQUALS_INT("couldn't schedule request when should have been able to ", error, 0);
 
     //error = schedule_put_request(1, "test_files/dest.jp", "test_files/scheduled_file_fail", ACKNOWLEDGED_MODE, app);
@@ -267,20 +269,22 @@ int scheduled_requests_test() {
     //ASSERT_EQUALS_INT("scheduling just messages", error, 0);
     
     sleep(1);
-    app->close = true;
-    ssp_thread_join(app->server_handle);
+    app.close = true;
+    ssp_thread_join(handler);
     return 0;
 }
 
 int schedule_requests_start_test(){
     sleep(1);
-    FTP *app = init_ftp(2);
-   
-    int error = start_scheduled_requests(1, app);
+    
+    FTP app;
+    void *handler = create_ftp_task(1, &app);
+
+    int error = start_scheduled_requests(1, &app);
     ASSERT_EQUALS_INT("start request batch successfully", error, 0);
 
     //app->close = true;
-    ssp_thread_join(app->server_handle);
+    ssp_thread_join(handler);
 }
 
 int test_process_messages() {
