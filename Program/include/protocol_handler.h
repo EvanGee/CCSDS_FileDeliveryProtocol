@@ -13,11 +13,12 @@ Author: Evan Giese
 #define TIMEOUT_BEFORE_CANCEL_REQUEST 30
 #define TIMEOUT_BEFORE_SAVE_REQUEST 5
 
-int parse_packet_server(char* buff, uint32_t packet_index, Response res, Request *req, FTP *app);
+int parse_packet_server(char *packet, uint32_t packet_index, Response res, Request *req, Pdu_header incoming_header, FTP *app);
 void user_request_handler(Response res, Request *req, Client *client);
 void parse_packet_client(char* buff, uint32_t packet_index, Response res, Request *req, Client *client);
 void on_server_time_out(Response res, Request *current_request);
-int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **req, List *request_list, FTP *app);
+int process_pdu_header(char*packet, uint8_t is_server, Pdu_header *incoming_pdu_header, Response res, Request **req, List *request_list, FTP *app);
+
 uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t length);
 void process_pdu_eof(char *packet, Request *req, Response res);
 
@@ -27,7 +28,7 @@ void process_pdu_eof(char *packet, Request *req, Response res);
         Response res,
         FTP *app);
 
-uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill);
+uint32_t parse_metadata_packet(char *meta_data_packet, uint32_t start, Request *req_to_fill);
 void process_messages(Request *req, FTP *app);
 
 uint8_t build_ack (char *packet, uint32_t start, uint8_t type);

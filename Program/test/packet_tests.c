@@ -169,9 +169,7 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     ASSERT_EQUALS_INT("correct packet offset 3 start", start_scope, 15000);
     ASSERT_EQUALS_INT("correct packet offset 3 end", end_scope, 100000);
 
-    Pdu_header *header = (Pdu_header*) packet;
-
-    ASSERT_EQUALS_INT("correct packet data_len", data_len, ntohs(header->PDU_data_field_len));
+    ASSERT_EQUALS_INT("correct packet data_len", data_len, get_data_length(packet));
 
     ssp_cleanup_req(req);
     return 0;
@@ -189,15 +187,19 @@ static int test_build_very_large_nak_packet(char* packet, uint32_t start) {
     req->file_size = file->total_size;
     process_file_request_metadata(req);
 
+    //fail receiving weird offsets
     for (int i = 0; i < 10000; i+=10) {
         receive_offset(file, 0, i, i+10);
         i++;
     }
     uint64_t count = file->missing_offsets->count;
 
-    ssp_printf("len %d", count);
     uint32_t data_len = build_nak_packet(packet, start, req);
+    ssp_printf("data length%d\n", data_len);
+    ssp_printf("start%d\n", start);
+
     uint32_t offsets_sent = (data_len - 17) / sizeof(Offset);
+
     ssp_printf("offsets that fit in packet %d\n", offsets_sent);
 
     ASSERT_EQUALS_INT("data length of NAK fits in the packet", 1489, data_len);
@@ -234,8 +236,8 @@ int test_build_ack_eof_pdu(char *packet, uint32_t start) {
     Request *req;
     uint8_t len =  build_ack (packet, start, EOF_PDU);
 
-    Pdu_directive *pdu_d = (Pdu_directive *) &packet[start];
-    ASSERT_EQUALS_INT("ACK_PDU directive correct", pdu_d->directive_code, ACK_PDU);
+    uint8_t directive = packet[start];
+    ASSERT_EQUALS_INT("ACK_PDU directive correct", directive, ACK_PDU);
 
     Pdu_ack *ack = (Pdu_ack *)&packet[start + 1];
     ASSERT_EQUALS_INT("EOF_PDU directive correct", EOF_PDU, ack->directive_code);
@@ -245,24 +247,19 @@ int test_build_ack_eof_pdu(char *packet, uint32_t start) {
     return 0;
 }
 
-int test_build_pdu_header(char *packet, Pdu_header *header, uint64_t sequence_number) {
+int test_build_pdu_header(char *packet, Pdu_header *header) {
 
-
-    header->PDU_data_field_len = 0;
-    header->destination_id = 32;
-    header->source_id = 35;
-    header->length_of_entity_IDs = 1;
-    header->transaction_sequence_number = 12;
-    header->transaction_seq_num_len = 1;
 
     DECLARE_NEW_TEST("testing header creation");
     uint32_t packet_index = 0;
     //ssp_print_bits(header, 4);
     Pdu_header new_header;
+    header->transaction_sequence_number = 321;
+
     memset(&new_header, 0, 4);
-    
-    uint8_t length = build_pdu_header(packet, sequence_number, 0, header);
-    
+
+    uint8_t length = build_pdu_header(packet, header->transaction_sequence_number, header->direction, header->PDU_data_field_len, header);
+
     get_pdu_header_from_packet(packet, &new_header);
 
     ASSERT_EQUALS_INT("CRC = CRC", header->CRC_flag, new_header.CRC_flag);
@@ -279,9 +276,10 @@ int test_build_pdu_header(char *packet, Pdu_header *header, uint64_t sequence_nu
 
     ASSERT_EQUALS_INT("packet length: ", length, (header->transaction_seq_num_len + (header->length_of_entity_IDs * 2) + 4));
     ASSERT_EQUALS_INT("packet source id ", header->source_id, new_header.source_id);
-    ASSERT_EQUALS_INT("transaction_sequence_number correctly placed ", header->source_id, new_header.source_id);
+
+    ASSERT_EQUALS_INT("transaction_sequence_number correctly placed ", header->transaction_sequence_number, new_header.transaction_sequence_number);
     ASSERT_EQUALS_INT("packet destination id ",  header->destination_id, new_header.destination_id);
-    
+
     return length;
 }
 
@@ -291,23 +289,29 @@ int test_build_metadata_packet(char *packet, uint32_t start) {
     memset(&packet[start], 0, 20);
     DECLARE_NEW_TEST("testing metadata packets");
 
-    Request *req = mock_empty_request();
+    Request *req = mock_request();
     Request *recv_request = mock_empty_request();
 
+    req->file_size = 35;
+
+    ssp_printf("%s\n", req->source_file_name);
+
     uint8_t len = build_put_packet_metadata(packet, start, req);
-    fill_request_pdu_metadata(&packet[start + 1], recv_request);    
+    parse_metadata_packet(packet, start + SIZE_OF_DIRECTIVE_CODE, recv_request);    
+
+    ssp_printf("%s\n", recv_request->source_file_name);
+
 
     ASSERT_EQUALS_INT("test packet filesize", req->file_size, recv_request->file_size);
     ASSERT_EQUALS_STR("test src_file_name", req->source_file_name, recv_request->source_file_name, strnlen(req->source_file_name, MAX_PATH));
     ASSERT_EQUALS_STR("test dest_file_name", req->destination_file_name, recv_request->destination_file_name,  strnlen(req->source_file_name, MAX_PATH));
-    
-    char *str = "HELLO WORLD";
+    char *str = "HELLO WORLDSSSSSSSSSSSSSS";
 
     ssp_memcpy(req->destination_file_name, str, strnlen(str, MAX_PATH) );
     ssp_memcpy(req->source_file_name, str, strnlen(str, MAX_PATH) );
 
     len = build_put_packet_metadata(packet, start, req);
-    fill_request_pdu_metadata(&packet[start + 1], recv_request);
+    parse_metadata_packet(packet, start + SIZE_OF_DIRECTIVE_CODE, recv_request);
 
     ASSERT_EQUALS_INT("test packet filesize", req->file_size, recv_request->file_size);
     ASSERT_EQUALS_STR("test src_file_name", req->source_file_name, recv_request->source_file_name, strnlen(req->source_file_name, MAX_PATH));
@@ -503,35 +507,34 @@ int packet_tests() {
     
     char packet[PACKET_TEST_SIZE];
 
-    uint64_t sequence_number = 12345663234;
-
     Pdu_header pdu_header;
     Remote_entity remote_entity;
 
     int error = get_remote_entity_from_json (&remote_entity, 1);
     get_header_from_mib(&pdu_header, remote_entity, 2);
-
-
     
-    int data_start_index = test_build_pdu_header(packet, &pdu_header, sequence_number);
-    
-
-    //test_build_ack_eof_pdu(packet, data_start_index);
-    //test_build_nak_packet(packet, data_start_index);
-    //test_build_very_large_nak_packet(packet, data_start_index);
+    int data_start_index = test_build_pdu_header(packet, &pdu_header);
+    test_build_metadata_packet(packet, data_start_index);
     /*
-    test_respond_to_naks(packet, data_start_index);
+    test_build_ack_eof_pdu(packet, data_start_index);
+    test_build_nak_packet(packet, data_start_index);
+    
+    //Skip for now, will fix after connection server works
+    //test_build_very_large_nak_packet(packet, data_start_index);
+    //test_respond_to_naks(packet, data_start_index);
 
     memset(packet, 0, PACKET_TEST_SIZE);
-
+    
+    //need to fix this for byte order
     test_build_data_packet(packet, data_start_index);
-    test_build_metadata_packet(packet, data_start_index);
+    
+    //need to fix this for byte order
     test_build_eof_packet(packet, data_start_index);
     
-    test_add_messages_to_packet(packet, data_start_index);
-    test_get_message_from_packet(packet, data_start_index);
-    test_get_messages_from_packet(packet, data_start_index);
-    test_add_cont_part_to_packet(packet, data_start_index);
+    //test_add_messages_to_packet(packet, data_start_index);
+    //test_get_message_from_packet(packet, data_start_index);
+    //test_get_messages_from_packet(packet, data_start_index);
+    //test_add_cont_part_to_packet(packet, data_start_index);
     */
     return 0;
 

@@ -100,8 +100,10 @@ static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, u
     res.sfd = sfd;
     res.size_of_addr = size_of_addr;
     
+    Pdu_header incoming_pdu_header;
     Request **request_container = &app->current_request;
-    int packet_index = process_pdu_header(packet, true, res, request_container, app->request_list, app);
+
+    int packet_index = process_pdu_header(packet, true, &incoming_pdu_header, res, request_container, app->request_list, app);
     if (packet_index < 0) {
         ssp_printf("error parsing header\n");
         return -1;
@@ -110,7 +112,7 @@ static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, u
     Request *current_request = (*request_container);
     app->current_request = current_request;
     
-    int count = parse_packet_server(packet, packet_index, app->current_request->res, current_request, app);
+    int count = parse_packet_server(packet, packet_index, app->current_request->res, current_request, incoming_pdu_header, app);
 
     reset_timeout(&current_request->timeout_before_cancel);
 
@@ -139,8 +141,9 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
     res.packet_len = packet_len;
 
     Request **request_container = &client->current_request;
-
-    int packet_index = process_pdu_header(packet, false, res, request_container, client->request_list, client->app);
+    Pdu_header incoming_pdu_header;
+    
+    int packet_index = process_pdu_header(packet, false, &incoming_pdu_header, res, request_container, client->request_list, client->app);
     if (packet_index < 0) {
         ssp_printf("error parsing header\n");
         return -1;
@@ -215,7 +218,6 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
         res,
         client
     };
-
     client->request_list->iterate(client->request_list, user_request_check, &params);     
     return 0;
 }
@@ -457,6 +459,7 @@ void *ssp_connection_client_task(void *params) {
             return NULL;
         }
 
+    
         connection_client(host_name, 
             port, 
             client->packet_len, 

@@ -8,6 +8,7 @@ Author: Evan Giese
 #include "port.h"
 #include "types.h"
 #include "filesystem_funcs.h"
+#include "packet.h"
 
 
 
@@ -24,7 +25,7 @@ int get_header_from_mib(Pdu_header *pdu_header, Remote_entity remote, uint32_t m
     pdu_header->transmission_mode = remote.default_transmission_mode;
     pdu_header->destination_id = remote.cfdp_id;
     pdu_header->source_id = my_cfdp_id;
-
+    pdu_header->reserved_space_for_header = (pdu_header->length_of_entity_IDs * 2) + (pdu_header->transaction_seq_num_len) + PACKET_STATIC_HEADER_LEN;
     return 0;
 }
 

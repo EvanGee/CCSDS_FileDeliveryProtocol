@@ -21,7 +21,7 @@ Author: Evan Giese
 
 
 //returns total space taken up in the packet from the added lv
-uint16_t copy_lv_to_buffer(char *buffer, LV lv){
+uint16_t copy_lv_to_buffer(char *buffer, LV lv) {
     uint16_t packet_index = 0;
     buffer[packet_index] = lv.length;
     packet_index++;

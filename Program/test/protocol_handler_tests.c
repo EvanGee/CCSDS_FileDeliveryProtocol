@@ -81,8 +81,9 @@ static int test_wrong_id(FTP *app) {
     int packet_index = mock_packet(packet, 2, 1);
 
     Request **req_container = &app->current_request; 
+    Pdu_header incoming_pdu_header;
 
-    error = process_pdu_header(packet, true, *res, req_container, app->request_list, app);
+    error = process_pdu_header(packet, true, &incoming_pdu_header, *res, req_container, app->request_list, app);
     error = ASSERT_EQUALS_INT("process pdu should error", -1, error);
     Request *req = (*req_container);
 
@@ -101,7 +102,9 @@ static int test_correct_id(FTP *app) {
 
     set_data_length(packet, 100);
     Request **req_container = &app->current_request; 
-    process_pdu_header(packet, true, *res, req_container, app->request_list, app);
+    Pdu_header incoming_pdu_header;
+
+    process_pdu_header(packet, true, &incoming_pdu_header,*res, req_container, app->request_list, app);
     Request *req = (*req_container);
 
     error = ASSERT_NOT_NULL("Test request, Request should not be NULL", req);

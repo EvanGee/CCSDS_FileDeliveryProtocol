@@ -63,7 +63,7 @@ typedef struct pdu_header{
     uint32_t source_id;
 
     //variable in size (for actual packet), and will get memory allocated based on the length variables above
-    uint32_t transaction_sequence_number;
+    uint64_t transaction_sequence_number;
 
     //variable in size (for actual packet), and will get memory allocated based on the length variables above
     uint32_t destination_id;

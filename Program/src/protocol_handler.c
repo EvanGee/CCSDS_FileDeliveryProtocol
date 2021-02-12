@@ -26,7 +26,7 @@ static void send_ack(Request *req, Response res, unsigned int type){
     if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
         return;
 
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, 0, &req->pdu_header);
     build_ack(req->buff, start, type);
     ssp_sendto(res);
 }
@@ -35,7 +35,7 @@ static void send_nak(Request *req, Response res, unsigned int type) {
     if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
         return;
     
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, 0, &req->pdu_header);
     build_nak_directive(req->buff, start, type);
     ssp_sendto(res);
 }
@@ -128,17 +128,21 @@ static int find_request(void *element, void *args) {
 
 /*creates a request struct if there is none for the incomming request based on transaction sequence number or
 finds the correct request struct and replaces req with the new pointer. Returns the possition in the packet 
-where the data portion is, returns -1 on fail*/
+where the data portion is, also sets incoming_pdu_header... returns -1 on fail*/
 
-int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **req, List *request_list, FTP *app) {
+int process_pdu_header(char*packet, uint8_t is_server, Pdu_header *incoming_pdu_header, Response res, Request **req, List *request_list, FTP *app) {
 
     uint8_t packet_index = PACKET_STATIC_HEADER_LEN;
-    ssp_print_bits(packet, 10);
+    ssp_print_bits(packet, 30);
 
     Pdu_header header;
     memset(&header, 0, sizeof(Pdu_header));
 
     int error = get_pdu_header_from_packet(packet, &header);
+    *incoming_pdu_header = header;
+    
+    ssp_print_header(&header);
+
     if (error < 0) {
         ssp_error("failed to get pdu header, bad formatting");
         return -1;
@@ -169,7 +173,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
 
     Request *found_req = (Request *) request_list->find(request_list, 0, find_request, &params);
 
-    //if server, create new request
+    //if server, create new request (can probably move this out of this function)
     if (found_req == NULL && is_server) 
     {
    
@@ -193,6 +197,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Response res, Request **r
     }
 
     *req = found_req;
+    
     return header.reserved_space_for_header;
 
 }
@@ -227,27 +232,54 @@ static void write_packet_data_to_file(char *data_packet, uint32_t data_len, File
 }
 
 
-uint32_t fill_request_pdu_metadata(char *meta_data_packet, Request *req_to_fill) {
+/*
+typedef struct pdu_meta_data {
+    //0 Record boundaries respeced (read as array of octets), 1 not respected (variable length)
+    unsigned int segmentation_control : 1; 
+    
+    unsigned int reserved_bits: 7;
 
-    Pdu_meta_data *meta_data = (Pdu_meta_data *) meta_data_packet;
-    req_to_fill->segmentation_control = meta_data->segmentation_control;
+    //length of the file in octets, set all 0 for unbounded size
+    uint32_t file_size;
+    LV source_file_name;
+    LV destination_file_name;
 
-    uint8_t packet_index = 1;
-    uint32_t *network_bytes = (uint32_t*) &meta_data_packet[packet_index];
-    uint32_t file_size = ssp_ntohl(*network_bytes);
+    
+    //Options include:
+    //    Filestore requests, 
+    //    Messages to user.
+    //    Fault Handler overrides.
+    //    Flow Label. 
 
-    req_to_fill->file_size = file_size;
+    TLV *options;
+
+} Pdu_meta_data;
+*/
+uint32_t parse_metadata_packet(char *packet, uint32_t start, Request *req_to_fill) {
+
+    
+    memset(req_to_fill->source_file_name, 0, MAX_PATH);
+    memset(req_to_fill->destination_file_name, 0, MAX_PATH);
+    
+    req_to_fill->segmentation_control = get_bits_from_protocol_byte(packet[start], 0, 0); 
+    uint8_t packet_index = start + 1;
+
+    uint32_t file_len = 0;
+    memcpy(&file_len, &packet[packet_index], 4);
+
+    req_to_fill->file_size = ssp_ntohl(file_len);
     packet_index += 4;
 
-    uint8_t file_name_len = meta_data_packet[packet_index];
+    uint8_t file_name_len = packet[packet_index];
     packet_index++;
 
-    ssp_memcpy(req_to_fill->source_file_name, &meta_data_packet[packet_index], file_name_len);
+    ssp_memcpy(req_to_fill->source_file_name, &packet[packet_index], file_name_len);
     packet_index += file_name_len;
 
-    file_name_len = meta_data_packet[packet_index];
+    file_name_len = packet[packet_index];
     packet_index++;
-    ssp_memcpy(req_to_fill->destination_file_name, &meta_data_packet[packet_index], file_name_len);
+
+    ssp_memcpy(req_to_fill->destination_file_name, &packet[packet_index], file_name_len);
 
     packet_index += file_name_len;
 
@@ -326,15 +358,16 @@ static void resend_finished_ack(Request *req, Response res) {
 
 static void send_put_metadata(Request *req, Response res) {
 
-    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, &req->pdu_header);
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
     ssp_printf("sending metadata transaction: %d\n", req->transaction_sequence_number);
     start = build_put_packet_metadata(req->buff, start, req);
+
     req->local_entity.Metadata_sent_indication = true;
     ssp_sendto(res);
 }
 
 static void send_eof_pdu(Request *req, Response res) {
-    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, &req->pdu_header);
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
     ssp_printf("sending eof transaction: %d\n", req->transaction_sequence_number);
     if (req->file_size == 0)
         build_eof_packet(req->buff, start, 0, 0);
@@ -358,7 +391,7 @@ static void start_sequence(Request *req, Response res) {
 }
 
 static void send_data(Request *req, Response res) {    
-    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, &req->pdu_header);
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
 
     if (build_data_packet(req->buff, start, req->file, res.packet_len)) {
         req->procedure = sending_eof;
@@ -379,7 +412,7 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
             ssp_printf("req->buff is null\n");
         }
 
-        uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, &client->pdu_header);
+        uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, 0, &client->pdu_header);
         uint32_t offset_start = 0;
         uint32_t offset_end = 0;
         int i = 0;
@@ -474,25 +507,26 @@ void user_request_handler(Response res, Request *req, Client* client) {
         return;
     
     check_req_status(req);
+    
 
     switch (req->procedure)
     {
         case sending_eof: 
-            send_eof_pdu(req, res);
+            //send_eof_pdu(req, res);
             req->procedure = none;
             break;
 
         case sending_data:
-            send_data(req, res);
+            //send_data(req, res);
             break;
 
         case sending_put_metadata:
-            send_put_metadata(req, res);
+            //send_put_metadata(req, res);
             req->procedure = none;
             break;
 
         case sending_finished:
-            resend_finished_ack(req, res);
+            //resend_finished_ack(req, res);
             req->procedure = none;
             break;
 
@@ -528,7 +562,7 @@ static void request_metadata(Request *req, Response res) {
 
 static void request_data(Request *req, Response res) {
 
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, 0, &req->pdu_header);
     ssp_printf("sending Nak data transaction: %d\n", req->transaction_sequence_number);
     build_nak_packet(req->buff, start, req);
     ssp_sendto(res);
@@ -537,7 +571,7 @@ static void request_data(Request *req, Response res) {
 
 static void resend_finished_pdu(Request *req, Response res) {
 
-    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, &req->pdu_header);
+    uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, 0, &req->pdu_header);
     ssp_printf("sending finished pdu transaction: %d\n", req->transaction_sequence_number);
     build_finished_pdu(req->buff, start);
     ssp_sendto(res);
@@ -588,7 +622,7 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
     req->local_entity.Metadata_recv_indication = true;
 
     ssp_printf("received metadata packet transaction: %d\n", req->transaction_sequence_number);
-    packet_index += fill_request_pdu_metadata(&packet[packet_index], req);
+    packet_index += parse_metadata_packet(packet, packet_index, req);
     uint16_t data_len = get_data_length(packet);
 
     get_messages_from_packet(packet, packet_index, data_len, req);
@@ -671,17 +705,16 @@ void on_server_time_out(Response res, Request *req) {
 }
 
 //fills the current_request struct for the server, incomming requests
-int parse_packet_server(char *packet, uint32_t packet_index, Response res, Request *req, FTP *app) {
+int parse_packet_server(char *packet, uint32_t packet_index, Response res, Request *req, Pdu_header incoming_header, FTP *app) {
 
     if (packet_index == 0)
         return -1;
         
-    Pdu_header *header = (Pdu_header *) packet;
     uint16_t data_len = get_data_length(packet);
     uint32_t packet_len = packet_index + data_len;
 
     //process file data
-    if (header->PDU_type == 1) {
+    if (incoming_header.PDU_type == DATA) {
         if (!req->local_entity.Metadata_recv_indication) {
             if (req->file == NULL) {
                 ssp_printf("file is null\n");

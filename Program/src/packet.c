@@ -20,12 +20,11 @@ Author: Evan Giese
 
 // if is_data_packet is false, then is directive pacnket
 static void set_packet_header(char *packet, uint16_t data_len, bool is_data_packet) {
-    push_bits_to_protocol_byte(&packet[0], 3,3, is_data_packet);
+    set_bits_to_protocol_byte(&packet[0], 3,3, is_data_packet);
     set_data_length(packet, data_len);
-
 }
 
-void push_bits_to_protocol_byte(char *byte, uint8_t from_position, uint8_t to_position, uint8_t value) {
+void set_bits_to_protocol_byte(char *byte, uint8_t from_position, uint8_t to_position, uint8_t value) {
     char bit_mask = value;
     uint8_t bits_to_shift_left = 7-to_position;
     char bits_to_add = bit_mask << bits_to_shift_left;
@@ -40,8 +39,12 @@ uint8_t get_bits_from_protocol_byte(char byte, uint8_t from_position, uint8_t to
     return value;
 }
 
-int copy_id_to_packet(char *bytes, uint32_t id, uint32_t length_of_ids) {
+void set_packet_directive(char *packet, uint32_t location, uint8_t directive){
+    packet[location] = directive;
+}
 
+int copy_id_to_packet(char *bytes, uint32_t id, uint32_t length_of_ids) {
+   
     if (length_of_ids == 4) {
         uint32_t network_byte_order = ssp_htonl(id);
         memcpy(bytes, &network_byte_order, sizeof(uint32_t));   
@@ -73,6 +76,26 @@ uint32_t get_id_from_packet(char *bytes, uint32_t length_of_ids) {
     return host_byte_order;
 }
 
+void ssp_print_header(Pdu_header *pdu_header){
+
+    ssp_printf("pdu_header->version %d\n",pdu_header->version);
+    ssp_printf("pdu_header->PDU_type %d\n",pdu_header->PDU_type);
+    ssp_printf("pdu_header->direction %d\n",pdu_header->direction);
+    ssp_printf("pdu_header->transmission_mode %d\n",pdu_header->transmission_mode);
+    ssp_printf("pdu_header->CRC_flag %d\n",pdu_header->CRC_flag);
+    ssp_printf("pdu_header->reserved_bit_0 %d\n",pdu_header->reserved_bit_0);
+    ssp_printf("pdu_header->PDU_data_field_len %d\n",pdu_header->PDU_data_field_len);
+    ssp_printf("pdu_header->reserved_bit_1 %d\n",pdu_header->reserved_bit_1 );
+    ssp_printf("pdu_header->length_of_entity_IDs %d\n",pdu_header->length_of_entity_IDs);
+    ssp_printf("pdu_header->reserved_bit_2 %d\n",pdu_header->reserved_bit_2);
+    ssp_printf("pdu_header->transaction_seq_num_len %d\n",pdu_header->transaction_seq_num_len);
+    ssp_printf("pdu_header->source_id %d\n",pdu_header->source_id);
+    ssp_printf("pdu_header->transaction_sequence_number %d\n",pdu_header->transaction_sequence_number);
+    ssp_printf("pdu_header->destination_id %d\n",pdu_header->destination_id);
+
+
+}
+
 int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
 
     pdu_header->version = get_bits_from_protocol_byte(packet[0], 0, 2);
@@ -81,11 +104,14 @@ int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
     pdu_header->transmission_mode = get_bits_from_protocol_byte(packet[0], 5, 5);
     pdu_header->CRC_flag = get_bits_from_protocol_byte(packet[0], 6, 6);
     pdu_header->reserved_bit_0 = get_bits_from_protocol_byte(packet[0], 7, 7);
-    pdu_header->PDU_data_field_len = ssp_ntohs(packet[1]);
+
+    pdu_header->PDU_data_field_len = get_data_length(packet);
+
     pdu_header->reserved_bit_1 = get_bits_from_protocol_byte(packet[3], 0, 0);
     pdu_header->length_of_entity_IDs = get_bits_from_protocol_byte(packet[3], 1, 3);
     pdu_header->reserved_bit_2 = get_bits_from_protocol_byte(packet[3], 4, 4);
     pdu_header->transaction_seq_num_len = get_bits_from_protocol_byte(packet[3], 5, 7);
+    
 
     int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
     pdu_header->source_id = get_id_from_packet(&packet[source_id_location], pdu_header->length_of_entity_IDs);
@@ -93,12 +119,14 @@ int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
         ssp_error("failed to get source_id");
         return -1;
     }   
+
     int32_t transaction_number_location = source_id_location + pdu_header->length_of_entity_IDs;
     pdu_header->transaction_sequence_number = get_id_from_packet(&packet[transaction_number_location], pdu_header->transaction_seq_num_len);
     if (pdu_header->transaction_sequence_number < 0) {
         ssp_error("failed to get transaction_sequence_number");
         return -1;
     }   
+
     int32_t dest_id_location = transaction_number_location + pdu_header->transaction_seq_num_len;
     pdu_header->destination_id = get_id_from_packet(&packet[dest_id_location], pdu_header->length_of_entity_IDs);
     if (pdu_header->destination_id < 0) {
@@ -110,21 +138,20 @@ int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
 }
 
 //returns the location in the packet where the next pointer for tthe packet will start after the header
-int build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_t transmission_mode, Pdu_header *pdu_header) {
+int build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_t transmission_mode, uint16_t data_len, Pdu_header *pdu_header) {
     memset(packet, 0, 4);
-    push_bits_to_protocol_byte(&packet[0], 0,2, pdu_header->version);
-    push_bits_to_protocol_byte(&packet[0], 3,3, pdu_header->PDU_type);
-    push_bits_to_protocol_byte(&packet[0], 4,4, pdu_header->direction);
-    push_bits_to_protocol_byte(&packet[0], 5,5, pdu_header->transmission_mode);
-    push_bits_to_protocol_byte(&packet[0], 6,6, pdu_header->CRC_flag);
-    push_bits_to_protocol_byte(&packet[0], 7,7, pdu_header->reserved_bit_0);
-    //bytes 1 and 2 are resevered for data_length, which gets calculated later and is added with set_data_length
-    //if the build_pdu_header is called later, after we build the packet, we know the data length, we just have to 
-    //reserve the start of the packet, this space can be calculated when we construct the request.
-    push_bits_to_protocol_byte(&packet[3], 0,0, pdu_header->reserved_bit_1);
-    push_bits_to_protocol_byte(&packet[3], 1,3, pdu_header->length_of_entity_IDs);
-    push_bits_to_protocol_byte(&packet[3], 4,4, pdu_header->reserved_bit_2);
-    push_bits_to_protocol_byte(&packet[3], 5,7, pdu_header->transaction_seq_num_len);
+
+    set_bits_to_protocol_byte(&packet[0], 0,2, pdu_header->version);
+    set_bits_to_protocol_byte(&packet[0], 3,3, pdu_header->PDU_type);
+    set_bits_to_protocol_byte(&packet[0], 4,4, pdu_header->direction);
+    set_bits_to_protocol_byte(&packet[0], 5,5, transmission_mode);
+    set_bits_to_protocol_byte(&packet[0], 6,6, pdu_header->CRC_flag);
+    set_bits_to_protocol_byte(&packet[0], 7,7, pdu_header->reserved_bit_0);
+    set_data_length(packet, data_len);
+    set_bits_to_protocol_byte(&packet[3], 0,0, pdu_header->reserved_bit_1);
+    set_bits_to_protocol_byte(&packet[3], 1,3, pdu_header->length_of_entity_IDs);
+    set_bits_to_protocol_byte(&packet[3], 4,4, pdu_header->reserved_bit_2);
+    set_bits_to_protocol_byte(&packet[3], 5,7, pdu_header->transaction_seq_num_len);
 
     int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
     int error = copy_id_to_packet(&packet[source_id_location], pdu_header->source_id, pdu_header->length_of_entity_IDs);
@@ -132,8 +159,9 @@ int build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_
         ssp_error("failed copy source_id");
         return -1;
     }   
+
     int32_t transaction_number_location = source_id_location + pdu_header->length_of_entity_IDs;
-    error = copy_id_to_packet(&packet[transaction_number_location], pdu_header->source_id, pdu_header->length_of_entity_IDs);
+    error = copy_id_to_packet(&packet[transaction_number_location], (uint32_t) transaction_sequence_number, pdu_header->transaction_seq_num_len);
     if (error < 0) {
         ssp_error("failed copy transaction_number_location");
         return -1;
@@ -168,6 +196,29 @@ uint8_t build_finished_pdu(char *packet, uint32_t start) {
     set_packet_header(packet, data_len, DIRECTIVE);
     return data_len;
 }
+/*
+typedef struct pdu_meta_data {
+    //0 Record boundaries respeced (read as array of octets), 1 not respected (variable length)
+    unsigned int segmentation_control : 1; 
+    
+    unsigned int reserved_bits: 7;
+
+    //length of the file in octets, set all 0 for unbounded size
+    uint32_t file_size;
+    LV source_file_name;
+    LV destination_file_name;
+
+    
+    //Options include:
+    //    Filestore requests, 
+    //    Messages to user.
+    //    Fault Handler overrides.
+    //    Flow Label. 
+
+    TLV *options;
+
+} Pdu_meta_data;
+*/
 
 //returns packet_index for data, to get length of meta data, subtract start from return value
 uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {    
@@ -175,29 +226,24 @@ uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {
     uint8_t packet_index = start;
 
     //set directive 1 byte
-    Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
-    directive->directive_code = META_DATA_PDU;
+    set_packet_directive(packet, packet_index, META_DATA_PDU);
     packet_index += SIZE_OF_DIRECTIVE_CODE;
 
-    Pdu_meta_data *meta_data_packet = (Pdu_meta_data *) &packet[packet_index];
-
-    //1 bytes
-    meta_data_packet->segmentation_control = req->segmentation_control;
-    meta_data_packet->reserved_bits = 0;
+    //Set segmentation_control bit and 7 reserved bits (to 0)
+    set_bits_to_protocol_byte(&packet[packet_index], 0, 0, req->segmentation_control);
     packet_index++;
 
     //4 bytes
     uint32_t network_bytes = ssp_htonl(req->file_size);
-    network_bytes = network_bytes;
     memcpy(&packet[packet_index], &network_bytes, sizeof(uint32_t));
     packet_index += 4;
-    
+
     //variable length params
     uint8_t src_file_name_length = strnlen(req->source_file_name, MAX_PATH);
     uint8_t destination_file_length = strnlen(req->destination_file_name, MAX_PATH);
-    
+
     //copy source length to packet (1 bytes) 
-    memcpy(&packet[packet_index], &src_file_name_length, src_file_name_length);
+    memcpy(&packet[packet_index], &src_file_name_length, 1);
     packet_index++;
     //copy source name to packet (length bytes) 
     memcpy(&packet[packet_index], req->source_file_name, src_file_name_length);
@@ -205,7 +251,6 @@ uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req) {
     //copy length to packet (1 byte)
     memcpy(&packet[packet_index], &destination_file_length, 1);
     packet_index++;
-    
     //copy destination name to packet (length bytes)
     memcpy(&packet[packet_index], req->destination_file_name, destination_file_length);
     packet_index += destination_file_length;
@@ -402,12 +447,15 @@ uint8_t build_nak_directive(char *packet, uint32_t start, uint8_t directive) {
 }
 
 void set_data_length(char*packet, uint16_t data_len){
-    packet[2] = ssp_htons(data_len);
+    uint16_t bytes = ssp_htons(data_len); 
+    memcpy(&packet[1], &bytes, sizeof(uint16_t));
 }
 
 uint16_t get_data_length(char*packet) {
-    Pdu_header *header = (Pdu_header*) packet;
-    return ntohs(header->PDU_data_field_len);
+    uint16_t bytes = 0;
+    memcpy(&bytes, &packet[1], sizeof(uint16_t));
+    uint16_t len = ssp_ntohs(bytes);
+    return len;
 }
 
 struct packet_callback_params {
@@ -527,9 +575,12 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
 uint32_t get_messages_from_packet(char *packet, uint32_t start, uint32_t data_length, Request *req) {
 
     uint32_t packet_index = start;
-    while (packet_index < data_length - 5) {
+    char *cfdp = "cfdp";
+    uint32_t len = strnlen(cfdp, 5);
+    
+    while (packet_index < data_length - len) {
 
-        if (strncmp(&packet[packet_index], "cfdp", 5))
+        if (strncmp(&packet[packet_index], cfdp, len))
             break;
 
 
