@@ -101,7 +101,7 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     ASSERT_EQUALS_INT("start offset == 0 ", start_scope, 0);
     ASSERT_EQUALS_INT("end scope == 100000 ", end_scope, 100000);
 
-    uint64_t number_of_segments = ntohll(nak->segment_requests);
+    uint64_t number_of_segments = ssp_ntohll(nak->segment_requests);
     ASSERT_EQUALS_INT("number of segments == 1 ", number_of_segments, 1);
 
     Offset offset[count];
@@ -122,7 +122,7 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     data_len = build_nak_packet(packet, start, req);
     set_data_length(packet, data_len);
 
-    number_of_segments = ntohll(nak->segment_requests);
+    number_of_segments = ssp_ntohll(nak->segment_requests);
 
     ASSERT_EQUALS_INT("number of segments == 4 ", number_of_segments, 4);
 
@@ -320,6 +320,7 @@ int test_build_metadata_packet(char *packet, uint32_t start) {
     uint16_t data_len = get_data_length(packet);
     ASSERT_EQUALS_INT("test metadata set data length", data_len, len-start);
     
+
     ssp_cleanup_req(req);
     ssp_cleanup_req(recv_request);
 
@@ -342,30 +343,46 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
     ASSERT_EQUALS_STR("'cfdp' should be at the start of the message", &packet[start], "cfdp", 5);
     ASSERT_EQUALS_INT("testing CONTINUE_PARTIAL code", (uint8_t) packet[start + 5], CONTINUE_PARTIAL);
 
-
     LV dest_id, original_id, transaction_id;
 
     packet_index = start + 6;
-    copy_lv_from_buffer(&dest_id, packet, packet_index);
+    error = copy_id_lv_from_packet(&packet[packet_index], &dest_id);
+    if (error < 0) {
+        ssp_printf("failed to copy contents from buffer \n");
+        return -1;
+    }
+
     ASSERT_EQUALS_INT("dest_id.length", dest_id.length, 1);
     ASSERT_EQUALS_INT("dest_id.value", *(uint8_t*) (dest_id.value), 1);
     packet_index += dest_id.length + 1;
     free_lv(dest_id);
 
-    
-    copy_lv_from_buffer(&original_id, packet, packet_index);
+    error = copy_id_lv_from_packet(&packet[packet_index], &original_id);
+    if (error < 0) {
+        ssp_printf("failed to copy contents from buffer \n");
+        return -1;
+    }
+
     ASSERT_EQUALS_INT("original_id.length", original_id.length, 1);
     ASSERT_EQUALS_INT("original_id.value",  *(uint8_t*)original_id.value, 1);
     packet_index += original_id.length + 1;
     free_lv(original_id);
     
-
-    copy_lv_from_buffer(&transaction_id, packet, packet_index);
+    error = copy_id_lv_from_packet(&packet[packet_index], &transaction_id);
+    if (error < 0) {
+        ssp_printf("failed to copy contents from buffer \n");
+        return -1;
+    }
+    
     ASSERT_EQUALS_INT("dest_file.length", transaction_id.length, 1);
     ASSERT_EQUALS_INT("dest_file.value", *(uint8_t*)transaction_id.value, transaction_id.length);
     free_lv(transaction_id);
-
     ssp_cleanup_req(req);
+
+
+    
+
+
 }
 
 
@@ -421,6 +438,8 @@ int test_get_message_from_packet(char *packet, uint32_t start) {
     uint32_t id = 2;
     uint8_t len = 1;
 
+    DECLARE_NEW_TEST("testing add_messages_from_packet");
+
     uint32_t packet_index = start;
 
     Request *req = mock_empty_request();
@@ -452,9 +471,47 @@ int test_get_message_from_packet(char *packet, uint32_t start) {
     
 }
 
+int test_get_cont_partial_from_packet(char *packet, uint32_t start){
+
+    DECLARE_NEW_TEST("testing add_message_cont_part_to_packet");
+
+    uint32_t packet_index = start;
+
+    Request *req = mock_empty_request();
+    int error = add_cont_partial_message_to_request(1,1,1,1,1,1,req);
+
+    memset(&packet[start], 0, 100);
+    add_messages_to_packet(packet, packet_index, req->messages_to_user);
+
+    Request *req2 = mock_empty_request();
+    get_message_from_packet(packet, packet_index, req2);
+
+    Message *m = req2->messages_to_user->pop(req2->messages_to_user);
+    Message_cont_part_request *p_message = (Message_cont_part_request *) m->value;
+
+
+    ASSERT_EQUALS_INT("destination_id.length", p_message->destination_id.length, 1);
+    ASSERT_EQUALS_INT("destination_id.value", *(uint8_t*) (p_message->destination_id.value), 1);
+    packet_index += p_message->destination_id.length + 1;
+    free_lv(p_message->destination_id);
+
+    ASSERT_EQUALS_INT("originator_id.length", p_message->originator_id.length, 1);
+    ASSERT_EQUALS_INT("originator_id.value", *(uint8_t*) (p_message->originator_id.value), 1);
+    packet_index += p_message->originator_id.length + 1;
+    free_lv(p_message->originator_id);
+
+    ASSERT_EQUALS_INT("transaction_id.length", p_message->transaction_id.length, 1);
+    ASSERT_EQUALS_INT("transaction_id.value", *(uint8_t*) (p_message->transaction_id.value), 1);
+    packet_index += p_message->transaction_id.length + 1;
+    free_lv(p_message->transaction_id);
+
+}
 
 //test multiple messages
 int test_get_messages_from_packet(char *packet, uint32_t start) {
+
+
+    DECLARE_NEW_TEST("testing get_messages_from_packet");
 
     char *dest = "dest";
     char *src = "src";
@@ -471,7 +528,7 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
     uint32_t length_of_message = add_messages_to_packet(packet, start, req->messages_to_user);
     length_of_message = add_messages_to_packet(packet, length_of_message, req->messages_to_user);
     length_of_message = add_messages_to_packet(packet, length_of_message, req->messages_to_user);
-
+    
     Request *req2 = mock_empty_request();
     get_messages_from_packet(packet, start, 1000 - start, req2);
 
@@ -489,6 +546,7 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
             ASSERT_EQUALS_STR("received proxy messages: dest file", dest, (char *) p_message->destination_file_name.value, p_message->destination_file_name.length);    
             
         }
+        
         ssp_free_message(message);
     }
 
@@ -514,7 +572,12 @@ int packet_tests() {
     get_header_from_mib(&pdu_header, remote_entity, 2);
     
     int data_start_index = test_build_pdu_header(packet, &pdu_header);
-    test_build_metadata_packet(packet, data_start_index);
+    //test_build_metadata_packet(packet, data_start_index);
+    //test_get_messages_from_packet(packet, data_start_index);
+
+
+    test_add_cont_part_to_packet(packet, data_start_index);
+    test_get_cont_partial_from_packet(packet, data_start_index);
     /*
     test_build_ack_eof_pdu(packet, data_start_index);
     test_build_nak_packet(packet, data_start_index);
@@ -533,7 +596,6 @@ int packet_tests() {
     
     //test_add_messages_to_packet(packet, data_start_index);
     //test_get_message_from_packet(packet, data_start_index);
-    //test_get_messages_from_packet(packet, data_start_index);
     //test_add_cont_part_to_packet(packet, data_start_index);
     */
     return 0;

@@ -250,6 +250,8 @@ int request_user_input_tests() {
 
     FTP app;
     void *handler = create_ftp_task(1, &app);
+    //need to let task initialize first.
+    sleep(1);
     put_request(2, "", "", 0, &app);
     put_request(2, NULL, NULL, 0, &app);
     (&app)->close = true;
@@ -297,19 +299,19 @@ int request_tests() {
 
     int error = 0;
     
-    /*
+    
     error = request_finding_test(); 
+    
     error = request_user_input_tests();
+    /*
     error = add_proxy_message();
     error = test_lv_functions();
     error = add_continue_partial_message_test();
     error = init_cont_partial_request_test_fail();
     error = init_cont_partial_request_test();
-    */
-
 
     scheduled_requests_test();
     schedule_requests_start_test();
-
+    */
     return error;
 }

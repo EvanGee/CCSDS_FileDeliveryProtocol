@@ -502,10 +502,10 @@ static void add_messages_callback(Node *node, void *element, void *args) {
     char *packet = params->packet;
     uint32_t packet_index = *(params->packet_index);
     Message *message = (Message *) element;
-    int error = 0;
+    int error, bytes = 0;
 
     //since this is a callback functions, we can't return -1, intead we just log
-    char *error_msg = "there was an issue copying bytes for the put proxy request";
+    char *error_msg = "there was an issue copying bytes for the message: %s\n";
 
     //5 bytes to copy cfdp\0 into the buffer
     memcpy(&packet[packet_index], message->header.message_id_cfdp, 5);
@@ -522,9 +522,9 @@ static void add_messages_callback(Node *node, void *element, void *args) {
         case PROXY_PUT_REQUEST:
             proxy_put = (Message_put_proxy *) message->value;
            
-            int bytes = copy_id_lv_to_packet(&packet[packet_index], proxy_put->destination_id);
+            bytes = copy_id_lv_to_packet(&packet[packet_index], proxy_put->destination_id);
             if (bytes < 0) {
-                ssp_printf(error_msg);
+                ssp_printf(error_msg, "PROXY_PUT_REQUEST");
                 return;
             }
             packet_index += bytes;
@@ -534,9 +534,27 @@ static void add_messages_callback(Node *node, void *element, void *args) {
 
         case CONTINUE_PARTIAL:
             proxy_cont_part = (Message_cont_part_request *) message->value;
-            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_cont_part->destination_id);
-            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_cont_part->originator_id);
-            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_cont_part->transaction_id);
+
+            bytes = copy_id_lv_to_packet(&packet[packet_index], proxy_cont_part->destination_id);
+            if (bytes < 0) {
+                ssp_printf(error_msg, "CONTINUE_PARTIAL");
+                return;
+            }
+            packet_index += bytes;
+
+            bytes = copy_id_lv_to_packet(&packet[packet_index], proxy_cont_part->originator_id);
+            if (bytes < 0) {
+                ssp_printf(error_msg, "CONTINUE_PARTIAL");
+                return;
+            }
+            packet_index += bytes;
+
+            bytes = copy_id_lv_to_packet(&packet[packet_index], proxy_cont_part->transaction_id);
+            if (bytes < 0) {
+                ssp_printf(error_msg, "CONTINUE_PARTIAL");
+                return;
+            }
+            packet_index += bytes;
             break;
 
         default:
@@ -572,6 +590,7 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
     uint32_t message_type = start + 5;
     uint32_t message_start = start + 6;
 
+    int error = 0;
     switch (packet[message_type])
     {
         case PROXY_PUT_REQUEST:
@@ -583,7 +602,7 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             }
             proxy_put = (Message_put_proxy *) m->value;
 
-            int error = copy_id_lv_from_packet(&packet[message_start], &proxy_put->destination_id);
+            error = copy_id_lv_from_packet(&packet[message_start], &proxy_put->destination_id);
             if (error < 0) {
                 ssp_free(m->value);
                 return -1;
@@ -603,16 +622,27 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             
             m->value = ssp_alloc(1, sizeof(Message_cont_part_request));
             proxy_cont_part = (Message_cont_part_request *) m->value;
-
-            copy_lv_from_buffer(&proxy_cont_part->destination_id, packet, message_start);
+           
+            error = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->destination_id);
+            if (error < 0) {
+                ssp_free(m->value);
+                return -1;
+            }
             message_start += proxy_cont_part->destination_id.length + 1;
-            
-            copy_lv_from_buffer(&proxy_cont_part->originator_id, packet, message_start);
+
+            error = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->originator_id);
+            if (error < 0) {
+                ssp_free(m->value);
+                return -1;
+            }
             message_start += proxy_cont_part->originator_id.length + 1;
 
-            copy_lv_from_buffer(&proxy_cont_part->transaction_id, packet, message_start);
+            error = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->transaction_id);
+            if (error < 0) {
+                ssp_free(m->value);
+                return -1;
+            }
             message_start += proxy_cont_part->transaction_id.length + 1;
-
 
         default:
             break;

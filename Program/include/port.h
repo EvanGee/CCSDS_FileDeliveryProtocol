@@ -129,6 +129,11 @@ Author: Evan Giese
     #define ssp_atol atol
 #endif
 
+
+//https://stackoverflow.com/questions/3022552/is-there-any-standard-htonl-like-function-for-64-bits-integers-in-c
+#define ssp_htonll(x) ((1==ssp_htonl(1)) ? (x) : ((uint64_t)ssp_htonl((x) & 0xFFFFFFFF) << 32) | ssp_htonl((x) >> 32))
+#define ssp_ntohll(x) ((1==ssp_ntohl(1)) ? (x) : ((uint64_t)ssp_ntohl((x) & 0xFFFFFFFF) << 32) | ssp_ntohl((x) >> 32))
+
 //don't change these in the header file here, if you need to change them
 //change them in the .c file
 void ssp_error(char *msg);
