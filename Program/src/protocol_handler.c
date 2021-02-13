@@ -405,7 +405,7 @@ static void send_data(Request *req, Response res) {
 int nak_response(char *packet, uint32_t start, Request *req, Response res, Client *client) {
         uint32_t packet_index = start;
         Pdu_nak *nak = (Pdu_nak *) &packet[packet_index];
-        uint64_t segments = ntohll(nak->segment_requests);
+        uint64_t segments = ssp_ntohll(nak->segment_requests);
         packet_index += 16;
 
         if (req->buff == NULL){

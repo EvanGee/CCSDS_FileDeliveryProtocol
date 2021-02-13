@@ -43,10 +43,14 @@ void set_packet_directive(char *packet, uint32_t location, uint8_t directive){
     packet[location] = directive;
 }
 
-int copy_id_to_packet(char *bytes, uint32_t id, uint32_t length_of_ids) {
+//returns length of ids or -1 on error
+int copy_id_to_packet(char *bytes, uint64_t id, uint32_t length_of_ids) {
    
-    if (length_of_ids == 4) {
-        uint32_t network_byte_order = ssp_htonl(id);
+    if (length_of_ids == 8) {
+        uint64_t network_byte_order = ssp_htonll(id);
+        memcpy(bytes, &network_byte_order, sizeof(uint64_t));   
+    } else if (length_of_ids == 4) {
+        uint32_t network_byte_order = ssp_htonl((uint32_t) id);
         memcpy(bytes, &network_byte_order, sizeof(uint32_t));   
     } else if (length_of_ids == 2) {
         uint16_t network_byte_order = ssp_htons((uint16_t) id);
@@ -58,12 +62,15 @@ int copy_id_to_packet(char *bytes, uint32_t id, uint32_t length_of_ids) {
         ssp_error("id size is not supported, please user 1, 2 or 4");
         return -1;
     }
-    return 0;
+    return length_of_ids;
 }
 
-uint32_t get_id_from_packet(char *bytes, uint32_t length_of_ids) {
-    uint32_t host_byte_order = 0;
-    if (length_of_ids == 4) {
+//returns id or -1 on error
+uint64_t copy_id_from_packet(char *bytes, uint32_t length_of_ids) {
+    uint64_t host_byte_order = 0;
+    if (length_of_ids == 8) {
+        host_byte_order = ssp_ntohll(*(uint64_t*) bytes);  
+    }else if (length_of_ids == 4) {
         host_byte_order = ssp_ntohl(*(uint32_t*) bytes);
     } else if (length_of_ids == 2) {
         host_byte_order = ssp_ntohs(*(uint16_t*) bytes); 
@@ -75,6 +82,33 @@ uint32_t get_id_from_packet(char *bytes, uint32_t length_of_ids) {
     }
     return host_byte_order;
 }
+
+//returns amount of bytes written or -1 on error
+int copy_id_lv_to_packet(char *bytes, LV id) {
+
+    memcpy(bytes, &id.length, sizeof(uint8_t));
+    int len = copy_id_to_packet(&bytes[1], *(uint64_t*)id.value, id.length);
+    if (len < 0) {
+        return -1;
+    }
+    return len + 1;
+}
+
+//returns 0 on success and sets LV memory, or -1 on error
+int copy_id_lv_from_packet(char *bytes, LV *lv){
+
+    uint8_t len = 0;
+    memcpy(&len, bytes, sizeof(uint8_t));
+
+    uint64_t id = copy_id_from_packet(&bytes[1], len);
+    if (id < 0) {
+        ssp_printf("failed to copy id from packet %d\n", id);
+        return -1;
+    }
+    create_lv(lv, len, &id);
+    return 0;
+}
+
 
 void ssp_print_header(Pdu_header *pdu_header){
 
@@ -114,21 +148,21 @@ int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
     
 
     int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
-    pdu_header->source_id = get_id_from_packet(&packet[source_id_location], pdu_header->length_of_entity_IDs);
+    pdu_header->source_id = copy_id_from_packet(&packet[source_id_location], pdu_header->length_of_entity_IDs);
     if (pdu_header->source_id < 0) {
         ssp_error("failed to get source_id");
         return -1;
     }   
 
     int32_t transaction_number_location = source_id_location + pdu_header->length_of_entity_IDs;
-    pdu_header->transaction_sequence_number = get_id_from_packet(&packet[transaction_number_location], pdu_header->transaction_seq_num_len);
+    pdu_header->transaction_sequence_number = copy_id_from_packet(&packet[transaction_number_location], pdu_header->transaction_seq_num_len);
     if (pdu_header->transaction_sequence_number < 0) {
         ssp_error("failed to get transaction_sequence_number");
         return -1;
     }   
 
     int32_t dest_id_location = transaction_number_location + pdu_header->transaction_seq_num_len;
-    pdu_header->destination_id = get_id_from_packet(&packet[dest_id_location], pdu_header->length_of_entity_IDs);
+    pdu_header->destination_id = copy_id_from_packet(&packet[dest_id_location], pdu_header->length_of_entity_IDs);
     if (pdu_header->destination_id < 0) {
         ssp_error("failed to get destination_id");
         return -1;
@@ -413,7 +447,7 @@ uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
 
     pdu_nak->start_scope = ssp_htonl(start_scope);
     pdu_nak->end_scope = ssp_htonl(end_scope);
-    pdu_nak->segment_requests = htonll(holder.current_number_of_segments);
+    pdu_nak->segment_requests = ssp_htonll(holder.current_number_of_segments);
 
     packet_index += sizeof(Offset) * holder.current_number_of_segments;
 
@@ -467,9 +501,12 @@ static void add_messages_callback(Node *node, void *element, void *args) {
     struct packet_callback_params *params = (struct packet_callback_params *) args; 
     char *packet = params->packet;
     uint32_t packet_index = *(params->packet_index);
-
     Message *message = (Message *) element;
-    
+    int error = 0;
+
+    //since this is a callback functions, we can't return -1, intead we just log
+    char *error_msg = "there was an issue copying bytes for the put proxy request";
+
     //5 bytes to copy cfdp\0 into the buffer
     memcpy(&packet[packet_index], message->header.message_id_cfdp, 5);
     packet_index += 5;
@@ -484,7 +521,13 @@ static void add_messages_callback(Node *node, void *element, void *args) {
     {
         case PROXY_PUT_REQUEST:
             proxy_put = (Message_put_proxy *) message->value;
-            packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_put->destination_id);
+           
+            int bytes = copy_id_lv_to_packet(&packet[packet_index], proxy_put->destination_id);
+            if (bytes < 0) {
+                ssp_printf(error_msg);
+                return;
+            }
+            packet_index += bytes;
             packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_put->source_file_name);
             packet_index += copy_lv_to_buffer(&packet[packet_index], proxy_put->destination_file_name);
             break;
@@ -517,7 +560,7 @@ uint32_t add_messages_to_packet(char *packet, uint32_t start, List *messages_to_
 //adds messages from packet into request, returns the location of the next message
 uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
 
-    if (strncmp(&packet[start], "cfdp", 5)) {
+    if (strncmp(&packet[start], "cfdp", 5) != 0) {
         ssp_error("messages are poorly formatted\n");
         return 0;
     }
@@ -526,8 +569,8 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
     Message_put_proxy *proxy_put;
     Message_cont_part_request *proxy_cont_part;
 
-    uint32_t message_start = start + 6;
     uint32_t message_type = start + 5;
+    uint32_t message_start = start + 6;
 
     switch (packet[message_type])
     {
@@ -535,9 +578,17 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             m = create_message(PROXY_PUT_REQUEST);
             
             m->value = ssp_alloc(1, sizeof(Message_put_proxy));
+            if (m->value == NULL) {
+                return -1;
+            }
             proxy_put = (Message_put_proxy *) m->value;
 
-            copy_lv_from_buffer(&proxy_put->destination_id, packet, message_start);
+            int error = copy_id_lv_from_packet(&packet[message_start], &proxy_put->destination_id);
+            if (error < 0) {
+                ssp_free(m->value);
+                return -1;
+            }
+
             message_start += proxy_put->destination_id.length + 1;
             
             copy_lv_from_buffer(&proxy_put->source_file_name, packet, message_start);
@@ -580,9 +631,8 @@ uint32_t get_messages_from_packet(char *packet, uint32_t start, uint32_t data_le
     
     while (packet_index < data_length - len) {
 
-        if (strncmp(&packet[packet_index], cfdp, len))
+        if (strncmp(&packet[packet_index], cfdp, len) != 0)
             break;
-
 
         packet_index = get_message_from_packet(packet, packet_index, req);
     }

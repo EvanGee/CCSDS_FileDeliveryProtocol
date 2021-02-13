@@ -34,6 +34,7 @@ void free_lv(LV lv) {
     ssp_free(lv.value);
 }
 
+//this should return -1 on alloc fail
 void create_lv(LV *lv, int len, void *value) {
 
     lv->value = ssp_alloc(len, sizeof(char));
