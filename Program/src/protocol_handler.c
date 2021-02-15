@@ -746,8 +746,10 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
 
         case ACK_PDU: 
             ssp_printf("received Ack transaction: %d\n", req->transaction_sequence_number);
-            Pdu_ack* ack_packet = (Pdu_ack *) &packet[packet_index];
-            switch (ack_packet->directive_code)
+            Pdu_ack ack_packet;
+            get_ack_from_packet(&packet[packet_index], &ack_packet);
+
+            switch (ack_packet.directive_code)
             {
                 case FINISHED_PDU:
 

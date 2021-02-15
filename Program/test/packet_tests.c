@@ -234,15 +234,20 @@ int test_build_ack_eof_pdu(char *packet, uint32_t start) {
     DECLARE_NEW_TEST("testing eof ack packet");
 
     Request *req;
-    uint8_t len =  build_ack (packet, start, EOF_PDU);
+    memset(&packet[start], 0, 10);
+
+    uint8_t len = build_ack(packet, start, EOF_PDU);
 
     uint8_t directive = packet[start];
     ASSERT_EQUALS_INT("ACK_PDU directive correct", directive, ACK_PDU);
+    uint32_t packet_index = start + 1;
 
-    Pdu_ack *ack = (Pdu_ack *)&packet[start + 1];
-    ASSERT_EQUALS_INT("EOF_PDU directive correct", EOF_PDU, ack->directive_code);
-    ASSERT_EQUALS_INT("COND_NO_ERROR correct", COND_NO_ERROR, ack->condition_code);
-    ASSERT_EQUALS_INT("ACK_FINISHED_END correct", ack->directive_subtype_code, ACK_FINISHED_END);
+    Pdu_ack ack;
+    get_ack_from_packet(&packet[packet_index], &ack);
+
+    ASSERT_EQUALS_INT("EOF_PDU directive correct", EOF_PDU, ack.directive_code);
+    ASSERT_EQUALS_INT("COND_NO_ERROR correct", COND_NO_ERROR, ack.condition_code);
+    ASSERT_EQUALS_INT("ACK_FINISHED_END correct", ack.directive_subtype_code, ACK_FINISHED_END);
 
     return 0;
 }
@@ -574,13 +579,11 @@ int packet_tests() {
     int data_start_index = test_build_pdu_header(packet, &pdu_header);
     //test_build_metadata_packet(packet, data_start_index);
     //test_get_messages_from_packet(packet, data_start_index);
-
-
-    test_add_cont_part_to_packet(packet, data_start_index);
-    test_get_cont_partial_from_packet(packet, data_start_index);
-    /*
+    //test_add_cont_part_to_packet(packet, data_start_index);
+    //test_get_cont_partial_from_packet(packet, data_start_index);
+    
     test_build_ack_eof_pdu(packet, data_start_index);
-    test_build_nak_packet(packet, data_start_index);
+    //test_build_nak_packet(packet, data_start_index);
     
     //Skip for now, will fix after connection server works
     //test_build_very_large_nak_packet(packet, data_start_index);
@@ -589,15 +592,15 @@ int packet_tests() {
     memset(packet, 0, PACKET_TEST_SIZE);
     
     //need to fix this for byte order
-    test_build_data_packet(packet, data_start_index);
+    //test_build_data_packet(packet, data_start_index);
     
     //need to fix this for byte order
-    test_build_eof_packet(packet, data_start_index);
+    //test_build_eof_packet(packet, data_start_index);
     
     //test_add_messages_to_packet(packet, data_start_index);
     //test_get_message_from_packet(packet, data_start_index);
     //test_add_cont_part_to_packet(packet, data_start_index);
-    */
+    
     return 0;
 
 }
