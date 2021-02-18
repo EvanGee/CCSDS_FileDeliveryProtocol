@@ -24,18 +24,27 @@ static int test_build_eof_packet(char *packet, int packet_start) {
 
     //need to set partialcheckus to checksum, because it gets set from reading in data
     file->partial_checksum = check_sum_file(file, 1000);
+    memset(&packet[packet_start], 0, 10);
+
+    file->partial_checksum = 1231251;
+    file->total_size = 141254;
     
     build_eof_packet(packet, packet_start, file->total_size, file->partial_checksum);
 
     int packet_index = packet_start;
-    Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
-    directive->directive_code = EOF_PDU;
+
+    uint8_t directive = packet[packet_index];
+    ASSERT_EQUALS_INT("EOF_PDU directive correct", directive, EOF_PDU);
+    
     packet_index++;
 
-    Pdu_eof *eof_pdu = (Pdu_eof*) &packet[packet_index];
-    ASSERT_EQUALS_INT("condition_code should equal NO_ERROR", eof_pdu->condition_code, COND_NO_ERROR);   
-    ASSERT_EQUALS_INT("filesize should equal", ssp_htonl(eof_pdu->file_size), file->total_size);
-    ASSERT_EQUALS_INT("checksum should equal", eof_pdu->checksum, file->partial_checksum);
+    Pdu_eof eof;
+    
+    get_eof_from_packet(&packet[packet_index], &eof);
+
+    ASSERT_EQUALS_INT("condition_code should equal COND_NO_ERROR", eof.condition_code, COND_NO_ERROR);   
+    ASSERT_EQUALS_INT("filesize should equal", eof.file_size, file->total_size);
+    ASSERT_EQUALS_INT("checksum should equal", eof.checksum, file->partial_checksum);
 
     free_file(file);
 
@@ -581,8 +590,9 @@ int packet_tests() {
     //test_get_messages_from_packet(packet, data_start_index);
     //test_add_cont_part_to_packet(packet, data_start_index);
     //test_get_cont_partial_from_packet(packet, data_start_index);
-    
-    test_build_ack_eof_pdu(packet, data_start_index);
+    //test_build_ack_eof_pdu(packet, data_start_index);
+
+    test_build_eof_packet(packet, data_start_index);
     //test_build_nak_packet(packet, data_start_index);
     
     //Skip for now, will fix after connection server works
@@ -595,7 +605,7 @@ int packet_tests() {
     //test_build_data_packet(packet, data_start_index);
     
     //need to fix this for byte order
-    //test_build_eof_packet(packet, data_start_index);
+   
     
     //test_add_messages_to_packet(packet, data_start_index);
     //test_get_message_from_packet(packet, data_start_index);

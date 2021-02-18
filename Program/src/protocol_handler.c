@@ -133,16 +133,13 @@ where the data portion is, also sets incoming_pdu_header... returns -1 on fail*/
 int process_pdu_header(char*packet, uint8_t is_server, Pdu_header *incoming_pdu_header, Response res, Request **req, List *request_list, FTP *app) {
 
     uint8_t packet_index = PACKET_STATIC_HEADER_LEN;
-    ssp_print_bits(packet, 30);
-
+    
     Pdu_header header;
     memset(&header, 0, sizeof(Pdu_header));
 
     int error = get_pdu_header_from_packet(packet, &header);
     *incoming_pdu_header = header;
     
-    ssp_print_header(&header);
-
     if (error < 0) {
         ssp_error("failed to get pdu header, bad formatting");
         return -1;
@@ -512,21 +509,21 @@ void user_request_handler(Response res, Request *req, Client* client) {
     switch (req->procedure)
     {
         case sending_eof: 
-            //send_eof_pdu(req, res);
+            send_eof_pdu(req, res);
             req->procedure = none;
             break;
 
         case sending_data:
-            //send_data(req, res);
+            send_data(req, res);
             break;
 
         case sending_put_metadata:
-            //send_put_metadata(req, res);
+            send_put_metadata(req, res);
             req->procedure = none;
             break;
 
         case sending_finished:
-            //resend_finished_ack(req, res);
+            resend_finished_ack(req, res);
             req->procedure = none;
             break;
 
@@ -582,18 +579,18 @@ static void resend_finished_pdu(Request *req, Response res) {
 //processes the eof packet, sets checksum, indication, and filesize.
 void process_pdu_eof(char *packet, Request *req, Response res) {
 
-
     ssp_printf("received eof packet transaction: %d\n", req->transaction_sequence_number);
-    Pdu_eof *eof_packet = (Pdu_eof *) packet;
-    uint32_t file_size = ssp_ntohl(eof_packet->file_size);
 
+    Pdu_eof eof_packet;
+    get_eof_from_packet(packet, &eof_packet);
+    
     if (req->file == NULL && req->local_entity.Metadata_recv_indication) {
-        build_temperary_file(req, file_size);
+        build_temperary_file(req, eof_packet.file_size);
     }
 
     req->local_entity.EOF_recv_indication = 1;
-    req->file->eof_checksum = eof_packet->checksum;
-    req->file->total_size = file_size;
+    req->file->eof_checksum = eof_packet.checksum;
+    req->file->total_size = eof_packet.file_size;
     
 }
 

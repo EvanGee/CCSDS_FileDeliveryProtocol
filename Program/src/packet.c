@@ -366,34 +366,73 @@ uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t len
     return 0;
 }
 
+/*
+typedef struct pdu_eof {
+    unsigned int condition_code : 4;
+    unsigned int spare : 4;
+    uint32_t checksum;
+
+    //In octets. This value shall be the total number of file data octets
+    //transmitted by the sender, regardless of the condition code
+    //(i.e., it shall be supplied even if the condition code is other than
+    //‘No error’).
+    uint32_t file_size;
+
+    
+    //Omitted if condition code is ‘No error’. Otherwise, entity ID in the
+    //TLV is the ID of the entity at which transaction cancellation was
+    //initiated.
+    TLV fault_location;
+    
+} Pdu_eof;
+*/
+void get_eof_from_packet(char *packet, Pdu_eof *eof){
+    uint32_t packet_index = 0;
+    uint32_t filesize = 0;
+    uint32_t checksum = 0;
+
+    eof->condition_code = get_bits_from_protocol_byte(packet[packet_index], 0, 3);
+    eof->spare = get_bits_from_protocol_byte(packet[packet_index], 4, 7);
+
+    packet_index++;
+    memcpy(&filesize, &packet[packet_index], sizeof(uint32_t)); 
+    eof->file_size = ssp_ntohl(filesize);
+
+    packet_index += sizeof(uint32_t);
+    memcpy(&checksum, &packet[packet_index], sizeof(uint32_t));
+    eof->checksum = ssp_ntohl(checksum);
+
+    //todo add fault location parsing
+}
 
 void build_eof_packet(char *packet, uint32_t start, uint32_t file_size, uint32_t checksum) {
 
-    Pdu_header *header = (Pdu_header *) packet;
-    //set header to file directive 0 is directive, 1 is data
-    header->PDU_type = 0;
-    
-    uint8_t packet_index = (uint8_t) start;
-    Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
-    directive->directive_code = EOF_PDU;
-    packet_index++;
+    uint8_t packet_index = start;
 
-    Pdu_eof *eof_packet = (Pdu_eof *) &packet[packet_index];
+    //set directive 1 byte
+    set_packet_directive(packet, packet_index, EOF_PDU);
+    packet_index += SIZE_OF_DIRECTIVE_CODE;
 
     //this will be need to set from the req struct probably.
-    //4 bits, 
-    eof_packet->condition_code = COND_NO_ERROR;
+    set_bits_to_protocol_byte(&packet[packet_index], 0, 3, COND_NO_ERROR);
+
     //4 bits reserved bits
-    eof_packet->spare = 0;
+    set_bits_to_protocol_byte(&packet[packet_index], 4, 7, 0);
+
     packet_index++;
 
     //4 bytes
-    eof_packet->file_size = ssp_ntohl(file_size);
-    packet_index += 4;
-    eof_packet->checksum = checksum;
-    packet_index += 4;
+    uint32_t network_file_size = ssp_htonl(file_size);
+    memcpy(&packet[packet_index], &network_file_size, sizeof(uint32_t));
+    packet_index += sizeof(uint32_t);
+    
+    //4 bytes
+    uint32_t network_checksum = ssp_htonl(checksum);
+    memcpy(&packet[packet_index], &network_checksum, sizeof(uint32_t));
+    packet_index += sizeof(uint32_t);
 
     //TODO addTLV fault_location
+
     uint16_t data_len = packet_index - start;
     set_packet_header(packet, data_len, DIRECTIVE);
 }
