@@ -19,7 +19,6 @@ void parse_packet_client(char* buff, uint32_t packet_index, Response res, Reques
 void on_server_time_out(Response res, Request *current_request);
 int process_pdu_header(char*packet, uint8_t is_server, Pdu_header *incoming_pdu_header, Response res, Request **req, List *request_list, FTP *app);
 
-uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t length);
 void process_pdu_eof(char *packet, Request *req, Response res);
 
  Request *new_incomming_request(uint32_t source_id, 

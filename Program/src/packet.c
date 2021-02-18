@@ -327,20 +327,39 @@ uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Reques
 }
 
 
-//requires a req->file to be created
-//returns 1 on end of file
-//length is the total size of the packet
-uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t length) {
 
+/*
+typedef struct file_data_pdu_contents {
+    //in octets
+    uint32_t offset;
+    //variable sized
+    unsigned char *data;
+} File_data_pdu_contents;
+*/
+
+//returns the offset in the file (for the data packet)
+uint32_t get_data_offset_from_packet(char *packet) {
+    uint32_t offset = 0;
+    memcpy(&offset, packet, sizeof(uint32_t));
+
+    offset = ssp_ntohl(offset);
+    return offset;
+}
+
+int build_data_packet(char *packet, uint32_t start, File *file, uint32_t length) {
+
+    //don't accidently send more than file size, this can probably be outside this packet
     if (file->next_offset_to_send >= file->total_size){
         return 0;
     }
 
     uint16_t packet_index = start;
-    File_data_pdu_contents *packet_offset = (File_data_pdu_contents *) &packet[packet_index];
+
+    uint32_t offset = 0;
+    offset = ssp_htonl(file->next_offset_to_send);
     
-    //4 bytes is the size of the offset paramater
-    packet_offset->offset = file->next_offset_to_send;
+    memcpy(&packet[packet_index], &offset, sizeof(uint32_t));
+    
     packet_index += 4;
     
     uint16_t data_size = length - packet_index;
@@ -349,17 +368,17 @@ uint8_t build_data_packet(char *packet, uint32_t start, File *file, uint32_t len
     int bytes = get_offset(file, &packet[packet_index], data_size, file->next_offset_to_send);
     if (bytes <= 0){
         ssp_error("could not get offset, this could because the file is empty!\n");
-        return 1;
+        return -1;
     }
 
     //calculate checksum for data packet, this is used to calculate in transit checksums
     file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
     file->next_offset_to_send += bytes;
 
-
     //add bytes read, and the packet offset to the data_field length
     uint16_t data_len = bytes + 4;
     set_packet_header(packet, data_len, DATA);
+
     if (bytes <  data_size)
         return 1;
 

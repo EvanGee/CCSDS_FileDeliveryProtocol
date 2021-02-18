@@ -72,7 +72,9 @@ static void test_build_data_packet(char *packet, uint32_t packet_index){
 
     build_data_packet(packet, packet_index, file, 1000);
 
-    ASSERT_EQUALS_INT("test proper datapacket offset set", (uint64_t)packet[packet_index], 0);
+    uint32_t offset = get_data_offset_from_packet(&packet[packet_index]);
+
+    ASSERT_EQUALS_INT("test proper datapacket offset set", offset, 0);
     ASSERT_EQUALS_STR("test proper datapacket creation", &packet[packet_index + 4], "testfileyo", 10);
     
     free_file(file);
@@ -592,7 +594,10 @@ int packet_tests() {
     //test_get_cont_partial_from_packet(packet, data_start_index);
     //test_build_ack_eof_pdu(packet, data_start_index);
 
-    test_build_eof_packet(packet, data_start_index);
+    //test_build_eof_packet(packet, data_start_index);
+    //test_build_data_packet(packet, data_start_index);
+    
+    //next up
     //test_build_nak_packet(packet, data_start_index);
     
     //Skip for now, will fix after connection server works
@@ -602,7 +607,6 @@ int packet_tests() {
     memset(packet, 0, PACKET_TEST_SIZE);
     
     //need to fix this for byte order
-    //test_build_data_packet(packet, data_start_index);
     
     //need to fix this for byte order
    

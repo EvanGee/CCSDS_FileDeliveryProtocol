@@ -199,7 +199,8 @@ int process_pdu_header(char*packet, uint8_t is_server, Pdu_header *incoming_pdu_
 
 }
 
-static void write_packet_data_to_file(char *data_packet, uint32_t data_len, File *file) {
+//rename to process_data_packet
+static void process_data_packet(char *packet, uint32_t data_len, File *file) {
 
 
     if(file == NULL) {
@@ -207,21 +208,23 @@ static void write_packet_data_to_file(char *data_packet, uint32_t data_len, File
         return;
     }
 
-    File_data_pdu_contents *packet = (File_data_pdu_contents *)data_packet;
+    uint32_t offset_start = get_data_offset_from_packet(packet);
+    uint32_t packet_index = 4;
     
-    uint32_t offset_start = packet->offset;
-    uint32_t offset_end = offset_start + data_len - 4;
+    //- size of 'offset' bytes in packet
+    uint32_t offset_end = offset_start + data_len - packet_index;
     
     if (!receive_offset(file, 0, offset_start, offset_end))
         return;
 
-    int bytes = write_offset(file, &data_packet[4], data_len - 4, offset_start);
+    uint32_t remaining_buffer_length = data_len - packet_index;
+    int bytes = write_offset(file, &packet[packet_index], remaining_buffer_length, offset_start);
     if (bytes <= 0) {
         ssp_error("no new data was written\n");
         return;
     }
 
-    file->partial_checksum += calc_check_sum(&data_packet[4], bytes);
+    file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
     
     if (file->missing_offsets->count == 0)
         return;
@@ -718,7 +721,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
                 build_temperary_file(req, TEMP_FILESIZE);
             }
         }
-        write_packet_data_to_file(&packet[packet_index], data_len, req->file);
+        process_data_packet(&packet[packet_index], data_len, req->file);
         ssp_printf("received data packet transaction: %d\n", req->transaction_sequence_number);
         return packet_len;
     }
