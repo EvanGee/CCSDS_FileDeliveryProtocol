@@ -264,7 +264,7 @@ void ssp_cleanup_req(void *request) {
     Request *req = (Request *) request;
 
     if (req->file != NULL)
-        free_file(req->file);
+        ssp_free_file(req->file);
     
     if (req->messages_to_user->count > 0)
         req->messages_to_user->free(req->messages_to_user, ssp_free_message);

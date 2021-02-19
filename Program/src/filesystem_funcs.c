@@ -126,7 +126,7 @@ int write_offset(File *file, void *buff, uint32_t size, uint32_t offset) {
     return bytes;
 }
 
-void free_file(void *file) {
+void ssp_free_file(void *file) {
 
     File *f = (File *) file;
     f->missing_offsets->free(f->missing_offsets, ssp_free);

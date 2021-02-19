@@ -199,9 +199,10 @@ int process_pdu_header(char*packet, uint8_t is_server, Pdu_header *incoming_pdu_
 
 }
 
-//rename to process_data_packet
-static void process_data_packet(char *packet, uint32_t data_len, File *file) {
-
+// receives the offset
+// writes offset to a file
+// calclulates checksum
+void process_data_packet(char *packet, uint32_t data_len, File *file) {
 
     if(file == NULL) {
         ssp_error("file struct is null, can't write to file");
@@ -211,7 +212,7 @@ static void process_data_packet(char *packet, uint32_t data_len, File *file) {
     uint32_t offset_start = get_data_offset_from_packet(packet);
     uint32_t packet_index = 4;
     
-    //- size of 'offset' bytes in packet
+    // size of 'offset' bytes in packet
     uint32_t offset_end = offset_start + data_len - packet_index;
     
     if (!receive_offset(file, 0, offset_start, offset_end))

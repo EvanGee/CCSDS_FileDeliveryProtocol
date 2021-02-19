@@ -132,12 +132,46 @@ static int test_process_pdu_header() {
 
     return error;
 }
+int test_process_data_packet() {
+
+    char packet[1500];
+    uint32_t start = 20;
+    uint32_t data_len = sizeof(packet) - start;
+    memset(packet, 0, 1500);
+
+    File *file = create_file("test_files/dest.jpg", 0);
+    int error = build_data_packet(packet, start, file, data_len); 
+    
+    File *file2 = create_file("test_files/test_file.jpg", 1);
+    
+    //mimics process_file_request_metadata function
+    Offset *offset = ssp_alloc(1, sizeof(Offset));
+    offset->end = file->total_size;
+    offset->start = 0;
+    file2->missing_offsets->push(file2->missing_offsets, offset, 0);
+
+    process_data_packet(&packet[start], data_len, file2);
+    ASSERT_EQUALS_INT("Checksum", file2->partial_checksum, 1439747840);
+    ASSERT_EQUALS_INT("Length of offset list should equal 1 ", file2->missing_offsets->count, 1);
+    Offset* offset2 = (Offset*) file2->missing_offsets->pop(file2->missing_offsets);
+
+
+    //data_len - 4 byte offset value
+    ASSERT_EQUALS_INT("offset start should equal datasize ", offset2->start, data_len - 4);
+    ASSERT_EQUALS_INT("offset end equal end of file ", offset2->end, file->total_size);
+
+    ssp_free_file(file);
+    ssp_free_file(file2);
+
+}
 
 
 int protocol_handler_test() {
     int error = 0;
-    error = test_process_pdu_header();
-    error = test_process_pdu_eof();
-    error = test_on_server_time_out();
+    //error = test_process_pdu_header();
+    //error = test_process_pdu_eof();
+    //error = test_on_server_time_out();
+    error = test_process_data_packet();
+
     return error;
 }

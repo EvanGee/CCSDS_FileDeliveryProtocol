@@ -19,7 +19,7 @@ uint8_t build_finished_pdu(char *packet, uint32_t start);
 uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req);
 uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Request *req, Client* client);
 
-uint32_t get_data_offset_from_packet(packet);
+uint32_t get_data_offset_from_packet(char *packet);
 int build_data_packet(char *packet, uint32_t start, File *file, uint32_t length);
 
 void build_eof_packet(char *packet, uint32_t start, uint32_t file_size, uint32_t checksum);

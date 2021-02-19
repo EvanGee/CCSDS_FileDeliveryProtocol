@@ -29,6 +29,7 @@ void process_pdu_eof(char *packet, Request *req, Response res);
 
 uint32_t parse_metadata_packet(char *meta_data_packet, uint32_t start, Request *req_to_fill);
 void process_messages(Request *req, FTP *app);
+void process_data_packet(char *packet, uint32_t data_len, File *file);
 
 uint8_t build_ack (char *packet, uint32_t start, uint8_t type);
 int process_file_request_metadata(Request *req);

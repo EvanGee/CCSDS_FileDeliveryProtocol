@@ -5,6 +5,7 @@
 #include "utils.h"
 #include <stdio.h>
 #include "filesystem_funcs.h"
+
 #include "port.h"
 #include "protocol_handler.h"
 #include "mib.h"
@@ -46,7 +47,7 @@ static int test_build_eof_packet(char *packet, int packet_start) {
     ASSERT_EQUALS_INT("filesize should equal", eof.file_size, file->total_size);
     ASSERT_EQUALS_INT("checksum should equal", eof.checksum, file->partial_checksum);
 
-    free_file(file);
+    ssp_free_file(file);
 
     //testing this
     return 0;
@@ -77,7 +78,7 @@ static void test_build_data_packet(char *packet, uint32_t packet_index){
     ASSERT_EQUALS_INT("test proper datapacket offset set", offset, 0);
     ASSERT_EQUALS_STR("test proper datapacket creation", &packet[packet_index + 4], "testfileyo", 10);
     
-    free_file(file);
+    ssp_free_file(file);
 }
 
 
