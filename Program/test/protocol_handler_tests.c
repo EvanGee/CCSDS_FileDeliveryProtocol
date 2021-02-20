@@ -140,7 +140,7 @@ int test_process_data_packet() {
     memset(packet, 0, 1500);
 
     File *file = create_file("test_files/dest.jpg", 0);
-    int error = build_data_packet(packet, start, file, data_len); 
+    int error = create_data_burst_packets(packet, start, file, data_len); 
     
     File *file2 = create_file("test_files/test_file.jpg", 1);
     

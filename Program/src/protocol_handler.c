@@ -391,10 +391,33 @@ static void start_sequence(Request *req, Response res) {
     req->procedure = sending_data;
 }
 
+int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t length) {
+
+    if (file->next_offset_to_send >= file->total_size){
+        return 0;
+    }
+
+    uint32_t packet_index = start;
+    uint32_t size_of_offset_bytes = 4;
+
+    int data_len = build_data_packet(packet, packet_index, length, file->next_offset_to_send, file);
+    packet_index += size_of_offset_bytes;
+    int bytes = data_len - size_of_offset_bytes;
+
+    //calculate checksum for data packet, this is used to calculate in transit checksums
+    file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
+    file->next_offset_to_send += bytes;
+
+    if (data_len < length - packet_index)
+        return 1;
+
+    return 0;
+}
+
 static void send_data(Request *req, Response res) {    
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
 
-    if (build_data_packet(req->buff, start, req->file, res.packet_len)) {
+    if (create_data_burst_packets(req->buff, start, req->file, res.packet_len)) {
         req->procedure = sending_eof;
         ssp_printf("sending data burst transaction: %d\n", req->transaction_sequence_number);
     }
