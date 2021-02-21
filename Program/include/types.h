@@ -582,6 +582,7 @@ typedef enum procedure {
     sending_put_metadata,
     sending_eof,
     sending_data,
+    sending_nak_data,
     clean_up,
     sending_start,
 

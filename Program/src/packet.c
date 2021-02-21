@@ -327,6 +327,7 @@ int build_data_packet(char *packet, uint32_t start, uint32_t end, uint32_t offse
 }
 
 //sets the offset, datasize, 
+//outdated
 uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Request *req, Client* client) {
 
     if (offset > req->file->total_size) {
@@ -462,6 +463,46 @@ void fill_nak_array_callback(Node *node, void *element, void *args){
     holder->packet+=sizeof(Offset);
 }
 
+
+/*
+typedef struct pdu_nak {
+    uint32_t start_scope;
+    uint32_t end_scope;
+
+    //number of Nak_segments
+    uint64_t segment_requests;
+    void *segments;
+} Pdu_nak;
+*/
+//return length of Nak packet
+int get_nak_packet(char *packet, Pdu_nak *nak) {
+
+
+    uint32_t packet_index = 0;
+    uint32_t start_scope = 0;
+    uint32_t offset_start = 0;
+    uint32_t offset_end = 0;
+    
+    memcpy(&start_scope, &packet[packet_index], sizeof(uint32_t));
+    nak->start_scope = ssp_ntohl(start_scope);
+
+    packet_index += sizeof(uint32_t);
+
+    uint32_t end_scope = 0;
+    memcpy(&end_scope, &packet[packet_index], sizeof(uint32_t));
+    nak->end_scope = ssp_ntohl(end_scope);
+
+    packet_index += sizeof(uint32_t);
+
+    uint64_t segment_requests = 0;
+    memcpy(&segment_requests, &packet[packet_index], sizeof(uint32_t));
+    nak->segment_requests = ssp_ntohl(segment_requests);
+
+    packet_index += sizeof(uint64_t);
+    nak->segments = &packet[packet_index];
+
+    return packet_index;
+}
 
 //this function is weird because it uses a callback into an iterator. We fill the array
 //with as many 'offsets' as we can.

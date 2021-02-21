@@ -414,6 +414,52 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
     return 0;
 }
 
+
+//returns -1 on error
+int process_nak_pdu(char *packet, File *file){
+
+    Pdu_nak nak;
+    get_nak_packet(packet, &nak);
+
+    if (file->missing_offsets->count == 0){
+        
+        Offset *offset = ssp_alloc(1, sizeof(Offset));
+        if (offset == NULL) {
+            return -1;
+        }
+
+        offset->start = nak.start_scope;
+        offset->end = nak.end_scope;
+        file->missing_offsets->push(file->missing_offsets, offset, 0);
+    }
+
+    uint32_t packet_index = 0;
+    uint32_t offset_start = 0;
+    uint32_t offset_end = 0;
+    int completed = 0;
+    
+
+    int i = 0;
+    for (i = 0; i < nak.segment_requests; i++){
+        packet_index = 0;
+
+        memcpy(&offset_start, &nak.segments[packet_index], sizeof(uint32_t));
+        offset_start = ssp_ntohl(offset_start);
+        packet_index += 4;
+
+        memcpy(&offset_end, &nak.segments[packet_index], sizeof(uint32_t));
+        offset_end = ssp_ntohl(offset_end);
+        packet_index += 4;
+        
+        completed = receive_offset(file, 0, offset_start, offset_end);
+        if (!completed) {
+            return -1;
+        }
+        offset_end = 0;
+        offset_start = 0;
+    }
+}
+
 static void send_data(Request *req, Response res) {    
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
 
@@ -425,7 +471,7 @@ static void send_data(Request *req, Response res) {
 }
 
 
-
+//outdated
 int nak_response(char *packet, uint32_t start, Request *req, Response res, Client *client) {
         uint32_t packet_index = start;
         Pdu_nak *nak = (Pdu_nak *) &packet[packet_index];
@@ -457,6 +503,7 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
 }
 
 
+
 //fills the current request with packet data, responses from servers
 void parse_packet_client(char *packet, uint32_t packet_index, Response res, Request *req, Client* client) {
  
@@ -475,6 +522,14 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             break;
         case NAK_PDU:
             ssp_printf("received Nak pdu transaction: %d\n", req->transaction_sequence_number);
+            /*
+            if (process_nak_pdu(packet, req->file) < 0){
+                ssp_printf("couldn't process Nak Pdu transaction: %d\n", req->transaction_sequence_number);
+                break;
+            }
+            req->procedure = sending_nak_data;
+            */
+            
             nak_response(packet, packet_index, req, res, client);
             break;
         case ACK_PDU:
@@ -535,6 +590,9 @@ void user_request_handler(Response res, Request *req, Client* client) {
 
     switch (req->procedure)
     {
+        case sending_nak_data:
+            break;
+
         case sending_eof: 
             send_eof_pdu(req, res);
             req->procedure = none;
