@@ -53,15 +53,6 @@ static int test_build_eof_packet(char *packet, int packet_start) {
     return 0;
 }
 
-static int test_respond_to_naks(char *packet, uint32_t packet_index) {
-    Request *req = mock_empty_request();
-
-
-
-
-    ssp_cleanup_req(req);
-    return 0;
-}
 
 static int test_respond_metadata_request() {
 
@@ -599,15 +590,14 @@ int packet_tests() {
     //test_build_ack_eof_pdu(packet, data_start_index);
 
     //test_build_eof_packet(packet, data_start_index);
-    test_build_data_packet(packet, data_start_index);
-    //test_build_nak_packet(packet, data_start_index);
+    //test_build_data_packet(packet, data_start_index);
+    test_build_nak_packet(packet, data_start_index);
 
     //next up
     
     
     //Skip for now, will fix after connection server works
     //test_build_very_large_nak_packet(packet, data_start_index);
-    test_respond_to_naks(packet, data_start_index);
 
     memset(packet, 0, PACKET_TEST_SIZE);
     

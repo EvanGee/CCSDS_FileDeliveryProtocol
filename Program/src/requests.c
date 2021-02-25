@@ -378,7 +378,14 @@ int put_request_no_client(
     req->file = create_file(source_file_name, false);
     if (req->file == NULL) 
         return -1;
-    
+        
+    //this could probably go into 'create_file'
+    int error =  add_first_offset(req->file, req->file->total_size);
+    if (error < 0) {
+        ssp_free_file(req->file);
+        return NULL;
+    }
+
     req->file_size = file_size;
     req->transaction_sequence_number = app->transaction_sequence_number++;
     ssp_memcpy(req->source_file_name, source_file_name ,strnlen(source_file_name, MAX_PATH));

@@ -416,29 +416,22 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
 
 
 //returns -1 on error
+//adds start and end if there is no start and end (end will likely have to be the file size and start should be 0)
 int process_nak_pdu(char *packet, File *file){
+
+    if (file->missing_offsets->count == 0){
+        ssp_error("can't receive offset without knowing the file size, please add the first offset with start=0 and end=filesize");      
+        return -1;  
+    }
 
     Pdu_nak nak;
     get_nak_packet(packet, &nak);
-
-    if (file->missing_offsets->count == 0){
-        
-        Offset *offset = ssp_alloc(1, sizeof(Offset));
-        if (offset == NULL) {
-            return -1;
-        }
-
-        offset->start = nak.start_scope;
-        offset->end = nak.end_scope;
-        file->missing_offsets->push(file->missing_offsets, offset, 0);
-    }
 
     uint32_t packet_index = 0;
     uint32_t offset_start = 0;
     uint32_t offset_end = 0;
     int completed = 0;
     
-
     int i = 0;
     for (i = 0; i < nak.segment_requests; i++){
         packet_index = 0;
@@ -458,6 +451,7 @@ int process_nak_pdu(char *packet, File *file){
         offset_end = 0;
         offset_start = 0;
     }
+    return 1;
 }
 
 static void send_data(Request *req, Response res) {    
@@ -679,6 +673,8 @@ void process_pdu_eof(char *packet, Request *req, Response res) {
     
 }
 
+
+
 int process_file_request_metadata(Request *req) {
 
     char temp[75];
@@ -690,11 +686,17 @@ int process_file_request_metadata(Request *req) {
         change_tempfile_to_actual(temp, req->destination_file_name, req->file_size, req->file);
         return 1;
     }
+
+    if (req->file == NULL) {
+        return -1;
+    }
     
-    Offset *offset = ssp_alloc(1, sizeof(Offset));
-    offset->end = req->file_size;
-    offset->start = 0;
-    req->file->missing_offsets->insert(req->file->missing_offsets, offset, req->file_size);
+    int error =  add_first_offset(req->file, req->file_size);
+    if (error < 0) {
+        ssp_free_file(req->file);
+        return -1;
+    }
+
     return 1;
 }
 

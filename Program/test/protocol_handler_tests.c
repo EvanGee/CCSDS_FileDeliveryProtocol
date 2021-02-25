@@ -139,19 +139,16 @@ int test_process_data_packet() {
     uint32_t data_len = sizeof(packet) - start;
     memset(packet, 0, 1500);
 
-    File *file = create_file("test_files/dest.jpg", 0);
+    File *file = create_file("test_files/data_pdu_test.jpg", 0);
     int error = create_data_burst_packets(packet, start, file, data_len); 
     
     File *file2 = create_file("test_files/test_file.jpg", 1);
     
     //mimics process_file_request_metadata function
-    Offset *offset = ssp_alloc(1, sizeof(Offset));
-    offset->end = file->total_size;
-    offset->start = 0;
-    file2->missing_offsets->push(file2->missing_offsets, offset, 0);
-
+    add_first_offset(file2, file->total_size);
     process_data_packet(&packet[start], data_len, file2);
-    ASSERT_EQUALS_INT("Checksum", file2->partial_checksum, 1439747840);
+
+    ASSERT_EQUALS_INT("Checksum", file2->partial_checksum, -606714363);
     ASSERT_EQUALS_INT("Length of offset list should equal 1 ", file2->missing_offsets->count, 1);
     Offset* offset2 = (Offset*) file2->missing_offsets->pop(file2->missing_offsets);
 
@@ -165,6 +162,39 @@ int test_process_data_packet() {
 
 }
 
+int test_process_nak() {
+
+    DECLARE_NEW_TEST("testing nak client response");
+    char packet[2000];
+    uint32_t start = 20;
+    uint32_t data_len = sizeof(packet) - start;
+    memset(packet, 0, 1500);
+
+    Request *req = mock_request();
+    ssp_free_file(req->file);
+    req->file = create_file("test_files/nak_test.jpg", 0);
+
+    add_first_offset(req->file, req->file->total_size);
+    build_nak_packet(packet, start, req);
+
+    File *file = create_file(req->destination_file_name, 1);
+    add_first_offset(file, req->file->total_size);
+
+    process_nak_pdu(&packet[start + SIZE_OF_DIRECTIVE_CODE], file);
+
+    int error = 0;
+    error = ASSERT_EQUALS_INT("Nak list count should be of size 1",  file->missing_offsets->count, 1);
+
+    Offset *offset = (Offset*) file->missing_offsets->pop(file->missing_offsets);
+    
+    error = ASSERT_EQUALS_INT("offset start should be 0", offset->start, 0);
+    error = ASSERT_EQUALS_INT("offset end should be file size", offset->end, 150033);
+
+    ssp_cleanup_req(req);
+    return error;
+}
+
+
 
 int protocol_handler_test() {
     int error = 0;
@@ -172,6 +202,6 @@ int protocol_handler_test() {
     //error = test_process_pdu_eof();
     //error = test_on_server_time_out();
     error = test_process_data_packet();
-
+    error = test_process_nak();
     return error;
 }

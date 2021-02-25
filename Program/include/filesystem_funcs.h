@@ -21,6 +21,7 @@ uint32_t get_file_size(char *source_file_name);
 //allocates space for a file pointer
 File *create_file(char *source_file_name, int clear_file_contents);
 void ssp_free_file(void *file);
+int add_first_offset(File *file, uint32_t file_size);
 
 int does_file_exist(char *source_file_name);
 int get_offset(File *file, void *buff, uint32_t buf_size, int offset);
