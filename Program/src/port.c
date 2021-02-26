@@ -156,6 +156,7 @@ int ssp_readdir(void *dir, char *file){
     
 }
 
+#include "packet.h"
 /*------------------------------------------------------------------------------
     Network port functions, these are used to interchange different network
     stacks
@@ -169,7 +170,7 @@ void ssp_sendto(Response res) {
     #ifdef TEST
         return;
      #endif
-
+    
     if (res.type_of_network == generic) {
 
         #ifdef FREE_RTOS_PORT 
@@ -234,9 +235,16 @@ void ssp_sendto(Response res) {
     else {
         #ifdef POSIX_PORT
             struct sockaddr* addr = (struct sockaddr*) res.addr;
+            
+            //ssp_print_bits(res.msg, 10);
+            //Pdu_header header;
+            //memset(&header, 0, sizeof(Pdu_header));
+            //get_pdu_header_from_packet(res.msg, &header);
+            //ssp_print_header(&header);
+
             int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
             if (err < 0) {
-                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, *addr, sizeof(struct sockaddr));
+                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, addr, sizeof(struct sockaddr));
                 ssp_error("ERROR in sendto");
             }
         #endif

@@ -417,6 +417,7 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
 
 //returns -1 on error
 //adds start and end if there is no start and end (end will likely have to be the file size and start should be 0)
+//for remembering packets?
 int process_nak_pdu(char *packet, File *file){
 
     if (file->missing_offsets->count == 0){
@@ -448,10 +449,67 @@ int process_nak_pdu(char *packet, File *file){
         if (!completed) {
             return -1;
         }
-        offset_end = 0;
-        offset_start = 0;
     }
     return 1;
+}
+
+void segment_offset_into_data_packets(char *packet, uint32_t start, uint32_t offset_start, uint32_t offset_end, Request *req, Response res){
+
+    int i = 0;
+    int error = 0;
+    uint32_t segment_len = req->buff_len - start;
+
+    for (i = offset_start; i < offset_end; i+= segment_len) {
+
+        if (offset_end - i < segment_len){
+            segment_len = offset_end - i;
+        }
+        
+        //ssp_printf("sending offset start %d to %d\n", i, i + segment_len);
+        //ssp_printf("segment len %d\n",segment_len);
+
+        error = build_data_packet(packet, start, segment_len + start, i, req->file);
+        if (error < 0) {
+            return -1;
+        }
+        
+        ssp_sendto(res);
+    }
+}
+
+int process_nak_pdu_response(char *packet, Request *req, Response res, Client *client){
+    Pdu_nak nak;
+    get_nak_packet(packet, &nak);
+
+    uint32_t packet_index = 0;
+    uint32_t offset_start = 0;
+    uint32_t offset_end = 0;
+    //build new header for outgoing packets
+    uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, 0, &client->pdu_header);
+    int error = 0;
+    int i = 0;
+
+
+    ssp_printf("sending offset packet start %d offset end %d\n", nak.start_scope, nak.end_scope);
+    //This needs to send naks based on start and end scope, not segment requests.
+    for (i = 0; i < nak.segment_requests; i++){
+        
+        packet_index = 0;
+
+        memcpy(&offset_start, &nak.segments[packet_index], sizeof(uint32_t));
+        offset_start = ssp_ntohl(offset_start);
+        packet_index += 4;
+
+        memcpy(&offset_end, &nak.segments[packet_index], sizeof(uint32_t));
+        offset_end = ssp_ntohl(offset_end);
+        packet_index += 4;
+
+        //ssp_printf("sending offset start %d offset end %d\n", offset_start, offset_end);
+        segment_offset_into_data_packets(req->buff, outgoing_packet_index, offset_start, offset_end, req, res);
+    }
+
+    return 1;
+
 }
 
 static void send_data(Request *req, Response res) {    
@@ -497,7 +555,6 @@ int nak_response(char *packet, uint32_t start, Request *req, Response res, Clien
 }
 
 
-
 //fills the current request with packet data, responses from servers
 void parse_packet_client(char *packet, uint32_t packet_index, Response res, Request *req, Client* client) {
  
@@ -516,15 +573,7 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             break;
         case NAK_PDU:
             ssp_printf("received Nak pdu transaction: %d\n", req->transaction_sequence_number);
-            /*
-            if (process_nak_pdu(packet, req->file) < 0){
-                ssp_printf("couldn't process Nak Pdu transaction: %d\n", req->transaction_sequence_number);
-                break;
-            }
-            req->procedure = sending_nak_data;
-            */
-            
-            nak_response(packet, packet_index, req, res, client);
+            process_nak_pdu_response(&packet[packet_index], req, res, client);
             break;
         case ACK_PDU:
 

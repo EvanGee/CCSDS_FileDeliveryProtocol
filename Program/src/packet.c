@@ -307,6 +307,7 @@ typedef struct file_data_pdu_contents {
 } File_data_pdu_contents;
 */
 //returns the length of the packet, or -1 on error
+//end is how long the buffer/mtu is, offset is the place in the file we want to read from
 int build_data_packet(char *packet, uint32_t start, uint32_t end, uint32_t offset, File *file){
 
     uint16_t data_size = end - start;
@@ -314,49 +315,18 @@ int build_data_packet(char *packet, uint32_t start, uint32_t end, uint32_t offse
 
     uint32_t net_offset = ssp_ntohl(offset);
     memcpy(&packet[packet_index], &net_offset, sizeof(uint32_t));
+
     packet_index += 4;
     int bytes = get_offset(file, &packet[packet_index], data_size, offset);
     if (bytes <= 0){
         ssp_error("could not get offset, this could because the file is empty!\n");
         return -1;
     }
-    
+
     uint16_t data_len = bytes + sizeof(uint32_t);
     set_packet_header(packet, data_len, DATA);
     return data_len;
 }
-
-//sets the offset, datasize, 
-//outdated
-uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Request *req, Client* client) {
-
-    if (offset > req->file->total_size) {
-        return 1;
-    }
-
-    uint16_t packet_index = start;
-    File_data_pdu_contents *packet_offset = (File_data_pdu_contents *) &packet[packet_index];
-    packet_offset->offset = offset;
-
-    //4 bytes is the size of the offset paramater
-    packet_index += 4;
-    uint16_t data_size = client->packet_len - packet_index;
-    //fill the rest of the packet with data
-    int bytes = get_offset(req->file, &packet[packet_index], data_size, offset);
-    if (bytes <= 0){
-        ssp_error("could not get offset, this could because the file is empty!\n");
-        return 1;
-    }
-    
-    uint16_t data_len = bytes + 4;
-    set_packet_header(packet, data_len, DATA);
-
-    if (bytes <  data_size)
-        return 1;
-
-    return 0;
-}
-
 
 //returns the offset in the file (for the data packet)
 uint32_t get_data_offset_from_packet(char *packet) {
@@ -480,26 +450,26 @@ int get_nak_packet(char *packet, Pdu_nak *nak) {
 
     uint32_t packet_index = 0;
     uint32_t start_scope = 0;
-    uint32_t offset_start = 0;
-    uint32_t offset_end = 0;
-    
+    uint32_t end_scope = 0;
+    uint64_t segment_requests = 0;
+
     memcpy(&start_scope, &packet[packet_index], sizeof(uint32_t));
     nak->start_scope = ssp_ntohl(start_scope);
 
     packet_index += sizeof(uint32_t);
 
-    uint32_t end_scope = 0;
     memcpy(&end_scope, &packet[packet_index], sizeof(uint32_t));
     nak->end_scope = ssp_ntohl(end_scope);
 
     packet_index += sizeof(uint32_t);
 
-    uint64_t segment_requests = 0;
-    memcpy(&segment_requests, &packet[packet_index], sizeof(uint32_t));
-    nak->segment_requests = ssp_ntohl(segment_requests);
+    memcpy(&segment_requests, &packet[packet_index], sizeof(uint64_t));
+    nak->segment_requests = ssp_ntohll(segment_requests);
 
     packet_index += sizeof(uint64_t);
     nak->segments = &packet[packet_index];
+
+    
 
     return packet_index;
 }
