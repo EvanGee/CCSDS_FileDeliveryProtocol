@@ -566,6 +566,26 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
 
 }
 
+int test_build_finished_pdu(char *packet, uint32_t start) {
+
+
+    DECLARE_NEW_TEST("testing creation and parsing of finished pdu");
+    memset(&packet[start], 0, 100);
+    
+    uint32_t packet_index = start;
+
+    uint32_t data_len = build_finished_pdu(packet, start);
+
+    packet_index += SIZE_OF_DIRECTIVE_CODE;
+
+    Pdu_finished fin;
+    get_finished_pdu(&packet[packet_index], &fin);
+    
+    ASSERT_EQUALS_INT("condition_code set", fin.condition_code, COND_NO_ERROR);
+    ASSERT_EQUALS_INT("delivery_code not set", fin.delivery_code, 0);
+    ASSERT_EQUALS_INT("end_system_status not set", fin.end_system_status, 0);
+    ASSERT_EQUALS_INT("file_status FILE_RETAINED_SUCCESSFULLY set", fin.file_status, FILE_RETAINED_SUCCESSFULLY);
+}
 
 int packet_tests() {
     
@@ -592,6 +612,7 @@ int packet_tests() {
     //test_build_eof_packet(packet, data_start_index);
     //test_build_data_packet(packet, data_start_index);
     test_build_nak_packet(packet, data_start_index);
+    test_build_finished_pdu(packet, data_start_index);
 
     //next up
     
