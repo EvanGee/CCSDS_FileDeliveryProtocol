@@ -523,38 +523,6 @@ static void send_data(Request *req, Response res) {
 }
 
 
-//outdated
-int nak_response(char *packet, uint32_t start, Request *req, Response res, Client *client) {
-        uint32_t packet_index = start;
-        Pdu_nak *nak = (Pdu_nak *) &packet[packet_index];
-        uint64_t segments = ssp_ntohll(nak->segment_requests);
-        packet_index += 16;
-
-        if (req->buff == NULL){
-            ssp_printf("req->buff is null\n");
-        }
-
-        uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, 0, &client->pdu_header);
-        uint32_t offset_start = 0;
-        uint32_t offset_end = 0;
-        int i = 0;
-        for (i = 0; i < segments; i++){
-            //outgoing_packet_index
-            ssp_memcpy(&offset_start, &packet[packet_index], 4);
-            offset_start = ssp_ntohl(offset_start);
-            packet_index += 4;
-            ssp_memcpy(&offset_end, &packet[packet_index], 4);
-            offset_end = ssp_ntohl(offset_end);
-            packet_index += 4;
-            build_nak_response(req->buff, outgoing_packet_index, offset_start, req, client);
-            ssp_sendto(res);
-        }
-        
-        return packet_index;
-
-}
-
-
 //fills the current request with packet data, responses from servers
 void parse_packet_client(char *packet, uint32_t packet_index, Response res, Request *req, Client* client) {
  
@@ -885,7 +853,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
             switch (ack_packet.directive_code)
             {
                 case FINISHED_PDU:
-
+                    //get_finished_pdu(char *packet, Pdu_finished *pdu_finished)
                     ssp_printf("received finished packet transaction: %d\n", req->transaction_sequence_number);
                     req->local_entity.transaction_finished_indication = true;
                     break;
