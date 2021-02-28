@@ -503,7 +503,7 @@ void *ssp_csp_connectionless_client_task(void *params) {
         
         csp_connectionless_client(client->remote_entity.UT_address, 
             client->remote_entity.UT_port,
-            CSP_CLIENT_PORT,
+            CSP_ANY,
             client->remote_entity.mtu,
             on_send_client_callback, 
             on_recv_client_callback, 
@@ -544,7 +544,7 @@ void *ssp_csp_connection_client_task(void *params) {
     Client *client = (Client *) params;
         csp_connection_client(client->remote_entity.UT_address, 
             client->remote_entity.UT_port,
-            CSP_CLIENT_PORT,
+            CSP_ANY,
             client->remote_entity.mtu,
             on_send_client_callback,
             on_recv_client_callback,

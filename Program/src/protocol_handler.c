@@ -21,7 +21,6 @@ static void build_temperary_file(Request *req, uint32_t size) {
     req->file = create_temp_file(req->source_file_name, size);
 }
 
-
 static void send_ack(Request *req, Response res, unsigned int type){
     if (req->transmission_mode == UN_ACKNOWLEDGED_MODE)
         return;
@@ -104,7 +103,7 @@ static int find_request(void *element, void *args) {
         found_req->pdu_header = pdu_header;
         found_req->my_cfdp_id = app->my_cfdp_id;
         found_req->remote_entity = remote_entity;
-        found_req->procedure = sending_put_metadata;
+        found_req->procedure = none;
 
         found_req->res.addr = ssp_alloc(1, res.size_of_addr);
         
@@ -208,8 +207,6 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
         ssp_error("file struct is null, can't write to file");
         return;
     }
-
-
 
     uint32_t offset_start = get_data_offset_from_packet(packet);
     uint32_t packet_index = 4;
@@ -383,16 +380,6 @@ static void send_eof_pdu(Request *req, Response res) {
     return;
 }
 
-//if no file attached to request, set procedure to none
-static void start_sequence(Request *req, Response res) {
-    
-    send_put_metadata(req, res);
-    if (req->file_size == 0 ){
-        req->procedure = none;
-        return;
-    }
-    req->procedure = sending_data;
-}
 
 int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t length) {
 
@@ -496,7 +483,7 @@ int process_nak_pdu_response(char *packet, Request *req, Response res, Client *c
 
 
     ssp_printf("sending offset packet start %d offset end %d\n", nak.start_scope, nak.end_scope);
-    //This needs to send naks based on start and end scope, not segment requests.
+
     for (i = 0; i < nak.segment_requests; i++){
         
         packet_index = 0;
@@ -509,7 +496,6 @@ int process_nak_pdu_response(char *packet, Request *req, Response res, Client *c
         offset_end = ssp_ntohl(offset_end);
         packet_index += 4;
 
-        //ssp_printf("sending offset start %d offset end %d\n", offset_start, offset_end);
         segment_offset_into_data_packets(req->buff, outgoing_packet_index, offset_start, offset_end, req, res);
     }
 
@@ -517,22 +503,62 @@ int process_nak_pdu_response(char *packet, Request *req, Response res, Client *c
 
 }
 
-static void send_data(Request *req, Response res) {    
+static void acknowledged_start(Request *req, Response res) {
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
-
-    if (create_data_burst_packets(req->buff, start, req->file, res.packet_len)) {
-        req->procedure = sending_eof;
-        ssp_printf("sending data burst transaction: %llu\n", req->transaction_sequence_number);
+    
+    send_put_metadata(req, res);
+    if (req->file_size == 0 ){
+        req->procedure = none;
+        return;
     }
-    ssp_sendto(res);
+    while (!create_data_burst_packets(req->buff, start, req->file, res.packet_len)) {
+        ssp_sendto(res);
+    }
+    send_eof_pdu(req, res);
+    req->procedure = none;
 }
+
+static void unacknowledged_start(Request *req, Response res){
+
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
+    int i = 0;
+
+    for (i = 0; i < RESEND_META_TIMES; i++) {
+        send_put_metadata(req, res);
+    }
+    if (req->file_size == 0 ){
+        req->procedure = none;
+        return;
+    }
+
+    while (!create_data_burst_packets(req->buff, start, req->file, res.packet_len)) {
+        ssp_sendto(res);
+    }
+
+    for (i = 0; i < RESEND_EOF_TIMES; i++) {
+        send_eof_pdu(req, res);
+    }
+    
+    req->procedure = none;
+}
+
+//if no file attached to request, set procedure to none
+static void start_sequence(Request *req, Response res) {
+    
+    if (req->transmission_mode == UN_ACKNOWLEDGED_MODE) {
+        unacknowledged_start(req, res);
+        return;
+    }
+    acknowledged_start(req, res);
+}
+
 
 
 //fills the current request with packet data, responses from servers
 void parse_packet_client(char *packet, uint32_t packet_index, Response res, Request *req, Client* client) {
  
     //if client is still sending the first data_burst, don't accepts packets
-    if (req->procedure == sending_data)
+    if (req->procedure == sending_start)
         return;
 
     uint8_t directive = packet[packet_index];
@@ -540,9 +566,9 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
 
     switch(directive) {
         case FINISHED_PDU:
-            req->local_entity.transaction_finished_indication = true;
-            req->procedure = sending_finished;
             ssp_printf("received finished pdu transaction: %llu\n", req->transaction_sequence_number);
+            req->local_entity.transaction_finished_indication = true;
+            resend_finished_ack(req, res);
             break;
         case NAK_PDU:
             ssp_printf("received Nak pdu transaction: %llu\n", req->transaction_sequence_number);
@@ -571,12 +597,12 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             {
                 case META_DATA_PDU:
                     ssp_printf("resending metadata transaction: %llu\n", req->transaction_sequence_number);
-                    req->procedure = sending_put_metadata;
+                    send_put_metadata(req, res);
                     break;
             
                 case EOF_PDU: 
                     ssp_printf("resending eof transaction: %llu\n", req->transaction_sequence_number);
-                    req->procedure = sending_eof;
+                    send_eof_pdu(req, res);
                     break;
                 
                 default:
@@ -603,29 +629,9 @@ void user_request_handler(Response res, Request *req, Client* client) {
     
     check_req_status(req);
     
-
     switch (req->procedure)
     {
         case sending_nak_data:
-            break;
-
-        case sending_eof: 
-            send_eof_pdu(req, res);
-            req->procedure = none;
-            break;
-
-        case sending_data:
-            send_data(req, res);
-            break;
-
-        case sending_put_metadata:
-            send_put_metadata(req, res);
-            req->procedure = none;
-            break;
-
-        case sending_finished:
-            resend_finished_ack(req, res);
-            req->procedure = none;
             break;
 
         case sending_start:
@@ -724,7 +730,6 @@ int process_file_request_metadata(Request *req) {
 
 static void process_metadata(char *packet, uint32_t packet_index, Response res, Request *req, FTP *app) {
 
-    req->procedure = sending_put_metadata;
     req->local_entity.Metadata_recv_indication = true;
 
     ssp_printf("received metadata packet transaction: %llu\n", req->transaction_sequence_number);

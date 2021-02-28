@@ -619,22 +619,7 @@ void print_request_procedure(Request *req){
     ssp_printf("current procedure: ");
     switch (req->procedure)
     {
-        case sending_eof: 
-            ssp_printf("sending_eof\n");
-            break;
-
-        case sending_data:
-            ssp_printf("sending_data\n");
-            break;
-
-        case sending_put_metadata:
-            ssp_printf("sending_put_metadata\n");
-            break;
-
-        case sending_finished:
-            ssp_printf("sending_finished\n");
-            break;
-
+      
         case sending_start:
             ssp_printf("sending_start\n");
             break;

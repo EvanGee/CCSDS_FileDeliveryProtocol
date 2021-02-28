@@ -578,10 +578,6 @@ typedef struct response {
 
 typedef enum procedure {
     none,
-    sending_finished,
-    sending_put_metadata,
-    sending_eof,
-    sending_data,
     sending_nak_data,
     clean_up,
     sending_start,
