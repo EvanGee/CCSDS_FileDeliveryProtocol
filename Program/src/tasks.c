@@ -64,12 +64,12 @@ static void timeout(Request *req) {
     bool is_timeout = check_timeout(&req->timeout_before_cancel, TIMEOUT_BEFORE_CANCEL_REQUEST);
     if (is_timeout) {
         if (req->local_entity.transaction_finished_indication){
-            ssp_printf("ACKNOWLEDGED request successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
+            ssp_printf("ACKNOWLEDGED request successfully sent without issue transaction: %llu\n", req->transaction_sequence_number);
         } else if (req->transmission_mode == UN_ACKNOWLEDGED_MODE){
-            ssp_printf("UN_ACKNOWLEDGED request successfully sent without issue transaction: %d\n", req->transaction_sequence_number);
+            ssp_printf("UN_ACKNOWLEDGED request successfully sent without issue transaction: %llu\n", req->transaction_sequence_number);
         }
         else { 
-            ssp_printf("stopped early, timed out without finishing request, saving req to be reopened later: %d\n", req->transaction_sequence_number);
+            ssp_printf("stopped early, timed out without finishing request, saving req to be reopened later: %llu\n", req->transaction_sequence_number);
             print_request_state(req);
             save_req_to_file(req);
         }

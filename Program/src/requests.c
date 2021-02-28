@@ -576,7 +576,7 @@ static void print_messages_callback(Node *node, void *element, void *args) {
 
 void print_request_state(Request *req) {
 
-    ssp_printf("----------------Transaction %d---------------\n", req->transaction_sequence_number);
+    ssp_printf("----------------Transaction %llu---------------\n", req->transaction_sequence_number);
     
     ssp_printf("local_entity id and stats: \n");
 
