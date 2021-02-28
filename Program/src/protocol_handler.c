@@ -209,9 +209,12 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
         return;
     }
 
+
+
     uint32_t offset_start = get_data_offset_from_packet(packet);
     uint32_t packet_index = 4;
-    
+
+    ssp_printf("received data packet offset:%d\n", offset_start);
     // size of 'offset' bytes in packet
     uint32_t offset_end = offset_start + data_len - packet_index;
     
@@ -537,10 +540,10 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
         case FINISHED_PDU:
             req->local_entity.transaction_finished_indication = true;
             req->procedure = sending_finished;
-            ssp_printf("received finished pdu transaction: %d\n", req->transaction_sequence_number);
+            ssp_printf("received finished pdu transaction: %llu\n", req->transaction_sequence_number);
             break;
         case NAK_PDU:
-            ssp_printf("received Nak pdu transaction: %d\n", req->transaction_sequence_number);
+            ssp_printf("received Nak pdu transaction: %llu\n", req->transaction_sequence_number);
             process_nak_pdu_response(&packet[packet_index], req, res, client);
             break;
         case ACK_PDU:
@@ -548,12 +551,12 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             switch (packet[packet_index])
             {
                 case EOF_PDU:
-                    ssp_printf("received Eof ack transaction: %d\n", req->transaction_sequence_number);
+                    ssp_printf("received Eof ack transaction: %llu\n", req->transaction_sequence_number);
                     req->local_entity.EOF_recv_indication = true;
                     break;
             
                 case META_DATA_PDU:
-                    ssp_printf("received Eof ack transaction: %d\n", req->transaction_sequence_number);
+                    ssp_printf("received Eof ack transaction: %llu\n", req->transaction_sequence_number);
                     req->local_entity.Metadata_recv_indication = true;
 
                 default:
@@ -565,12 +568,12 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             switch (packet[packet_index])
             {
                 case META_DATA_PDU:
-                    ssp_printf("resending metadata transaction: %d\n", req->transaction_sequence_number);
+                    ssp_printf("resending metadata transaction: %llu\n", req->transaction_sequence_number);
                     req->procedure = sending_put_metadata;
                     break;
             
                 case EOF_PDU: 
-                    ssp_printf("resending eof transaction: %d\n", req->transaction_sequence_number);
+                    ssp_printf("resending eof transaction: %llu\n", req->transaction_sequence_number);
                     req->procedure = sending_eof;
                     break;
                 
@@ -656,7 +659,7 @@ static void request_metadata(Request *req, Response res) {
 static void request_data(Request *req, Response res) {
 
     uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, 0, &req->pdu_header);
-    ssp_printf("sending Nak data transaction: %d\n", req->transaction_sequence_number);
+    ssp_printf("sending Nak data transaction: %llu\n", req->transaction_sequence_number);
     build_nak_packet(req->buff, start, req);
     ssp_sendto(res);
 }
@@ -722,7 +725,7 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
     req->procedure = sending_put_metadata;
     req->local_entity.Metadata_recv_indication = true;
 
-    ssp_printf("received metadata packet transaction: %d\n", req->transaction_sequence_number);
+    ssp_printf("received metadata packet transaction: %llu\n", req->transaction_sequence_number);
     packet_index += parse_metadata_packet(packet, packet_index, req);
     uint16_t data_len = get_data_length(packet);
 
@@ -823,7 +826,6 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
             }
         }
         process_data_packet(&packet[packet_index], data_len, req->file);
-        ssp_printf("received data packet transaction: %d\n", req->transaction_sequence_number);
         return packet_len;
     }
     
