@@ -281,6 +281,8 @@ Request *init_request_no_client() {
     Request *req = ssp_alloc(1, sizeof(Request));
     if (req == NULL)
         return NULL;
+        
+    memset(req, 0, sizeof(Request));
 
     req->file = NULL;
     req->procedure = none;
@@ -635,4 +637,16 @@ void print_request_procedure(Request *req){
         default:
             break;
     }
+}
+
+
+void print_res(Response res){
+
+    ssp_printf("addr %d\n", res.addr);
+    ssp_printf("msg %d\n", res.msg);
+    ssp_printf("packet_len %d\n", res.packet_len);
+    ssp_printf("sfd %d\n", res.sfd);
+    ssp_printf("size_of_addr %d\n", res.size_of_addr);
+    ssp_printf("transmission_mode %d\n", res.transmission_mode);
+    ssp_printf("type_of_network %d\n", res.type_of_network);
 }

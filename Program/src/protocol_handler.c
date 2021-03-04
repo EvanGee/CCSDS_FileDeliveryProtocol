@@ -369,7 +369,7 @@ static void send_put_metadata(Request *req, Response res) {
 
 static void send_eof_pdu(Request *req, Response res) {
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
-    ssp_printf("sending eof transaction: %llu\n", req->transaction_sequence_number);
+    ssp_printf("sending eof transaction: %llu file_size %d\n", req->transaction_sequence_number, req->file_size);
     if (req->file_size == 0)
         build_eof_packet(req->buff, start, 0, 0);
     else 
@@ -695,7 +695,7 @@ void process_pdu_eof(char *packet, Request *req, Response res) {
         build_temperary_file(req, eof_packet.file_size);
     }
 
-    req->local_entity.EOF_recv_indication = 1;
+    req->local_entity.EOF_recv_indication = true;
     req->file->eof_checksum = eof_packet.checksum;
     req->file->total_size = eof_packet.file_size;
     
@@ -733,7 +733,7 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
     req->local_entity.Metadata_recv_indication = true;
 
     ssp_printf("received metadata packet transaction: %llu\n", req->transaction_sequence_number);
-    packet_index += parse_metadata_packet(packet, packet_index, req);
+    packet_index = parse_metadata_packet(packet, packet_index, req);
     uint16_t data_len = get_data_length(packet);
 
     get_messages_from_packet(packet, packet_index, data_len, req);
