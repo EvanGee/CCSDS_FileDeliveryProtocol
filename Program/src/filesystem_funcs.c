@@ -11,25 +11,25 @@ Author: Evan Giese
 #include "requests.h"
 
 
-uint32_t get_file_size(char *source_file_name) {
+int get_file_size(char *source_file_name) {
 
     int fd = ssp_open(source_file_name, SSP_O_RDWR);
     if (fd == -1){
         ssp_error("could not open file\n");
-        return 0;
+        return -1;
     }
 
     int bytes = ssp_lseek(fd, 0, 2);
     if (bytes == -1){
         ssp_error("could not seek file for file size\n");
-        return 0;
+        return -1;
     }
 
     ssp_lseek(fd, 0, 0);
 
     if (ssp_close(fd) == -1){
         ssp_error("could not close file\n");
-        return 0;
+        return -1;
     }
 
     return bytes;
@@ -77,9 +77,11 @@ int does_file_exist(char *source_file_name) {
 
     int fd = ssp_open(source_file_name, SSP_O_RDWR);
     if (fd == -1){
-        return 0;
+        ssp_printf("ERROR: couldn't open file\n");
+        return -1;
     }
     if (ssp_close(fd) == -1){
+        ssp_printf("ERROR: couldn't close file\n");
         return -1;
     }
 

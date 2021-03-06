@@ -224,6 +224,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
     }
 	//Pointer to current connection and packet
 	csp_conn_t *conn;
+	csp_conn_t *conn_waiting;
 	csp_packet_t *packet;
 
     char *buff = ssp_alloc(packet_len, sizeof(char));
@@ -247,15 +248,22 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
         }
 
         for (;;) {
-            
+
             if (get_exit() || checkExit(other))
                 break;
         
+            conn_waiting = csp_accept(sock, 1000);
+            if (conn_waiting != NULL) {
+                csp_close(conn);
+                conn = conn_waiting;
+            }
+
             onTimeOut(other);
-            
-            while ((packet = csp_read(conn, 100)) != NULL) {                
+
+            while ((packet = csp_read(conn, 1000)) != NULL) {
+
                 memcpy(buff, (char *)packet->data, packet_len);
-                
+
                 if (onRecv(-1, buff, packet_len, NULL, conn, sizeof(struct csp_conn_s), other) == -1)
                         ssp_printf("recv failed\n");
 

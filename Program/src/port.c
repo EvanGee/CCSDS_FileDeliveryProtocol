@@ -70,11 +70,11 @@ int ssp_mkdir(char *dir_name) {
             if(errno == EEXIST) {
                 return 1;
             } 
-            ssp_printf("couldn't make dir\n");
+            //ssp_printf("couldn't make dir\n");
             return -1;   
         }     
         else {
-            ssp_printf("%s directory created\n", dir_name);
+            //ssp_printf("%s directory created\n", dir_name);
             return 1;
         }
         return -1;

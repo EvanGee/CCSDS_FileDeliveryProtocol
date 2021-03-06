@@ -16,7 +16,7 @@ struct params {
 };
 
 
-uint32_t get_file_size(char *source_file_name);
+int get_file_size(char *source_file_name);
 
 //allocates space for a file pointer
 File *create_file(char *source_file_name, int clear_file_contents);

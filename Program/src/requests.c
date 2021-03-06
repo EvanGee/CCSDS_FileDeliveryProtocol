@@ -374,13 +374,17 @@ int put_request_no_client(
     }
 
     file_size = get_file_size(source_file_name);
-    if (file_size == 0) 
+    if (file_size == -1) {
+        ssp_printf("ERROR: couldn't get file size\n");
         return -1;
+    }
 
     req->file = create_file(source_file_name, false);
-    if (req->file == NULL) 
+    if (req->file == NULL) {
+        ssp_printf("ERROR: couldn't create file\n");
         return -1;
-        
+    }
+
     //this could probably go into 'create_file'
     int error =  add_first_offset(req->file, req->file->total_size);
     if (error < 0) {
