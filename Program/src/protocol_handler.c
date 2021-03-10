@@ -65,6 +65,8 @@ static int find_request(void *element, void *args) {
     if (req->dest_cfdp_id == params->source_id && req->transaction_sequence_number == params->transaction_sequence_number){
       return 1;
     }
+
+    //ssp_printf("cant find request req->dest_cfdp_id %d params->source_id %d transaction_sequence_number %d:%d\n", req->dest_cfdp_id, params->source_id,req->transaction_sequence_number, params->transaction_sequence_number );
     return 0;
 }
 
@@ -139,6 +141,9 @@ int process_pdu_header(char*packet, uint8_t is_server, Pdu_header *incoming_pdu_
     int error = get_pdu_header_from_packet(packet, &header);
     *incoming_pdu_header = header;
     
+    //ssp_printf("received packet is server %d\n", is_server);
+    //ssp_print_header(&header);
+
     if (error < 0) {
         ssp_error("failed to get pdu header, bad formatting");
         return -1;
@@ -167,7 +172,7 @@ int process_pdu_header(char*packet, uint8_t is_server, Pdu_header *incoming_pdu_
         header.transaction_sequence_number,
     };
 
-    Request *found_req = (Request *) request_list->find(request_list, 0, find_request, &params);
+    Request *found_req = (Request *) request_list->find(request_list, -1, find_request, &params);
 
     //if server, create new request (can probably move this out of this function)
     if (found_req == NULL && is_server) 
@@ -303,24 +308,26 @@ void process_messages(Request *req, FTP *app) {
             case PROXY_PUT_REQUEST:
                     
                 p_put = (Message_put_proxy *) message->value;
-                ssp_printf("received proxy request for source file name: %s dest file name %s, to id %d\n", 
+                ssp_printf("received proxy request for source file name: %s dest file name %s, to id %llu\n", 
                 (char *)p_put->source_file_name.value,
                 (char *)p_put->destination_file_name.value,
-                *(uint8_t*)p_put->destination_id.value);
+                p_put->destination_id);
 
-                start_request(put_request(*(uint8_t*)p_put->destination_id.value,
+                put_request(p_put->destination_id,
                 (char *)p_put->source_file_name.value, 
-                (char *)p_put->destination_file_name.value, ACKNOWLEDGED_MODE, app));
+                (char *)p_put->destination_file_name.value, UN_ACKNOWLEDGED_MODE, app);
+
                 break;
 
             case CONTINUE_PARTIAL:
                 
                 p_cont = (Message_cont_part_request *) message->value;
-                uint32_t dest_id = *(uint8_t*)p_cont->destination_id.value;
-                uint32_t orig_id = *(uint8_t*)p_cont->originator_id.value;
-                uint32_t tran_id = *(uint8_t*)p_cont->transaction_id.value;
+
+                uint64_t dest_id = p_cont->destination_id;
+                uint64_t orig_id = p_cont->originator_id;
+                uint64_t tran_id = p_cont->transaction_id;
                 
-                ssp_printf("received message request to continue one way communication destination id %d, originator id %d, transaction id %d\n",
+                ssp_printf("received message request to continue one way communication destination id %llu, originator id %llu, transaction id %llu\n",
                 dest_id, orig_id, tran_id);
                 
                 if (orig_id != app->my_cfdp_id) {
@@ -514,6 +521,8 @@ static void acknowledged_start(Request *req, Response res) {
     while (!create_data_burst_packets(req->buff, start, req->file, res.packet_len)) {
         ssp_sendto(res);
     }
+    ssp_sendto(res);
+
     send_eof_pdu(req, res);
     req->procedure = none;
 }
@@ -534,6 +543,8 @@ static void unacknowledged_start(Request *req, Response res){
     while (!create_data_burst_packets(req->buff, start, req->file, res.packet_len)) {
         ssp_sendto(res);
     }
+
+    ssp_sendto(res);
 
     for (i = 0; i < RESEND_EOF_TIMES; i++) {
         send_eof_pdu(req, res);
@@ -826,6 +837,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
 
     //process file data
     if (incoming_header.PDU_type == DATA) {
+        ssp_printf("received data packet\n");
         if (!req->local_entity.Metadata_recv_indication) {
             if (req->file == NULL) {
                 ssp_printf("file is null\n");

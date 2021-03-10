@@ -36,6 +36,9 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
 int write_lv(int fd, LV lv);
 int read_lv(int fd, LV *lv);
 
+int read_id(int fd, uint64_t *id);
+int write_id(int fd, uint64_t id);
+
 int save_req_to_file(Request *req);
 int save_file_to_file(int fd, File *file);
 int get_file_from_file(int fd, File *file);

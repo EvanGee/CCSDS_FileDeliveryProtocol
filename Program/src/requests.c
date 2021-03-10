@@ -78,9 +78,9 @@ int init_cont_partial_request(Message_cont_part_request *p_cont, char *buff, uin
     if (req == NULL)
         return -1;
     
-    uint32_t dest_id = *(uint8_t*)p_cont->destination_id.value;
-    uint64_t trans_num = *(uint8_t*)p_cont->transaction_id.value;
-    uint32_t src_id = *(uint8_t*)p_cont->originator_id.value;
+    uint32_t dest_id = p_cont->destination_id;
+    uint64_t trans_num = p_cont->transaction_id;
+    uint32_t src_id = p_cont->originator_id;
 
     int error = get_req_from_file(src_id, trans_num, dest_id, req);
     if (error < 0) {
@@ -140,7 +140,8 @@ create_message_put_proxy(uint32_t beneficial_cfid,
 
     create_lv(&message->destination_file_name, strnlen(dest_name, MAX_PATH) + 1, dest_name);
     create_lv(&message->source_file_name, strnlen(source_name, MAX_PATH) + 1, source_name);
-    create_lv(&message->destination_id, length_of_id, &beneficial_cfid);
+    message->destination_id = beneficial_cfid;
+
     return message;
 }
 
@@ -167,30 +168,24 @@ int add_proxy_message_to_request(uint32_t beneficial_cfid,
 
 Message_cont_part_request *
 create_message_cont_partial_request(uint32_t beneficial_cfid, 
-                                    uint8_t beneficial_id_length, 
                                     uint32_t originator_id,
-                                    uint8_t originator_id_length,
-                                    uint32_t transaction_id,
-                                    uint8_t transaction_id_length) {
+                                    uint32_t transaction_id) {
 
     Message_cont_part_request *message = ssp_alloc(1, sizeof(Message_cont_part_request));
     if (message == NULL)
         return NULL;
 
-    create_lv(&message->destination_id, beneficial_id_length, &beneficial_cfid);
-    create_lv(&message->originator_id, originator_id_length, &originator_id);
-    create_lv(&message->transaction_id, transaction_id_length, &transaction_id);
+    message->destination_id = beneficial_cfid;
+    message->originator_id = originator_id;
+    message->transaction_id = transaction_id;
     return message;
 }
 
 //beneficial_cfid is the destination id that the proxy will send to, originator
 //is the sender's id
 int add_cont_partial_message_to_request(uint32_t beneficial_cfid, 
-                                    uint8_t beneficial_id_length, 
                                     uint32_t originator_id,
-                                    uint8_t originator_id_length,
                                     uint32_t transaction_id,
-                                    uint8_t transaction_id_length,
                                     Request *req){
 
     Message *message = create_message(CONTINUE_PARTIAL);
@@ -198,11 +193,8 @@ int add_cont_partial_message_to_request(uint32_t beneficial_cfid,
         return -1;
 
     message->value = create_message_cont_partial_request(beneficial_cfid, 
-                                                    beneficial_id_length, 
                                                     originator_id, 
-                                                    originator_id_length,
-                                                    transaction_id,
-                                                    transaction_id_length
+                                                    transaction_id
                                                     );
     if (message->value == NULL) {
         ssp_free(message);
@@ -218,14 +210,10 @@ static void ssp_free_put_proxy_message(Message_put_proxy* message) {
 
     free_lv(message->destination_file_name);
     free_lv(message->source_file_name);
-    free_lv(message->destination_id);
 
 }
 static void ssp_free_proxy_cont_partial_request(Message_cont_part_request *message) {
 
-    free_lv(message->destination_id);
-    free_lv(message->originator_id);
-    free_lv(message->transaction_id);
 }
 
 void ssp_free_message(void *params) {
@@ -339,7 +327,7 @@ void add_request_to_client(Request *req, Client *client) {
     req->my_cfdp_id = client->app->my_cfdp_id;
     req->buff = client->buff;
     req->buff_len = client->packet_len;
-    client->request_list->insert(client->request_list, req, 0);
+    client->request_list->insert(client->request_list, req, -1);
     start_request(req);
 }
 
@@ -536,7 +524,6 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
         }
 
         add_request_to_client(req, client);
-        start_request(req);
 
         error = ssp_close(fd);
         if (error < 0) {
@@ -573,8 +560,7 @@ static void print_messages_callback(Node *node, void *element, void *args) {
         ssp_printf("Message type: PROXY_PUT_REQUST\n");
         ssp_printf("dest filename: %s\n", proxy->destination_file_name.value);
         ssp_printf("source filename: %s\n", proxy->source_file_name.value);
-        ssp_printf("id lendth: %d\n", proxy->destination_id.length);
-        ssp_printf("id: %d\n", *(uint8_t*) proxy->destination_id.value);
+        ssp_printf("id: %d\n", *(uint8_t*) proxy->destination_id);
 
     }
 

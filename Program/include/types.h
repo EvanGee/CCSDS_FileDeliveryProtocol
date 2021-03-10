@@ -150,7 +150,7 @@ typedef struct message_header {
 //type PROXY_PUT_REQUEST
 typedef struct message_put_proxy {
 
-    LV destination_id;
+    uint64_t destination_id;
     LV source_file_name;
     LV destination_file_name;
 
@@ -158,9 +158,9 @@ typedef struct message_put_proxy {
 
 typedef struct message_cont_part_request {
     
-    LV destination_id;
-    LV originator_id;
-    LV transaction_id;
+    uint64_t destination_id;
+    uint64_t originator_id;
+    uint64_t transaction_id;
 
 } Message_cont_part_request;
 

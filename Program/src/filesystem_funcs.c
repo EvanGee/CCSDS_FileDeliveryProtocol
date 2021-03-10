@@ -479,6 +479,34 @@ int get_file_from_file(int fd, File *file) {
     return 0;
 }
 
+int write_id(int fd, uint64_t id){
+
+    char *error_message = "failed to write id\n";
+    uint64_t network_byte_order = 0;
+    network_byte_order = ssp_htonll(id);
+
+    int err = ssp_write(fd, &network_byte_order, sizeof(uint64_t));
+    if (err < 0) {
+        ssp_error(error_message);
+        return -1;
+    }
+}
+
+int read_id(int fd, uint64_t *id){
+
+    char *error_message = "failed to write id\n";
+    uint64_t host_byte_order = 0;
+
+    int err = ssp_read(fd, &host_byte_order, sizeof(uint64_t));
+    if (err < 0) {
+        ssp_error(error_message);
+        return -1;
+    }
+
+    *id = ssp_ntohll(host_byte_order);
+    return 1;
+}
+
 int write_lv(int fd, LV lv){
 
     char *error_message = "failed to write lv\n";
@@ -537,7 +565,7 @@ static void write_put_proxy_message(int fd, int *error, Message_put_proxy *proxy
         return;
     }
 
-    err = write_lv(fd, proxy_message->destination_id);
+    err = write_id(fd, proxy_message->destination_id);
     if (err < 0) {
         *error = err;
         ssp_error(error_message);
@@ -689,7 +717,7 @@ static Message *read_in_proxy_message(int fd) {
 
     LV destination_file;
     LV src_file_name;
-    LV dest_id;
+    uint64_t dest_id;
 
     int err = read_lv(fd, &destination_file);
     if (err < 0) {
@@ -701,7 +729,7 @@ static Message *read_in_proxy_message(int fd) {
         ssp_error(error_message);
         return NULL;
     }
-    err = read_lv(fd, &dest_id);
+    err = read_id(fd, &dest_id);
     if (err < 0) {
         ssp_error(error_message);
         return NULL;

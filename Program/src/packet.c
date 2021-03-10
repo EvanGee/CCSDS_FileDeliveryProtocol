@@ -44,29 +44,36 @@ void set_packet_directive(char *packet, uint32_t location, uint8_t directive){
 }
 
 //returns length of ids or -1 on error
-int copy_id_to_packet(char *bytes, uint64_t id, uint32_t length_of_ids) {
+int copy_id_to_packet(char *bytes, uint64_t id) {
    
-    if (length_of_ids == 8) {
+    uint32_t length = 0;
+    if (id < 0xFF){
+        uint8_t network_byte_order = (uint8_t) id;
+        memcpy(bytes, &network_byte_order, sizeof(uint8_t));  
+        length = 1;
+    } else if (id < 0xFFFF) {
+        uint16_t network_byte_order = ssp_htons((uint16_t) id);
+        memcpy(bytes, &network_byte_order, sizeof(uint16_t));  
+        length = 2;
+    } else if (id < 0xFFFFFF) {
+        uint32_t network_byte_order = ssp_htonl((uint32_t) id);
+        memcpy(bytes, &network_byte_order, sizeof(uint32_t)); 
+        length = 4;
+    } else if (id < 0xFFFFFFFF) {
         uint64_t network_byte_order = ssp_htonll(id);
         memcpy(bytes, &network_byte_order, sizeof(uint64_t));   
-    } else if (length_of_ids == 4) {
-        uint32_t network_byte_order = ssp_htonl((uint32_t) id);
-        memcpy(bytes, &network_byte_order, sizeof(uint32_t));   
-    } else if (length_of_ids == 2) {
-        uint16_t network_byte_order = ssp_htons((uint16_t) id);
-        memcpy(bytes, &network_byte_order, sizeof(uint16_t));   
-    } else if (length_of_ids == 1) {
-        uint8_t network_byte_order = id;
-        memcpy(bytes, &network_byte_order, sizeof(uint8_t));   
+        length = 8;
     } else {
-        ssp_error("id size is not supported, please user 1, 2 or 4");
+        ssp_error("copying to packet, id size is not supported, please user 1, 2 or 4");
         return -1;
     }
-    return length_of_ids;
+    
+    return length;
 }
 
 //returns id or -1 on error
 uint64_t copy_id_from_packet(char *bytes, uint32_t length_of_ids) {
+
     uint64_t host_byte_order = 0;
     if (length_of_ids == 8) {
         host_byte_order = ssp_ntohll(*(uint64_t*) bytes);  
@@ -75,43 +82,45 @@ uint64_t copy_id_from_packet(char *bytes, uint32_t length_of_ids) {
     } else if (length_of_ids == 2) {
         host_byte_order = ssp_ntohs(*(uint16_t*) bytes); 
     } else if (length_of_ids == 1){
-        host_byte_order = *bytes;
+        host_byte_order = (uint8_t)bytes[0];
     } else {
-        ssp_error("id size is not supported, please user 1, 2 or 4");
+        ssp_error("copying from packet id size is not supported, please user 1, 2 or 4");
         return -1;
     }
+
     return host_byte_order;
 }
 
 //returns amount of bytes written or -1 on error
-int copy_id_lv_to_packet(char *bytes, LV id) {
+int copy_id_lv_to_packet(char *bytes, uint64_t id) {
 
-    memcpy(bytes, &id.length, sizeof(uint8_t));
-    int len = copy_id_to_packet(&bytes[1], *(uint64_t*)id.value, id.length);
+    int len = copy_id_to_packet(&bytes[1], id);
     if (len < 0) {
         return -1;
     }
+    bytes[0] = len;
+
     return len + 1;
 }
 
-//returns 0 on success and sets LV memory, or -1 on error
-int copy_id_lv_from_packet(char *bytes, LV *lv){
+//returns length of the id on success and sets id to the id, or -1 on error
+int copy_id_lv_from_packet(char *bytes,  uint32_t *id){
 
-    uint8_t len = 0;
-    memcpy(&len, bytes, sizeof(uint8_t));
+    uint8_t len = bytes[0];
 
-    uint64_t id = copy_id_from_packet(&bytes[1], len);
-    if (id < 0) {
-        ssp_printf("failed to copy id from packet %d\n", id);
+    uint64_t id_recv = copy_id_from_packet(&bytes[1], len);
+    if (id_recv < 0) {
+        ssp_printf("failed to copy id from packet %d\n", id_recv);
         return -1;
     }
-    create_lv(lv, len, &id);
-    return 0;
+    
+    *id = id_recv;
+    return len;
 }
 
 
 void ssp_print_header(Pdu_header *pdu_header){
-
+    ssp_printf("---------------------------------------------\n");
     ssp_printf("pdu_header->version %d\n",pdu_header->version);
     ssp_printf("pdu_header->PDU_type %d\n",pdu_header->PDU_type);
     ssp_printf("pdu_header->direction %d\n",pdu_header->direction);
@@ -126,6 +135,7 @@ void ssp_print_header(Pdu_header *pdu_header){
     ssp_printf("pdu_header->source_id %d\n",pdu_header->source_id);
     ssp_printf("pdu_header->transaction_sequence_number %d\n",pdu_header->transaction_sequence_number);
     ssp_printf("pdu_header->destination_id %d\n",pdu_header->destination_id);
+    ssp_printf("---------------------------------------------\n");
 
 
 }
@@ -147,6 +157,8 @@ int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
     pdu_header->transaction_seq_num_len = get_bits_from_protocol_byte(packet[3], 5, 7);
     
 
+    //ssp_printf("length of entities %d\n", pdu_header->length_of_entity_IDs);
+
     int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
     pdu_header->source_id = copy_id_from_packet(&packet[source_id_location], pdu_header->length_of_entity_IDs);
     if (pdu_header->source_id < 0) {
@@ -167,6 +179,7 @@ int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
         ssp_error("failed to get destination_id");
         return -1;
     }   
+
     pdu_header->reserved_space_for_header = dest_id_location + pdu_header->length_of_entity_IDs;
     return pdu_header->reserved_space_for_header;
 }
@@ -188,20 +201,20 @@ int build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_
     set_bits_to_protocol_byte(&packet[3], 5,7, pdu_header->transaction_seq_num_len);
 
     int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
-    int error = copy_id_to_packet(&packet[source_id_location], pdu_header->source_id, pdu_header->length_of_entity_IDs);
+    int error = copy_id_to_packet(&packet[source_id_location], pdu_header->source_id);
     if (error < 0) {
         ssp_error("failed copy source_id");
         return -1;
     }   
 
     int32_t transaction_number_location = source_id_location + pdu_header->length_of_entity_IDs;
-    error = copy_id_to_packet(&packet[transaction_number_location], (uint32_t) transaction_sequence_number, pdu_header->transaction_seq_num_len);
+    error = copy_id_to_packet(&packet[transaction_number_location], (uint32_t) transaction_sequence_number);
     if (error < 0) {
         ssp_error("failed copy transaction_number_location");
         return -1;
     }   
     int32_t dest_id_location = transaction_number_location + pdu_header->transaction_seq_num_len;
-    error = copy_id_to_packet(&packet[dest_id_location], pdu_header->destination_id, pdu_header->length_of_entity_IDs);
+    error = copy_id_to_packet(&packet[dest_id_location], pdu_header->destination_id);
     if (error < 0) {
         ssp_error("failed copy destination_id");
         return -1;
@@ -721,6 +734,7 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
     uint32_t message_start = start + 6;
 
     int error = 0;
+    int id_len = 0;
     switch (packet[message_type])
     {
         case PROXY_PUT_REQUEST:
@@ -732,16 +746,17 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             }
             proxy_put = (Message_put_proxy *) m->value;
 
-            error = copy_id_lv_from_packet(&packet[message_start], &proxy_put->destination_id);
-            if (error < 0) {
+            id_len = copy_id_lv_from_packet(&packet[message_start], &proxy_put->destination_id);
+            if (id_len < 0) {
                 ssp_free(m->value);
                 return -1;
             }
-
-            message_start += proxy_put->destination_id.length + 1;
+            //ssp_printf("idlen %d %d\n", id_len, proxy_put->destination_id);
+            message_start += id_len + 1;
             
             copy_lv_from_buffer(&proxy_put->source_file_name, packet, message_start);
             message_start += proxy_put->source_file_name.length + 1;
+
 
             copy_lv_from_buffer(&proxy_put->destination_file_name, packet, message_start);
             message_start += proxy_put->destination_file_name.length + 1;
@@ -753,26 +768,26 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             m->value = ssp_alloc(1, sizeof(Message_cont_part_request));
             proxy_cont_part = (Message_cont_part_request *) m->value;
            
-            error = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->destination_id);
-            if (error < 0) {
+            id_len = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->destination_id);
+            if (id_len < 0) {
                 ssp_free(m->value);
                 return -1;
             }
-            message_start += proxy_cont_part->destination_id.length + 1;
+            message_start += id_len + 1;
 
-            error = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->originator_id);
-            if (error < 0) {
+            id_len = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->originator_id);
+            if (id_len < 0) {
                 ssp_free(m->value);
                 return -1;
             }
-            message_start += proxy_cont_part->originator_id.length + 1;
+            message_start += id_len + 1;
 
-            error = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->transaction_id);
-            if (error < 0) {
+            id_len = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->transaction_id);
+            if (id_len < 0) {
                 ssp_free(m->value);
                 return -1;
             }
-            message_start += proxy_cont_part->transaction_id.length + 1;
+            message_start += id_len + 1;
 
         default:
             break;

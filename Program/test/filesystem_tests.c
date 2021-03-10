@@ -200,21 +200,21 @@ int test_get_file(){
     
     ASSERT_EQUALS_STR("third message src file name", proxy_message->destination_file_name.value, dest_file, proxy_message->destination_file_name.length);
     ASSERT_EQUALS_STR("third message src file name", proxy_message->source_file_name.value, src_file, proxy_message->source_file_name.length);
-    ASSERT_EQUALS_INT("third message id", *(uint8_t*)proxy_message->destination_id.value, req->dest_cfdp_id);
+    ASSERT_EQUALS_INT("third message id", proxy_message->destination_id, req->dest_cfdp_id);
     ssp_free_message(message);
 
     message = req->messages_to_user->pop(req->messages_to_user);
     proxy_message = (Message_put_proxy *) message->value;
     ASSERT_EQUALS_STR("second message src file name", proxy_message->destination_file_name.value, dest_file, sizeof(dest_file));
     ASSERT_EQUALS_STR("second message src file name", proxy_message->source_file_name.value, src_file, sizeof(src_file));
-    ASSERT_EQUALS_INT("second message id", *(uint8_t*)proxy_message->destination_id.value, req->dest_cfdp_id);
+    ASSERT_EQUALS_INT("second message id", proxy_message->destination_id, req->dest_cfdp_id);
     ssp_free_message(message);
 
     message = req->messages_to_user->pop(req->messages_to_user);
     proxy_message = (Message_put_proxy *) message->value;
     ASSERT_EQUALS_STR("first message src file name", proxy_message->destination_file_name.value, dest_file, sizeof(dest_file));
     ASSERT_EQUALS_STR("first message src file name", proxy_message->source_file_name.value, src_file, sizeof(src_file));
-    ASSERT_EQUALS_INT("first message id", *(uint8_t*)proxy_message->destination_id.value, req->dest_cfdp_id);
+    ASSERT_EQUALS_INT("first message id", proxy_message->destination_id, req->dest_cfdp_id);
     ssp_free_message(message);
 
     ssp_cleanup_req(req);

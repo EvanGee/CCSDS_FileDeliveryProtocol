@@ -59,13 +59,13 @@ static int request_finding_test() {
         req->transaction_sequence_number,
     };
 
-    Request *found = list->find(list, 0, find_request, &params);
+    Request *found = list->find(list, -1, find_request, &params);
     params.source_id = 3;
     params.transaction_sequence_number = 1;
-    Request *found2 = list->find(list, 0, find_request, &params);
+    Request *found2 = list->find(list, -1, find_request, &params);
     params.source_id = 2;
     params.transaction_sequence_number = 2;
-    Request *found3 = list->find(list, 0, find_request, &params);
+    Request *found3 = list->find(list, -1, find_request, &params);
 
     if (found == NULL) {
         ssp_printf("CAN't FIND request IS NULL\n");
@@ -120,7 +120,7 @@ static int add_proxy_message() {
     ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
 
     Message_put_proxy *proxy = (Message_put_proxy *) message->value;
-    ASSERT_EQUALS_STR("proxy dest_id should equal 2", proxy->destination_id.value, &id, len);
+    ASSERT_EQUALS_STR("proxy dest_id should equal 2", proxy->destination_id, &id, len);
     ASSERT_EQUALS_STR("proxy src file", proxy->source_file_name.value, src,  proxy->source_file_name.length);
     ASSERT_EQUALS_STR("proxy dest file", proxy->destination_file_name.value, dest,  proxy->destination_file_name.length);
 
@@ -137,9 +137,9 @@ int init_cont_partial_request_test_fail() {
     uint64_t tran_id = 0;
     Request *req = mock_request();
 
-    p_cont.destination_id.value = &dest_id;
-    p_cont.originator_id.value = &org_id;
-    p_cont.transaction_id.value = &tran_id;
+    p_cont.destination_id = &dest_id;
+    p_cont.originator_id = &org_id;
+    p_cont.transaction_id = &tran_id;
     uint32_t buff_len = 1500;
     char buff[buff_len];
 
@@ -163,9 +163,9 @@ int init_cont_partial_request_test() {
 
     save_req_to_file(req);
 
-    p_cont.destination_id.value = &dest_id;
-    p_cont.originator_id.value = &org_id;
-    p_cont.transaction_id.value = &tran_id;
+    p_cont.destination_id = &dest_id;
+    p_cont.originator_id = &org_id;
+    p_cont.transaction_id = &tran_id;
     uint32_t buff_len = 1500;
     char buff[buff_len];
 
@@ -197,20 +197,17 @@ static int add_continue_partial_message_test() {
 
     error = add_cont_partial_message_to_request(
         dest_id,
-        len,
         src_id,
-        len,
         transaction_id,
-        4,
         req);
 
     Message *message = req->messages_to_user->pop(req->messages_to_user);
     ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
 
     Message_cont_part_request *proxy = (Message_cont_part_request *) message->value;
-    ASSERT_EQUALS_STR("proxy dest_id should equal 1", proxy->destination_id.value, &dest_id, proxy->destination_id.length);
-    ASSERT_EQUALS_STR("proxy originator id should equal 1", proxy->originator_id.value, &src_id,  proxy->originator_id.length);
-    ASSERT_EQUALS_STR("proxy transaction id should equal 4444", proxy->transaction_id.value, &transaction_id,  proxy->transaction_id.length);
+    ASSERT_EQUALS_STR("proxy dest_id should equal 1", proxy->destination_id, &dest_id, proxy->destination_id);
+    ASSERT_EQUALS_STR("proxy originator id should equal 1", proxy->originator_id, &src_id,  proxy->originator_id);
+    ASSERT_EQUALS_STR("proxy transaction id should equal 4444", proxy->transaction_id, &transaction_id,  proxy->transaction_id);
     
     ssp_free_message(message);
     ssp_cleanup_req(req);

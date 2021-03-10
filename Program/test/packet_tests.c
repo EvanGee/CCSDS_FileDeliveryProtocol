@@ -345,8 +345,12 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
 
     uint32_t packet_index = start;
 
+    uint64_t dest_id_original = 5;
+    uint64_t original_id_original = 33;
+    uint64_t transaction_id_original = 66;
+
     Request *req = mock_empty_request();
-    int error = add_cont_partial_message_to_request(1,1,1,1,1,1,req);
+    int error = add_cont_partial_message_to_request(dest_id_original,original_id_original,transaction_id_original,req);
 
     memset(&packet[start], 0, 100);
     packet_index = add_messages_to_packet(packet, packet_index, req->messages_to_user);
@@ -354,7 +358,7 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
     ASSERT_EQUALS_STR("'cfdp' should be at the start of the message", &packet[start], "cfdp", 5);
     ASSERT_EQUALS_INT("testing CONTINUE_PARTIAL code", (uint8_t) packet[start + 5], CONTINUE_PARTIAL);
 
-    LV dest_id, original_id, transaction_id;
+    uint64_t dest_id, original_id, transaction_id;
 
     packet_index = start + 6;
     error = copy_id_lv_from_packet(&packet[packet_index], &dest_id);
@@ -363,10 +367,8 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
         return -1;
     }
 
-    ASSERT_EQUALS_INT("dest_id.length", dest_id.length, 1);
-    ASSERT_EQUALS_INT("dest_id.value", *(uint8_t*) (dest_id.value), 1);
-    packet_index += dest_id.length + 1;
-    free_lv(dest_id);
+    ASSERT_EQUALS_INT("dest_id", dest_id, dest_id_original);
+    packet_index += 1 + 1;
 
     error = copy_id_lv_from_packet(&packet[packet_index], &original_id);
     if (error < 0) {
@@ -374,10 +376,8 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
         return -1;
     }
 
-    ASSERT_EQUALS_INT("original_id.length", original_id.length, 1);
-    ASSERT_EQUALS_INT("original_id.value",  *(uint8_t*)original_id.value, 1);
-    packet_index += original_id.length + 1;
-    free_lv(original_id);
+    ASSERT_EQUALS_INT("original_id", original_id, original_id_original);
+    packet_index += 1 + 1;
     
     error = copy_id_lv_from_packet(&packet[packet_index], &transaction_id);
     if (error < 0) {
@@ -385,9 +385,7 @@ int test_add_cont_part_to_packet(char *packet, uint32_t start){
         return -1;
     }
     
-    ASSERT_EQUALS_INT("dest_file.length", transaction_id.length, 1);
-    ASSERT_EQUALS_INT("dest_file.value", *(uint8_t*)transaction_id.value, transaction_id.length);
-    free_lv(transaction_id);
+    ASSERT_EQUALS_INT("transaction_id", transaction_id, transaction_id_original);
     ssp_cleanup_req(req);
 
 
@@ -464,14 +462,9 @@ int test_get_message_from_packet(char *packet, uint32_t start) {
     Message *m = req2->messages_to_user->pop(req2->messages_to_user);
     Message_put_proxy *p_message = m->value;
 
-    ASSERT_EQUALS_INT("dest_file.length", p_message->destination_file_name.length, strnlen(dest, 100) + 1);
     ASSERT_EQUALS_STR("dest_file.value", p_message->destination_file_name.value, dest, strnlen(dest, 100));
-
-    ASSERT_EQUALS_INT("src_file.length",  p_message->source_file_name.length, strnlen(src, 100) + 1);
     ASSERT_EQUALS_STR("src_file.value", src, p_message->source_file_name.value, strnlen(src, 100));
-
-    ASSERT_EQUALS_INT("dest_id.length", p_message->destination_id.length, len);
-    ASSERT_EQUALS_INT("dest_id.value", *(uint8_t*)p_message->destination_id.value, id);
+    ASSERT_EQUALS_INT("dest_id.value", p_message->destination_id, id);
 
     ASSERT_EQUALS_INT("next message should be at index ", next_message, length_of_message);
 
@@ -489,7 +482,7 @@ int test_get_cont_partial_from_packet(char *packet, uint32_t start){
     uint32_t packet_index = start;
 
     Request *req = mock_empty_request();
-    int error = add_cont_partial_message_to_request(1,1,1,1,1,1,req);
+    int error = add_cont_partial_message_to_request(1,1,1,req);
 
     memset(&packet[start], 0, 100);
     add_messages_to_packet(packet, packet_index, req->messages_to_user);
@@ -501,20 +494,13 @@ int test_get_cont_partial_from_packet(char *packet, uint32_t start){
     Message_cont_part_request *p_message = (Message_cont_part_request *) m->value;
 
 
-    ASSERT_EQUALS_INT("destination_id.length", p_message->destination_id.length, 1);
-    ASSERT_EQUALS_INT("destination_id.value", *(uint8_t*) (p_message->destination_id.value), 1);
-    packet_index += p_message->destination_id.length + 1;
-    free_lv(p_message->destination_id);
+    ASSERT_EQUALS_INT("destination_id.value", p_message->destination_id, 1);
 
-    ASSERT_EQUALS_INT("originator_id.length", p_message->originator_id.length, 1);
-    ASSERT_EQUALS_INT("originator_id.value", *(uint8_t*) (p_message->originator_id.value), 1);
-    packet_index += p_message->originator_id.length + 1;
-    free_lv(p_message->originator_id);
+    ASSERT_EQUALS_INT("originator_id.value", p_message->originator_id, 1);
 
-    ASSERT_EQUALS_INT("transaction_id.length", p_message->transaction_id.length, 1);
-    ASSERT_EQUALS_INT("transaction_id.value", *(uint8_t*) (p_message->transaction_id.value), 1);
-    packet_index += p_message->transaction_id.length + 1;
-    free_lv(p_message->transaction_id);
+    ASSERT_EQUALS_INT("transaction_id.value", p_message->transaction_id, 1);
+
+
 
 }
 
@@ -552,7 +538,7 @@ int test_get_messages_from_packet(char *packet, uint32_t start) {
         if (message->header.message_type == PROXY_PUT_REQUEST) {
 
             Message_put_proxy *p_message = (Message_put_proxy *) message->value;
-            ASSERT_EQUALS_INT("received proxy messages: dest.id", *(uint8_t*) p_message->destination_id.value, id);
+            ASSERT_EQUALS_INT("received proxy messages: dest.id",  p_message->destination_id, id);
             ASSERT_EQUALS_STR("received proxy messages: src file", src,  (char *) p_message->source_file_name.value, p_message->source_file_name.length);
             ASSERT_EQUALS_STR("received proxy messages: dest file", dest, (char *) p_message->destination_file_name.value, p_message->destination_file_name.length);    
             
@@ -587,6 +573,61 @@ int test_build_finished_pdu(char *packet, uint32_t start) {
     ASSERT_EQUALS_INT("file_status FILE_RETAINED_SUCCESSFULLY set", fin.file_status, FILE_RETAINED_SUCCESSFULLY);
 }
 
+
+int test_copying_lvs(){
+
+    DECLARE_NEW_TEST("testing copying and reading LVs ");
+    uint64_t id = 184;
+    char packet[250];
+
+    int error = copy_id_lv_to_packet(packet, id);
+
+    uint64_t id_received = 0;
+    uint64_t len = copy_id_lv_from_packet(packet, &id_received);
+    if (len < 0) {
+        ssp_printf("failed to copy contents from buffer \n");
+        return -1;
+    }
+    ASSERT_EQUALS_INT("ids should equal 232", (uint32_t)id_received, 184);
+    ASSERT_EQUALS_INT("len should be 1", len, 1);
+
+
+    id = 6699;
+    error = copy_id_lv_to_packet(packet, id);
+
+    id_received = 0;
+    len = copy_id_lv_from_packet(packet, &id_received);
+    if (len < 0) {
+        ssp_printf("failed to copy contents from buffer \n");
+        return -1;
+    }
+    ASSERT_EQUALS_INT("ids should equal 6699", (uint32_t)id_received, 6699);
+    ASSERT_EQUALS_INT("len should be 2", len, 2);
+
+    id = 15406584;
+    error = copy_id_lv_to_packet(packet, id);
+
+    id_received = 0;
+    len = copy_id_lv_from_packet(packet, &id_received);
+    if (len < 0) {
+        ssp_printf("failed to copy contents from buffer \n");
+        return -1;
+    }
+    ASSERT_EQUALS_INT("ids should equal 15406584", (uint32_t)id_received, 15406584);
+    ASSERT_EQUALS_INT("len should be 4", len, 4);
+    id = 32500405;
+    error = copy_id_lv_to_packet(packet, id);
+
+    id_received = 0;
+    len = copy_id_lv_from_packet(packet, &id_received);
+    if (len < 0) {
+        ssp_printf("failed to copy contents from buffer \n");
+        return -1;
+    }
+    ASSERT_EQUALS_INT("ids should equal 32500405", (uint32_t)id_received, 32500405);
+    ASSERT_EQUALS_INT("len should be 8", len, 8);
+    
+}
 int packet_tests() {
     
     //setting host name for testing
@@ -602,20 +643,26 @@ int packet_tests() {
     int error = get_remote_entity_from_json (&remote_entity, 1);
     get_header_from_mib(&pdu_header, remote_entity, 2);
     
+    error = test_copying_lvs();
     int data_start_index = test_build_pdu_header(packet, &pdu_header);
-    //test_build_metadata_packet(packet, data_start_index);
-    //test_get_messages_from_packet(packet, data_start_index);
-    //test_add_cont_part_to_packet(packet, data_start_index);
-    //test_get_cont_partial_from_packet(packet, data_start_index);
-    //test_build_ack_eof_pdu(packet, data_start_index);
 
-    //test_build_eof_packet(packet, data_start_index);
-    //test_build_data_packet(packet, data_start_index);
+    test_build_metadata_packet(packet, data_start_index);
+    test_get_messages_from_packet(packet, data_start_index);
+
+    
+    test_add_cont_part_to_packet(packet, data_start_index);
+
+    test_get_cont_partial_from_packet(packet, data_start_index);
+    test_build_ack_eof_pdu(packet, data_start_index);
+
+    test_build_eof_packet(packet, data_start_index);
+    test_build_data_packet(packet, data_start_index);
     test_build_nak_packet(packet, data_start_index);
     test_build_finished_pdu(packet, data_start_index);
+    test_add_messages_to_packet(packet, data_start_index);
+    test_get_message_from_packet(packet, data_start_index);
 
     //next up
-    
     
     //Skip for now, will fix after connection server works
     //test_build_very_large_nak_packet(packet, data_start_index);
@@ -625,11 +672,8 @@ int packet_tests() {
     //need to fix this for byte order
     
     //need to fix this for byte order
-   
     
-    //test_add_messages_to_packet(packet, data_start_index);
-    //test_get_message_from_packet(packet, data_start_index);
-    //test_add_cont_part_to_packet(packet, data_start_index);
+
     
     return 0;
 

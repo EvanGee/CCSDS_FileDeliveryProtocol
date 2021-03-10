@@ -61,7 +61,7 @@ static Config *configuration(int argc, char **argv)
 
     conf->timer = 15;
     conf->verbose_level = 0;
-    conf->client_cfdp_id = 0;
+    conf->client_cfdp_id = -1;
     conf->my_cfdp_id = 0;
     conf->baudrate = 9600;
     conf->uart_device = NULL;
@@ -138,6 +138,8 @@ int main(int argc, char** argv) {
     }
     
 
+
+
     #ifdef CSP_NETWORK
 
         csp_debug_level_t debug_level = CSP_INFO;
@@ -154,9 +156,10 @@ int main(int argc, char** argv) {
         }
 
         csp_conf_t csp_conf;
-        csp_conf_get_defaults(&csp_conf);        
+        csp_conf_get_defaults(&csp_conf);       
+        csp_conf.buffers = 4096; 
         csp_conf.address = remote_entity.UT_address;
-
+    
         error = csp_init(&csp_conf);
         if (error != CSP_ERR_NONE) {
             csp_log_error("csp_init() failed, error: %d", error);
@@ -182,15 +185,17 @@ int main(int argc, char** argv) {
             }
         }
 
+        csp_rtable_set(CSP_DEFAULT_ROUTE, 0, default_iface, CSP_NO_VIA_ADDRESS);
         //printf("Connection table\r\n");
         //csp_conn_print_table();
 
         printf("Interfaces\r\n");
         csp_route_print_interfaces();
 
-        //printf("Route table\r\n");
-        //csp_route_print_table();
+        printf("Route table\r\n");
+        csp_route_print_table();
     #endif
+
 
 
 
@@ -202,8 +207,31 @@ int main(int argc, char** argv) {
         return 1;
     }
     
+    
+    //sleep(5);
     uint32_t client_id = conf->client_cfdp_id;
-    Request *req = put_request(client_id, "pictures/pic.jpeg", "pictures/udp.jpg", ACKNOWLEDGED_MODE, &app);
+    //
+    if (client_id != -1) {
+
+        sleep(5);
+
+        //csp_custom_ftp_ping(conf->client_cfdp_id);
+        //Request *req = put_request(client_id, "test.txt", "test-received.txt", UN_ACKNOWLEDGED_MODE, &app);
+
+    
+        Request *req2 = init_request_no_client();
+        put_request_no_client(req2, NULL, NULL, UN_ACKNOWLEDGED_MODE, &app);
+        add_proxy_message_to_request(app.my_cfdp_id, 1, "mib/peer_0.json","GET_REQUEST", req2);
+
+        Client *client = start_client(&app,client_id);
+        if (client == NULL) {
+            ssp_printf("client failed to start\n");
+        } else 
+            add_request_to_client(req2, client);
+        
+    
+    }
+
 
 /*
     if (conf->client_cfdp_id == 1) {
