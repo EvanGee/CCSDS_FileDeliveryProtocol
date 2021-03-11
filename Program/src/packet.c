@@ -64,7 +64,7 @@ int copy_id_to_packet(char *bytes, uint64_t id) {
         memcpy(bytes, &network_byte_order, sizeof(uint64_t));   
         length = 8;
     } else {
-        ssp_error("copying to packet, id size is not supported, please user 1, 2 or 4");
+        ssp_error("copying to packet, id size is not supported, please user 1, 2 or 4, 8");
         return -1;
     }
     
@@ -94,6 +94,8 @@ uint64_t copy_id_from_packet(char *bytes, uint32_t length_of_ids) {
 //returns amount of bytes written or -1 on error
 int copy_id_lv_to_packet(char *bytes, uint64_t id) {
 
+
+
     int len = copy_id_to_packet(&bytes[1], id);
     if (len < 0) {
         return -1;
@@ -104,7 +106,7 @@ int copy_id_lv_to_packet(char *bytes, uint64_t id) {
 }
 
 //returns length of the id on success and sets id to the id, or -1 on error
-int copy_id_lv_from_packet(char *bytes,  uint32_t *id){
+int copy_id_lv_from_packet(char *bytes,  uint64_t *id){
 
     uint8_t len = bytes[0];
 
@@ -201,21 +203,21 @@ int build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_
     set_bits_to_protocol_byte(&packet[3], 5,7, pdu_header->transaction_seq_num_len);
 
     int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
-    int error = copy_id_to_packet(&packet[source_id_location], pdu_header->source_id);
-    if (error < 0) {
+    int len = copy_id_to_packet(&packet[source_id_location], pdu_header->source_id);
+    if (len < 0 || len != pdu_header->length_of_entity_IDs) {
         ssp_error("failed copy source_id");
         return -1;
     }   
 
     int32_t transaction_number_location = source_id_location + pdu_header->length_of_entity_IDs;
-    error = copy_id_to_packet(&packet[transaction_number_location], (uint32_t) transaction_sequence_number);
-    if (error < 0) {
+    len = copy_id_to_packet(&packet[transaction_number_location], transaction_sequence_number);
+    if (len < 0 || len != pdu_header->transaction_seq_num_len) {
         ssp_error("failed copy transaction_number_location");
         return -1;
     }   
     int32_t dest_id_location = transaction_number_location + pdu_header->transaction_seq_num_len;
-    error = copy_id_to_packet(&packet[dest_id_location], pdu_header->destination_id);
-    if (error < 0) {
+    len = copy_id_to_packet(&packet[dest_id_location], pdu_header->destination_id);
+    if (len < 0 || len != pdu_header->length_of_entity_IDs) {
         ssp_error("failed copy destination_id");
         return -1;
     }   
@@ -664,7 +666,7 @@ static void add_messages_callback(Node *node, void *element, void *args) {
     {
         case PROXY_PUT_REQUEST:
             proxy_put = (Message_put_proxy *) message->value;
-           
+  
             bytes = copy_id_lv_to_packet(&packet[packet_index], proxy_put->destination_id);
             if (bytes < 0) {
                 ssp_printf(error_msg, "PROXY_PUT_REQUEST");
