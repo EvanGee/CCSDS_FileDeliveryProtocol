@@ -220,8 +220,10 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
     // size of 'offset' bytes in packet
     uint32_t offset_end = offset_start + data_len - packet_index;
     
-    if (!receive_offset(file, 0, offset_start, offset_end))
+    if (!receive_offset(file, 0, offset_start, offset_end)) {
+        ssp_printf("throwing out packet\n");
         return;
+    }
 
     uint32_t remaining_buffer_length = data_len - packet_index;
     int bytes = write_offset(file, &packet[packet_index], remaining_buffer_length, offset_start);
@@ -395,10 +397,15 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
     }
 
     uint32_t packet_index = start;
-    uint32_t size_of_offset_bytes = 4;
+    uint32_t size_of_offset_bytes = sizeof(uint32_t);
 
     int data_len = build_data_packet(packet, packet_index, length, file->next_offset_to_send, file);
+
+    ssp_printf("%d\n", data_len);
+
     packet_index += size_of_offset_bytes;
+
+    //number of bytes sent
     int bytes = data_len - size_of_offset_bytes;
 
     //calculate checksum for data packet, this is used to calculate in transit checksums

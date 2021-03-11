@@ -365,8 +365,9 @@ int build_data_packet(char *packet, uint32_t start, uint32_t end, uint32_t offse
     uint32_t net_offset = ssp_ntohl(offset);
     memcpy(&packet[packet_index], &net_offset, sizeof(uint32_t));
 
-    packet_index += 4;
-    int bytes = get_offset(file, &packet[packet_index], data_size, offset);
+    packet_index += sizeof(uint32_t);
+
+    int bytes = get_offset(file, &packet[packet_index], data_size - 4, offset);
     if (bytes <= 0){
         ssp_error("could not get offset, this could because the file is empty!\n");
         return -1;

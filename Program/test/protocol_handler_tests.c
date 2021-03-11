@@ -18,16 +18,19 @@ static int test_process_pdu_eof() {
 
     char packet[2000];
     
-    //test images
+    //builds the packet at offset 10
     File *file = mock_eof_packet(packet, 1, 2, "test_files/dest.jpg");
+    uint32_t first_checksum = file->partial_checksum;
+    uint32_t first_file_size = file->total_size;
+    
     Request *req = mock_empty_request();
-    req->file = file;
+    req->file = create_file("test_files/eof_test", true);
 
-    process_pdu_eof(&packet[10], req, req->res);
+    process_pdu_eof(&packet[11], req, req->res);
     
     ASSERT_EQUALS_INT("received eof, increment EOF_rec_indication", req->local_entity.EOF_recv_indication, true);
-    ASSERT_EQUALS_INT("received eof, checksum should equal", req->file->eof_checksum, file->partial_checksum);
-    ASSERT_EQUALS_INT("received eof, filesize should equal", req->file->total_size, file->total_size);
+    ASSERT_EQUALS_INT("received eof, checksum should equal", req->file->eof_checksum, first_checksum);
+    ASSERT_EQUALS_INT("received eof, filesize should equal", req->file->total_size, first_file_size);
     
     ssp_cleanup_req(req);
 
@@ -36,8 +39,8 @@ static int test_process_pdu_eof() {
     req = mock_empty_request();
     req->file = file;
     
-    process_pdu_eof(&packet[10], req, req->res);
-
+    process_pdu_eof(&packet[11], req, req->res);
+    
     ASSERT_EQUALS_INT("received eof, increment EOF_rec_indication", req->local_entity.EOF_recv_indication, true);
     ASSERT_EQUALS_INT("received eof, checksum should equal", req->file->eof_checksum, file->partial_checksum);
     ASSERT_EQUALS_INT("received eof, filesize should equal", req->file->total_size, file->total_size);
@@ -142,28 +145,36 @@ static int test_process_pdu_header() {
 }
 int test_process_data_packet() {
 
+
+    DECLARE_NEW_TEST("testing process data packet");
+
     char packet[1500];
     uint32_t start = 20;
-    uint32_t data_len = sizeof(packet) - start;
+    uint32_t packet_len = 120;
     memset(packet, 0, 1500);
 
-    File *file = create_file("test_files/data_pdu_test.jpg", 0);
-    int error = create_data_burst_packets(packet, start, file, data_len); 
-    
-    File *file2 = create_file("test_files/test_file.jpg", 1);
+    File *file = create_file("test_files/peer_0.json", 0);
+    File *file2 = create_file("test_files/received_peer.json", 1);
     
     //mimics process_file_request_metadata function
     add_first_offset(file2, file->total_size);
+
+
+    int error = create_data_burst_packets(packet, start, file, packet_len); 
+    uint32_t data_len = get_data_length(packet);
     process_data_packet(&packet[start], data_len, file2);
 
-    ASSERT_EQUALS_INT("Checksum", file2->partial_checksum, -606714363);
-    ASSERT_EQUALS_INT("Length of offset list should equal 1 ", file2->missing_offsets->count, 1);
-    Offset* offset2 = (Offset*) file2->missing_offsets->pop(file2->missing_offsets);
+    int i = 0;
+    for (i = 0; i < 7; i++) {
+        create_data_burst_packets(packet, start, file, packet_len);
+        data_len = get_data_length(packet); 
+        process_data_packet(&packet[start], data_len, file2);
+    }
 
+    uint32_t checksum = check_sum_file(file, packet_len-start-4);
 
-    //data_len - 4 byte offset value
-    ASSERT_EQUALS_INT("offset start should equal datasize ", offset2->start, data_len - 4);
-    ASSERT_EQUALS_INT("offset end equal end of file ", offset2->end, file->total_size);
+    ASSERT_EQUALS_INT("Checksum", file2->partial_checksum, checksum);
+    ASSERT_EQUALS_INT("Length of offset list should equal 1 ", file2->missing_offsets->count, 0);
 
     ssp_free_file(file);
     ssp_free_file(file2);
@@ -210,9 +221,9 @@ void test_send_data_from_nak_array(){
 int protocol_handler_test() {
     int error = 0;
     error = test_process_pdu_header();
-    //error = test_process_pdu_eof();
+    error = test_process_pdu_eof();
     //error = test_on_server_time_out();
-    //error = test_process_data_packet();
+    error = test_process_data_packet();
     //error = test_process_nak();
 
     return error;

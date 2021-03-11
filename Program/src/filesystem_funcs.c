@@ -170,9 +170,10 @@ uint32_t check_sum_file(File *file, uint16_t stack_buffer) {
     uint32_t checksum = 0;
     uint32_t bytes_read = 0;
     int i = 0;
-    for (i = 0; i < file->total_size; i++) {
+
+    for (i = 0; i < file->total_size; i+= stack_buffer) {
         
-        bytes_read = get_offset(file, buff, stack_buffer, (int) stack_buffer);
+        bytes_read = get_offset(file, buff, stack_buffer, i);
         if (bytes_read > 0)
             checksum += calc_check_sum(buff, bytes_read);
     }

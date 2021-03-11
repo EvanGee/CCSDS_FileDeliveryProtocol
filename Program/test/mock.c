@@ -58,10 +58,9 @@ int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id) {
 
 File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *file_name) {
     
-    int packet_index = mock_packet(packet, dest_id, src_id);
     File *file = create_file(file_name, false);
     file->partial_checksum = check_sum_file(file, 1000);
-    build_eof_packet(packet, packet_index, file->total_size, check_sum_file(file, 1000));
+    build_eof_packet(packet, 10, file->total_size, file->partial_checksum);
 
     return file;
 }
