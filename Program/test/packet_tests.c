@@ -265,13 +265,19 @@ int test_build_pdu_header(char *packet, Pdu_header *header) {
     uint32_t packet_index = 0;
     //ssp_print_bits(header, 4);
     Pdu_header new_header;
-    header->transaction_sequence_number = 321;
+    header->transaction_sequence_number = 325;
+    header->transaction_seq_num_len = 2;
 
     memset(&new_header, 0, 4);
 
-    uint8_t length = build_pdu_header(packet, header->transaction_sequence_number, header->direction, header->PDU_data_field_len, header);
+    int length = build_pdu_header(packet, header->transaction_sequence_number, header->direction, header->PDU_data_field_len, header);
+    if (length < 0) {
+        ssp_printf("failed to build pdu header\n");
+    }
 
+    ssp_print_bits(&packet[4], 10);
     get_pdu_header_from_packet(packet, &new_header);
+
 
     ASSERT_EQUALS_INT("CRC = CRC", header->CRC_flag, new_header.CRC_flag);
     ASSERT_EQUALS_INT("direction = direction", header->direction, new_header.direction);
@@ -288,6 +294,7 @@ int test_build_pdu_header(char *packet, Pdu_header *header) {
     ASSERT_EQUALS_INT("packet length: ", length, (header->transaction_seq_num_len + (header->length_of_entity_IDs * 2) + 4));
     ASSERT_EQUALS_INT("packet source id ", header->source_id, new_header.source_id);
 
+    ssp_printf("%d\n", new_header.transaction_sequence_number);
     ASSERT_EQUALS_INT("transaction_sequence_number correctly placed ", header->transaction_sequence_number, new_header.transaction_sequence_number);
     ASSERT_EQUALS_INT("packet destination id ",  header->destination_id, new_header.destination_id);
 
@@ -648,10 +655,7 @@ int packet_tests() {
 
     test_build_metadata_packet(packet, data_start_index);
     test_get_messages_from_packet(packet, data_start_index);
-
-    
     test_add_cont_part_to_packet(packet, data_start_index);
-
     test_get_cont_partial_from_packet(packet, data_start_index);
     test_build_ack_eof_pdu(packet, data_start_index);
 
@@ -666,15 +670,6 @@ int packet_tests() {
     
     //Skip for now, will fix after connection server works
     //test_build_very_large_nak_packet(packet, data_start_index);
-
-    memset(packet, 0, PACKET_TEST_SIZE);
-    
-    //need to fix this for byte order
-    
-    //need to fix this for byte order
-    
-
-    
     return 0;
 
 }

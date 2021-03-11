@@ -47,6 +47,11 @@ int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id) {
     mock_mock_remote_entity(&remote_entity, dest_id);    
 
     int error = get_header_from_mib(&pdu_header, remote_entity, src_id);
+
+    pdu_header.transaction_seq_num_len = 1;
+    pdu_header.transaction_sequence_number = 1;
+    
+
     int packet_index = build_pdu_header(packet, 1, 0, 0, &pdu_header);
     return packet_index;
 }
