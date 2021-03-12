@@ -261,13 +261,16 @@ void ssp_sendto(Response res) {
 void *ssp_alloc(uint32_t n_memb, size_t size) {
     
     #ifdef FREE_RTOS_PORT
-        return pvPortMalloc(n_memb * size);
+        void *mem = pvPortMalloc(n_memb * size);
+        memset(mem, 0, n_memb * size);
+        return mem
     #else
         void *mem = calloc(n_memb, size);
-        if (mem == NULL)
-            ssp_error("Memory failed to alloc!\n");
-        return mem;
-    #endif    
+    #endif
+    if (mem == NULL)
+        ssp_error("Memory failed to alloc!\n");    
+    
+    return mem;
 }
 
 void ssp_free(void *pointer) {
