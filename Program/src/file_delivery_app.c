@@ -172,7 +172,8 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
 
     app->packet_len = remote_entity.mtu;
     app->buff = ssp_alloc(1, app->packet_len);
-
+    app->transaction_sequence_number = 0;
+    
     if (app->buff == NULL) {
         ssp_free(app);
         return -1;

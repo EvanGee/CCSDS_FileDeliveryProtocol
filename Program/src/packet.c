@@ -46,10 +46,10 @@ void set_packet_directive(char *packet, uint32_t location, uint8_t directive){
 //returns length of ids or -1 on error
 int copy_id_to_packet(char *bytes, uint64_t id) {
    
+    
     uint32_t length = 0;
     if (id < 0xFF){
-        uint8_t network_byte_order = (uint8_t) id;
-        memcpy(bytes, &network_byte_order, sizeof(uint8_t));  
+        bytes[0] = (uint8_t) id;
         length = 1;
     } else if (id < 0xFFFF) {
         uint16_t network_byte_order = ssp_htons((uint16_t) id);
@@ -68,6 +68,7 @@ int copy_id_to_packet(char *bytes, uint64_t id) {
         return -1;
     }
     
+
     return length;
 }
 
@@ -202,20 +203,20 @@ int build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_
     set_bits_to_protocol_byte(&packet[3], 4,4, pdu_header->reserved_bit_2);
     set_bits_to_protocol_byte(&packet[3], 5,7, pdu_header->transaction_seq_num_len);
 
-    int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
+    uint32_t source_id_location = PACKET_STATIC_HEADER_LEN;
     int len = copy_id_to_packet(&packet[source_id_location], pdu_header->source_id);
     if (len < 0 || len != pdu_header->length_of_entity_IDs) {
         ssp_error("failed copy source_id");
         return -1;
     }   
 
-    int32_t transaction_number_location = source_id_location + pdu_header->length_of_entity_IDs;
+    uint32_t transaction_number_location = source_id_location + pdu_header->length_of_entity_IDs;
     len = copy_id_to_packet(&packet[transaction_number_location], transaction_sequence_number);
     if (len < 0 || len != pdu_header->transaction_seq_num_len) {
-        ssp_error("failed copy transaction_number_location");
+        ssp_printf("failed copy transaction_number_location %d suppose to be %d\n", len, pdu_header->transaction_seq_num_len);
         return -1;
     }   
-    int32_t dest_id_location = transaction_number_location + pdu_header->transaction_seq_num_len;
+    uint32_t dest_id_location = transaction_number_location + pdu_header->transaction_seq_num_len;
     len = copy_id_to_packet(&packet[dest_id_location], pdu_header->destination_id);
     if (len < 0 || len != pdu_header->length_of_entity_IDs) {
         ssp_error("failed copy destination_id");

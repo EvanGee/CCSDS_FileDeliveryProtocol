@@ -401,8 +401,6 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
 
     int data_len = build_data_packet(packet, packet_index, length, file->next_offset_to_send, file);
 
-    ssp_printf("%d\n", data_len);
-
     packet_index += size_of_offset_bytes;
 
     //number of bytes sent
@@ -844,7 +842,6 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
 
     //process file data
     if (incoming_header.PDU_type == DATA) {
-        ssp_printf("received data packet\n");
         if (!req->local_entity.Metadata_recv_indication) {
             if (req->file == NULL) {
                 ssp_printf("file is null\n");
