@@ -230,11 +230,12 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
         ssp_error("couldn't get client remote_entity from mib\n");
         return NULL;
     }
-    
+
+
     Client *client = ssp_alloc(sizeof(Client), 1);
     if (client == NULL)
         return NULL;
-
+    
     client->request_list = linked_list();
     if (client->request_list == NULL) {
         ssp_free(client);
@@ -249,6 +250,7 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
         return NULL;
     }
 
+    client->close = 0;
     client->remote_entity = remote_entity;
     get_header_from_mib(&client->pdu_header, remote_entity, app->my_cfdp_id);
     
