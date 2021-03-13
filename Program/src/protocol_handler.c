@@ -702,8 +702,6 @@ static void resend_finished_pdu(Request *req, Response res) {
 //processes the eof packet, sets checksum, indication, and filesize.
 void process_pdu_eof(char *packet, Request *req, Response res) {
 
-    ssp_printf("received eof packet transaction: %llu\n", req->transaction_sequence_number);
-
     Pdu_eof eof_packet;
     get_eof_from_packet(packet, &eof_packet);
     
@@ -748,7 +746,6 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
 
     req->local_entity.Metadata_recv_indication = true;
 
-    ssp_printf("received metadata packet transaction: %llu\n", req->transaction_sequence_number);
     packet_index = parse_metadata_packet(packet, packet_index, req);
     uint16_t data_len = get_data_length(packet);
 
@@ -839,6 +836,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
         
     uint16_t data_len = get_data_length(packet);
     uint32_t packet_len = packet_index + data_len;
+    ssp_printf("transaction: %d ", incoming_header.transaction_sequence_number);
 
     //process file data
     if (incoming_header.PDU_type == DATA) {
@@ -861,17 +859,20 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
         case META_DATA_PDU:
             if (req->local_entity.Metadata_recv_indication)
                 break;
+
+            ssp_printf("received metadata packet transaction \n");
             process_metadata(packet, packet_index, res, req, app);
             break;
     
         case EOF_PDU:
             if (req->local_entity.EOF_recv_indication)
                 break;
+
+            ssp_printf("received eof packet\n");
             process_pdu_eof(&packet[packet_index], req, res);
             break;
 
-        case ACK_PDU: 
-            ssp_printf("received Ack transaction: %llu\n", req->transaction_sequence_number);
+        case ACK_PDU:
             Pdu_ack ack_packet;
             get_ack_from_packet(&packet[packet_index], &ack_packet);
 
@@ -879,7 +880,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
             {
                 case FINISHED_PDU:
                     //get_finished_pdu(char *packet, Pdu_finished *pdu_finished)
-                    ssp_printf("received finished packet transaction: %llu\n", req->transaction_sequence_number);
+                    ssp_printf("received finished packet Ack\n");
                     req->local_entity.transaction_finished_indication = true;
                     break;
             

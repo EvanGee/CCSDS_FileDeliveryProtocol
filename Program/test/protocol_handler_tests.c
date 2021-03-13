@@ -160,15 +160,15 @@ int test_process_data_packet() {
     add_first_offset(file2, file->total_size);
 
 
-    int error = create_data_burst_packets(packet, start, file, packet_len); 
-    uint32_t data_len = get_data_length(packet);
-    process_data_packet(&packet[start], data_len, file2);
+    int error = 0;
+    uint32_t data_len = 0;
 
     int i = 0;
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < 10; i++) {
         create_data_burst_packets(packet, start, file, packet_len);
         data_len = get_data_length(packet); 
         process_data_packet(&packet[start], data_len, file2);
+        ASSERT_EQUALS_INT("Checksum parital calculations", file2->partial_checksum, file->partial_checksum);
     }
 
     uint32_t checksum = check_sum_file(file, packet_len-start-4);

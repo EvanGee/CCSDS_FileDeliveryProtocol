@@ -387,7 +387,7 @@ void connectionless_server(char *host_name, char* port, int initial_buff_size,
             }
             else {
                 if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, other) == -1)
-                    ssp_printf("recv failed\n");
+                    ssp_printf("recv failed server\n");
             }
         }
     }
@@ -456,7 +456,7 @@ void connectionless_client(char *hostname, char*port, int packet_len, void *para
         }
         else{
             if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, params) == -1)
-                ssp_error("recv failed\n");
+                ssp_error("recv failed client\n");
         }
         
     }
@@ -516,7 +516,7 @@ void connection_client(char *hostname, char*port, int packet_len, void *params,
             continue;
 
         if (onRecv(sfd, buff, count, buff_size, addr, size_of_addr, params) == -1) {
-            ssp_error("recv failed\n");
+            ssp_error("recv failed client\n");
             set_exit();
         }
         
