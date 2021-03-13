@@ -13,6 +13,11 @@ Author: Evan Giese
 #include "types.h"
 #include "utils.h"
 
+static void transasction_log(char *msg, uint32_t transaction_sequence_number){
+    ssp_printf("transaction: %llu ", transaction_sequence_number);
+    ssp_printf(msg);
+    ssp_printf("\n");
+}
 
 static void build_temperary_file(Request *req, uint32_t size) {
 
@@ -41,7 +46,7 @@ static void send_nak(Request *req, Response res, unsigned int type) {
 
 static void resend_eof_ack(Request *req, Response res) {
 
-    ssp_printf("sending eof ack transaction: %llu\n", req->transaction_sequence_number);
+    transasction_log("sending eof ack", req->transaction_sequence_number);
     send_ack(req,res, EOF_PDU);
     req->resent_eof++;
 }
@@ -95,8 +100,7 @@ static int find_request(void *element, void *args) {
             ssp_error("could not get allocate for new request \n");
             return NULL;
         }
-        
-        ssp_printf("incoming new request\n");
+        transasction_log("incoming new request", transaction_sequence_number);
 
         //Make new request and add it
         found_req->transmission_mode = transmission_mode;
@@ -121,6 +125,7 @@ static int find_request(void *element, void *args) {
         found_req->res.transmission_mode = app->remote_entity.default_transmission_mode;
         found_req->res.type_of_network = app->remote_entity.type_of_network;
         found_req->res.msg = found_req->buff;
+        found_req->res.size_of_addr = res.size_of_addr;
 
         found_req->paused = false;
         return found_req;
@@ -216,7 +221,8 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
     uint32_t offset_start = get_data_offset_from_packet(packet);
     uint32_t packet_index = 4;
 
-    ssp_printf("received data packet offset:%d\n", offset_start);
+    
+    //ssp_printf("received data packet offset:%d\n", offset_start);
     // size of 'offset' bytes in packet
     uint32_t offset_end = offset_start + data_len - packet_index;
     
@@ -353,14 +359,13 @@ void process_messages(Request *req, FTP *app) {
 
 /*------------------------------------------------------------------------------
 
-                                    REMOTE SIDE
+                                    Client 
                                     aka: handles responses from server
 
 ------------------------------------------------------------------------------*/
 
 static void resend_finished_ack(Request *req, Response res) {
-
-    ssp_printf("sending finished packet transaction ack: %llu\n", req->transaction_sequence_number);
+    transasction_log("sending finished ack", req->transaction_sequence_number);
     send_ack(req, res, FINISHED_PDU);
     req->resent_finished++;
 }
@@ -368,7 +373,7 @@ static void resend_finished_ack(Request *req, Response res) {
 static void send_put_metadata(Request *req, Response res) {
 
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
-    ssp_printf("sending metadata transaction: %llu\n", req->transaction_sequence_number);
+    transasction_log("sending metadata pdu", req->transaction_sequence_number);
     start = build_put_packet_metadata(req->buff, start, req);
 
     req->local_entity.Metadata_sent_indication = true;
@@ -377,7 +382,7 @@ static void send_put_metadata(Request *req, Response res) {
 
 static void send_eof_pdu(Request *req, Response res) {
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
-    ssp_printf("sending eof transaction: %llu file_size %d\n", req->transaction_sequence_number, req->file_size);
+    transasction_log("sending eof pdu", req->transaction_sequence_number);
     if (req->file_size == 0)
         build_eof_packet(req->buff, start, 0, 0);
     else 
@@ -409,11 +414,8 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
     file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
     ssp_printf("sending packet data offset:size %d:%d\n", file->next_offset_to_send, file->next_offset_to_send + bytes);
 
-
     file->next_offset_to_send += bytes;
-
     
-
     if (file->next_offset_to_send == file->total_size)
         return 1;
 
@@ -459,63 +461,6 @@ int process_nak_pdu(char *packet, File *file){
     return 1;
 }
 
-void segment_offset_into_data_packets(char *packet, uint32_t start, uint32_t offset_start, uint32_t offset_end, Request *req, Response res){
-
-    int i = 0;
-    int error = 0;
-    uint32_t segment_len = req->buff_len - start;
-
-    for (i = offset_start; i < offset_end; i+= segment_len) {
-
-        if (offset_end - i < segment_len){
-            segment_len = offset_end - i;
-        }
-        
-        //ssp_printf("sending offset start %d to %d\n", i, i + segment_len);
-        //ssp_printf("segment len %d\n",segment_len);
-
-        error = build_data_packet(packet, start, segment_len + start, i, req->file);
-        if (error < 0) {
-            return -1;
-        }
-        
-        ssp_sendto(res);
-    }
-}
-
-int process_nak_pdu_response(char *packet, Request *req, Response res, Client *client){
-    Pdu_nak nak;
-    get_nak_packet(packet, &nak);
-
-    uint32_t packet_index = 0;
-    uint32_t offset_start = 0;
-    uint32_t offset_end = 0;
-    //build new header for outgoing packets
-    uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, 0, &client->pdu_header);
-    int error = 0;
-    int i = 0;
-
-
-    ssp_printf("sending offset packet start %d offset end %d\n", nak.start_scope, nak.end_scope);
-
-    for (i = 0; i < nak.segment_requests; i++){
-        
-        packet_index = 0;
-
-        memcpy(&offset_start, &nak.segments[packet_index], sizeof(uint32_t));
-        offset_start = ssp_ntohl(offset_start);
-        packet_index += 4;
-
-        memcpy(&offset_end, &nak.segments[packet_index], sizeof(uint32_t));
-        offset_end = ssp_ntohl(offset_end);
-        packet_index += 4;
-
-        segment_offset_into_data_packets(req->buff, outgoing_packet_index, offset_start, offset_end, req, res);
-    }
-
-    return 1;
-
-}
 
 static void acknowledged_start(Request *req, Response res) {
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
@@ -579,17 +524,20 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
     if (req->procedure == sending_start)
         return;
 
+
+    ssp_printf("transaction: %llu ", req->transaction_sequence_number);
+
     uint8_t directive = packet[packet_index];
     packet_index += 1; 
 
     switch(directive) {
         case FINISHED_PDU:
-            ssp_printf("received finished pdu transaction: %llu\n", req->transaction_sequence_number);
+            transasction_log("received finished pdu",  req->transaction_sequence_number);
             req->local_entity.transaction_finished_indication = true;
             resend_finished_ack(req, res);
             break;
         case NAK_PDU:
-            ssp_printf("received Nak pdu transaction: %llu\n", req->transaction_sequence_number);
+            transasction_log("received Nak pdu",  req->transaction_sequence_number);
             process_nak_pdu_response(&packet[packet_index], req, res, client);
             break;
         case ACK_PDU:
@@ -597,12 +545,12 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             switch (packet[packet_index])
             {
                 case EOF_PDU:
-                    ssp_printf("received Eof ack transaction: %llu\n", req->transaction_sequence_number);
+                    transasction_log("received Eof ack",  req->transaction_sequence_number);
                     req->local_entity.EOF_recv_indication = true;
                     break;
             
                 case META_DATA_PDU:
-                    ssp_printf("received Eof ack transaction: %llu\n", req->transaction_sequence_number);
+                    transasction_log("received meta_data ack",  req->transaction_sequence_number);
                     req->local_entity.Metadata_recv_indication = true;
 
                 default:
@@ -614,12 +562,12 @@ void parse_packet_client(char *packet, uint32_t packet_index, Response res, Requ
             switch (packet[packet_index])
             {
                 case META_DATA_PDU:
-                    ssp_printf("resending metadata transaction: %llu\n", req->transaction_sequence_number);
+                    transasction_log("resending metadata pdu",  req->transaction_sequence_number);
                     send_put_metadata(req, res);
                     break;
             
                 case EOF_PDU: 
-                    ssp_printf("resending eof transaction: %llu\n", req->transaction_sequence_number);
+                    transasction_log("resending eof pdu",  req->transaction_sequence_number);
                     send_eof_pdu(req, res);
                     break;
                 
@@ -671,30 +619,26 @@ void user_request_handler(Response res, Request *req, Client* client) {
 ------------------------------------------------------------------------------*/
 
 static void request_eof(Request *req, Response res) {
-    
-    ssp_printf("sending eof nak transaction: %llu\n", req->transaction_sequence_number);
+    transasction_log("sending eof nak pdu",  req->transaction_sequence_number);
     send_nak(req, res, EOF_PDU);
 }
 
 static void request_metadata(Request *req, Response res) {
-
-    ssp_printf("sending request for new metadata packet %llu\n", req->transaction_sequence_number);
+    transasction_log("sending meta_data nak pdu",  req->transaction_sequence_number);
     send_nak(req, res, META_DATA_PDU);
 }
 
 static void request_data(Request *req, Response res) {
-
     uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, 0, &req->pdu_header);
-    ssp_printf("sending Nak data transaction: %llu\n", req->transaction_sequence_number);
+    transasction_log("sending data nak pdu",  req->transaction_sequence_number);
     build_nak_packet(req->buff, start, req);
     ssp_sendto(res);
 }
 
-
 static void resend_finished_pdu(Request *req, Response res) {
 
     uint8_t start = build_pdu_header(req->buff, req->transaction_sequence_number, 1, 0, &req->pdu_header);
-    ssp_printf("sending finished pdu transaction: %llu\n", req->transaction_sequence_number);
+    transasction_log("sending finished pdu",  req->transaction_sequence_number);
     build_finished_pdu(req->buff, start);
     ssp_sendto(res);
     req->resent_finished++;   
@@ -718,6 +662,64 @@ void process_pdu_eof(char *packet, Request *req, Response res) {
 }
 
 
+
+void segment_offset_into_data_packets(char *packet, uint32_t start, uint32_t offset_start, uint32_t offset_end, Request *req, Response res){
+
+    int i = 0;
+    int error = 0;
+    uint32_t segment_len = req->buff_len - start;
+
+    for (i = offset_start; i < offset_end; i+= segment_len) {
+
+        if (offset_end - i < segment_len){
+            segment_len = offset_end - i;
+        }
+        
+        //ssp_printf("sending offset start %d to %d\n", i, i + segment_len);
+        //ssp_printf("segment len %d\n",segment_len);
+
+        error = build_data_packet(packet, start, segment_len + start, i, req->file);
+        if (error < 0) {
+            return -1;
+        }
+        
+        ssp_sendto(res);
+    }
+}
+
+int process_nak_pdu_response(char *packet, Request *req, Response res, Client *client){
+    Pdu_nak nak;
+    get_nak_packet(packet, &nak);
+
+    uint32_t packet_index = 0;
+    uint32_t offset_start = 0;
+    uint32_t offset_end = 0;
+    //build new header for outgoing packets
+    uint32_t outgoing_packet_index = build_pdu_header(req->buff, req->transaction_sequence_number, 0, 0, &client->pdu_header);
+    int error = 0;
+    int i = 0;
+
+
+    ssp_printf("sending offset packet start %d offset end %d\n", nak.start_scope, nak.end_scope);
+
+    for (i = 0; i < nak.segment_requests; i++){
+        
+        packet_index = 0;
+
+        memcpy(&offset_start, &nak.segments[packet_index], sizeof(uint32_t));
+        offset_start = ssp_ntohl(offset_start);
+        packet_index += 4;
+
+        memcpy(&offset_end, &nak.segments[packet_index], sizeof(uint32_t));
+        offset_end = ssp_ntohl(offset_end);
+        packet_index += 4;
+
+        segment_offset_into_data_packets(req->buff, outgoing_packet_index, offset_start, offset_end, req, res);
+    }
+
+    return 1;
+
+}
 
 int process_file_request_metadata(Request *req) {
 
@@ -838,13 +840,13 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
         
     uint16_t data_len = get_data_length(packet);
     uint32_t packet_len = packet_index + data_len;
-    ssp_printf("transaction: %llu ", incoming_header.transaction_sequence_number);
 
     //process file data
     if (incoming_header.PDU_type == DATA) {
         if (!req->local_entity.Metadata_recv_indication) {
             if (req->file == NULL) {
-                ssp_printf("file is null\n");
+
+                transasction_log("file is null", incoming_header.transaction_sequence_number);
                 build_temperary_file(req, TEMP_FILESIZE);
             }
         }
@@ -863,7 +865,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
             if (req->local_entity.Metadata_recv_indication)
                 break;
 
-            ssp_printf("received metadata packet transaction \n");
+            transasction_log("received metadata packet transaction", incoming_header.transaction_sequence_number);
             process_metadata(packet, packet_index, res, req, app);
             break;
     
@@ -871,7 +873,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
             if (req->local_entity.EOF_recv_indication)
                 break;
 
-            ssp_printf("received eof packet\n");
+            transasction_log("received eof packet", incoming_header.transaction_sequence_number);
             process_pdu_eof(&packet[packet_index], req, res);
             break;
 
@@ -883,7 +885,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
             {
                 case FINISHED_PDU:
                     //get_finished_pdu(char *packet, Pdu_finished *pdu_finished)
-                    ssp_printf("received finished packet Ack\n");
+                    transasction_log("received finished packet Ack", incoming_header.transaction_sequence_number);
                     req->local_entity.transaction_finished_indication = true;
                     break;
             

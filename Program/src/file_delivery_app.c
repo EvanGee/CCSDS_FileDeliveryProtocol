@@ -78,7 +78,6 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
 
     memset(app, 0, sizeof(FTP));
 
-    ssp_printf("initializing ftp server task");
     
     error = ssp_mkdir("incomplete_requests");
     if (error < 0) {
@@ -200,6 +199,7 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
 
     app->current_request = NULL;
     
+    ssp_printf("initializing ftp server task: ");
     return create_ssp_server_drivers(app);
 }
 

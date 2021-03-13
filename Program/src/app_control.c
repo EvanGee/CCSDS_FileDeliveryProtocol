@@ -211,9 +211,6 @@ static void client_check_callback(Node *node, void *client, void *args) {
 
 int refresh_response_struct(Response old_res, Response new_res){
 
-    if (old_res.addr == new_res.addr)
-        return 1;
-
     if (old_res.size_of_addr != new_res.size_of_addr){
         ssp_printf("res struct sizes are not the same\n");
         return -1;
