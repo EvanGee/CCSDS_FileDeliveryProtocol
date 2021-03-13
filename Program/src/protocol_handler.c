@@ -231,8 +231,9 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
         ssp_error("no new data was written\n");
         return;
     }
-
+    ssp_printf("processing checksum before %lu\n", file->partial_checksum);
     file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
+    ssp_printf("processing checksum after %lu\n", file->partial_checksum);
     
     if (file->missing_offsets->count == 0)
         return;
@@ -407,10 +408,15 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
     int bytes = data_len - size_of_offset_bytes;
 
     //calculate checksum for data packet, this is used to calculate in transit checksums
+    ssp_printf("processing checksum before %lu\n", file->partial_checksum);
     file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
+    ssp_printf("processing checksum after %lu\n", file->partial_checksum);
+    ssp_printf("sending packet data offset:size %d:%d\n", file->next_offset_to_send, file->next_offset_to_send + bytes);
+
+
     file->next_offset_to_send += bytes;
 
-    ssp_printf("sending packet data offset:size %d:%d\n", file->next_offset_to_send, file->total_size);
+    
 
     if (file->next_offset_to_send == file->total_size)
         return 1;
@@ -836,7 +842,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
         
     uint16_t data_len = get_data_length(packet);
     uint32_t packet_len = packet_index + data_len;
-    ssp_printf("transaction: %d ", incoming_header.transaction_sequence_number);
+    ssp_printf("transaction: %llu ", incoming_header.transaction_sequence_number);
 
     //process file data
     if (incoming_header.PDU_type == DATA) {
@@ -852,6 +858,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
     
 
     Pdu_directive *directive = (Pdu_directive *) &packet[packet_index];
+    Pdu_ack ack_packet;
     packet_index++;
 
     switch (directive->directive_code)
@@ -873,7 +880,7 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
             break;
 
         case ACK_PDU:
-            Pdu_ack ack_packet;
+            
             get_ack_from_packet(&packet[packet_index], &ack_packet);
 
             switch (ack_packet.directive_code)

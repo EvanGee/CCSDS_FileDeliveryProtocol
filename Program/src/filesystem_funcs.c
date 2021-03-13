@@ -142,8 +142,11 @@ uint32_t calc_check_sum(char *data, uint32_t length) {
     uint32_t check_sum = 0;
     uint32_t end = length - 4;
     unsigned int i = 0;
+    uint32_t bytes_to_add = 0;
+
     for (i = 0; i < end; i+= 4){
-        check_sum += *((uint32_t *) &data[i]);
+        bytes_to_add = ssp_htonl(*(uint32_t *) &data[i]);
+        check_sum += bytes_to_add;
     }
     
     if (remaining_bytes){
