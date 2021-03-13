@@ -147,7 +147,7 @@ uint32_t calc_check_sum(char *data, uint32_t length) {
     for (i = 0; i < end; i+= 4){
         bytes_to_add = ssp_htonl(*(uint32_t *) &data[i]);
         check_sum += bytes_to_add;
-    }
+            }
     
     if (remaining_bytes){
         uint8_t last_chunk[4];
@@ -159,7 +159,8 @@ uint32_t calc_check_sum(char *data, uint32_t length) {
             last_chunk[i] = data[end + i];
         } 
           
-        check_sum += ssp_htonl(*((uint32_t*) &last_chunk));        
+        check_sum += ssp_htonl(*((uint32_t*) &last_chunk));
+               
     }
 
     return check_sum;
