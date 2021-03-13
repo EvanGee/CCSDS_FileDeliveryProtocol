@@ -159,7 +159,7 @@ uint32_t calc_check_sum(char *data, uint32_t length) {
             last_chunk[i] = data[end + i];
         } 
           
-        check_sum += *((uint32_t*) &last_chunk);        
+        check_sum += ssp_htonl(*((uint32_t*) &last_chunk));        
     }
 
     return check_sum;
