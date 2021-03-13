@@ -1,7 +1,7 @@
 
-#PROJDIR = $(CURDIR)/..
-PROJDIR = $(CURDIR)/../../../../../
-INCLUDE += -I$(CURDIR)/../include
+PROJDIR = $(CURDIR)/..
+#PROJDIR = $(CURDIR)/../../../../../
+INCLUDE += -I$(PROJDIR)/include
 
 #---------------------------FOR FREE RTOS INTEGRATION---------------------------
 #path to source includes
@@ -20,6 +20,7 @@ INCLUDE += -I$(PROJDIR)/libcsp/include/csp
 INCLUDE += -I$(PROJDIR)/libcsp/include
 INCLUDE += -I$(PROJDIR)/libcsp/build/include
 INCLUDE += -I$(PROJDIR)/libcsp/src
+INCLUDE += -I$(PROJDIR)/libcsp
 #-------------------------------------------------------------------------------
 CC = gcc 
 
@@ -27,8 +28,7 @@ CC = gcc
 CFILES += port.c 
 CFILES += file_delivery_app.c
 CFILES += utils.c
-CFILES += tasks.c
-CFILES += posix_server_provider.c  #used for poxix port
+CFILES += app_control.c
 CFILES += csp_server_provider.c
 CFILES += protocol_handler.c
 CFILES += mib.c
@@ -37,6 +37,7 @@ CFILES += requests.c
 CFILES += list.c
 CFILES += packet.c
 CFILES += generic_server_provider.c
+CFILES += posix_server_provider.c  #used for poxix port
 #----------------------------test files-------------------------
 
 #entrypoint
@@ -68,7 +69,7 @@ CWARNS += -Wmissing-prototypes
 #---------------------------Libs---------------------------
 LINKFLAGS = 
 LIBS = -pthread
-#STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
+STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
 #STATIC_FILES += $(PROJDIR)/FreeRtos
 
 #---------------------------Compiler flags---------------------------

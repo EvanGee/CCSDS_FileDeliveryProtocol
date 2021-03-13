@@ -229,9 +229,9 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
 
     char *buff = ssp_alloc(packet_len, sizeof(char));
     if (buff == NULL) {
+        ssp_printf("exiting serv thread\n");
         return;
     }
-    memset(buff, 0, packet_len);
 
 	/* Process incoming connections */
 	for (;;) {
@@ -292,13 +292,15 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 	csp_conn_t * conn;
 
 
-    char buff[packet_len];
-    memset(buff, 0, packet_len);
+    char *buff = ssp_alloc(packet_len, sizeof(char));
+    if (buff == NULL) {
+        ssp_printf("exiting client thread\n");
+        return;
+    }
 
 	while (1) {
 
         if (get_exit() || checkExit(params)){
-            ssp_printf("exiting client thread\n");
             break;
         }
         
@@ -332,4 +334,5 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 		csp_close(conn);
         onExit(params);
 	}
+    ssp_free(buff);
 }

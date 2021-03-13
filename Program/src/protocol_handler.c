@@ -231,9 +231,7 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
         ssp_error("no new data was written\n");
         return;
     }
-    ssp_printf("processing checksum before %lu\n", file->partial_checksum);
     file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
-    ssp_printf("processing checksum after %lu\n", file->partial_checksum);
     
     if (file->missing_offsets->count == 0)
         return;
@@ -408,9 +406,7 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
     int bytes = data_len - size_of_offset_bytes;
 
     //calculate checksum for data packet, this is used to calculate in transit checksums
-    ssp_printf("processing checksum before %lu\n", file->partial_checksum);
     file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
-    ssp_printf("processing checksum after %lu\n", file->partial_checksum);
     ssp_printf("sending packet data offset:size %d:%d\n", file->next_offset_to_send, file->next_offset_to_send + bytes);
 
 

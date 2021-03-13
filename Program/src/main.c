@@ -28,7 +28,7 @@ Author: Evan Giese
 #include "posix_server_provider.h"
 //for ssp_thread_join, can use p_thread join on linux
 
-#include "tasks.h"
+#include "app_control.h"
 #include "mib.h"
 
 #ifdef CSP_NETWORK
@@ -216,9 +216,12 @@ int main(int argc, char** argv) {
         sleep(5);
 
         //csp_custom_ftp_ping(conf->client_cfdp_id);
-        //Request *req = put_request(client_id, "test.txt", "test-received.txt", UN_ACKNOWLEDGED_MODE, &app);
-
-    
+        //put_request(client_id, "test.txt", "test-received.txt", UN_ACKNOWLEDGED_MODE, &app);
+        
+        put_request(client_id, "mib/peer_1.json", "mib/peer_test.json", ACKNOWLEDGED_MODE, &app);
+        //sleep(5);
+        //put_request(client_id, "test.txt", "test-received.txt", UN_ACKNOWLEDGED_MODE, &app);
+    /*
         Request *req2 = init_request_no_client();
         put_request_no_client(req2, NULL, NULL, UN_ACKNOWLEDGED_MODE, &app);
         add_proxy_message_to_request(app.my_cfdp_id, 1, "mib/peer_0.json","GET_REQUEST", req2);
@@ -228,7 +231,7 @@ int main(int argc, char** argv) {
             ssp_printf("client failed to start\n");
         } else 
             add_request_to_client(req2, client);
-        
+    */
     
     }
 

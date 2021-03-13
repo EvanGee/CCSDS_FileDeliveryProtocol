@@ -5,7 +5,7 @@ please include this text, that is my only stipulation.
 Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #include "protocol_handler.h"
-#include "tasks.h"
+#include "app_control.h"
 #include "port.h"
 #include "mib.h"
 #include "filesystem_funcs.h"
@@ -21,6 +21,13 @@ Author: Evan Giese
 
 //for print_request_state
 #include "requests.h"
+
+
+/*------------------------------------------------------------------------------
+    
+    Generic functions
+
+------------------------------------------------------------------------------*/
 
 /*
 //usefull for cpu clocks
@@ -52,12 +59,6 @@ static int check_timeout(int *prevtime, uint32_t timeout) {
     return 0; 
 }
 
-/*------------------------------------------------------------------------------
-    
-    Callbacks for the tasks bellow
-
-------------------------------------------------------------------------------*/
-
 //sets request procedure as clean_up if ttl has passed
 static void timeout(Request *req) {
 
@@ -85,42 +86,29 @@ static void timeout(Request *req) {
     }
 }
 
+void remove_request_check(Node *node, void *request, void *args) {
+    Request *req = (Request *) request;
+    List *req_list = (List *) args;
 
-static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
+    if (req->procedure == clean_up) {
+        ssp_printf("removing request\n");
+        Request *remove_this = req_list->removeNode(req_list, node);
 
+        if (req->local_entity.transaction_finished_indication || req->transmission_mode == UN_ACKNOWLEDGED_MODE) {
+            int error = delete_saved_request(req);
+            if (error < 0)
+                ssp_error("couldn't delete finished request, the request may have finished before journaling it\n");
+        }
 
-    FTP *app = (FTP *) other;
-    if (packet_len > app->packet_len) {
-        ssp_printf("packet received is too big for app\n");
-        return -1;
+        ssp_cleanup_req(remove_this);
     }
-
-    Response res;
-    res.addr = addr;
-    res.sfd = sfd;
-    res.size_of_addr = size_of_addr;
-    
-    Pdu_header incoming_pdu_header;
-    Request **request_container = &app->current_request;
-
-    int packet_index = process_pdu_header(packet, true, &incoming_pdu_header, res, request_container, app->request_list, app);
-    if (packet_index < 0) {
-        ssp_printf("error parsing header\n");
-        return -1;
-    }
-
-    Request *current_request = (*request_container);
-    app->current_request = current_request;
-    
-    int count = parse_packet_server(packet, packet_index, app->current_request->res, current_request, incoming_pdu_header, app);
-
-    reset_timeout(&current_request->timeout_before_cancel);
-
-    memset(packet, 0, count);
-
-    return count;
-
 }
+
+/*------------------------------------------------------------------------------
+    
+    client callbacks
+
+------------------------------------------------------------------------------*/
 
 
 static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
@@ -159,24 +147,6 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
     
     return 0;
     
-}
-
-void remove_request_check(Node *node, void *request, void *args) {
-    Request *req = (Request *) request;
-    List *req_list = (List *) args;
-
-    if (req->procedure == clean_up) {
-        ssp_printf("removing request\n");
-        Request *remove_this = req_list->removeNode(req_list, node);
-
-        if (req->local_entity.transaction_finished_indication || req->transmission_mode == UN_ACKNOWLEDGED_MODE) {
-            int error = delete_saved_request(req);
-            if (error < 0)
-                ssp_error("couldn't delete finished request, the request may have finished before journaling it\n");
-        }
-
-        ssp_cleanup_req(remove_this);
-    }
 }
 
 struct user_request_check_params {
@@ -222,15 +192,11 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
     return 0;
 }
 
+/*------------------------------------------------------------------------------
+    
+    Server callbacks
 
-
-static void timeout_check_callback_server(Node *node, void *request, void *args) {
-    Request *req = (Request *) request;
-    on_server_time_out(req->res, req); 
-    timeout(req);
-    remove_request_check(node, request, args);
-}
-
+------------------------------------------------------------------------------*/
 
 static void client_check_callback(Node *node, void *client, void *args) {
     Client *c = (Client *) client;
@@ -240,10 +206,35 @@ static void client_check_callback(Node *node, void *client, void *args) {
         ssp_printf("removing client, from server \n");
         ssp_client_join(remove_this);
     }
+}
+
+
+int refresh_response_struct(Response old_res, Response new_res){
+
+    if (old_res.addr == new_res.addr)
+        return 1;
+
+    if (old_res.size_of_addr != new_res.size_of_addr){
+        ssp_printf("res struct sizes are not the same\n");
+        return -1;
+    }
+    
+    if (memcmp(old_res.addr, new_res.addr, old_res.size_of_addr) == 0 ) {
+        return 1;
+    }
+
+    ssp_printf("setting response struct\n");
+    memcpy(new_res.addr, old_res.addr, old_res.size_of_addr);
 
 }
 
-//this function is a callback for servers
+static void timeout_check_callback_server(Node *node, void *request, void *args) {
+    Request *req = (Request *) request;
+    on_server_time_out(req->res, req); 
+    timeout(req);
+    remove_request_check(node, request, args);
+}
+
 static int on_time_out_callback_server(void *other) {
 
     FTP *app = (FTP*) other;
@@ -257,6 +248,53 @@ static int on_time_out_callback_server(void *other) {
 
     return 0;
 }
+
+static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
+
+    FTP *app = (FTP *) other;
+    if (packet_len > app->packet_len) {
+        ssp_printf("packet received is too big for app\n");
+        return -1;
+    }
+
+    Response res;
+    res.addr = addr;
+    res.sfd = sfd;
+    res.size_of_addr = size_of_addr;
+    
+    Pdu_header incoming_pdu_header;
+    Request **request_container = &app->current_request;
+
+    int packet_index = process_pdu_header(packet, true, &incoming_pdu_header, res, request_container, app->request_list, app);
+    if (packet_index < 0) {
+        ssp_printf("error parsing header\n");
+        return -1;
+    }
+
+    Request *current_request = (*request_container);
+    app->current_request = current_request;
+    
+    //refresh response
+    int error = refresh_response_struct(current_request->res, res);
+    if (error < 0) {
+        ssp_printf("failed to connect to new client\n");
+        return -1;
+    }
+    
+    int count = parse_packet_server(packet, packet_index, app->current_request->res, current_request, incoming_pdu_header, app);
+
+    reset_timeout(&current_request->timeout_before_cancel);
+
+    memset(packet, 0, count);
+
+    return count;
+
+}
+/*------------------------------------------------------------------------------
+    
+    check exit callbacks, will exit the app if returns 1
+
+------------------------------------------------------------------------------*/
 
 static int check_exit_server_callback(void *params) {
     FTP *app = (FTP*) params;
@@ -272,6 +310,12 @@ static int check_exit_client_callback(void *params) {
     return 0;
 }
 
+/*------------------------------------------------------------------------------
+    
+    on Exit callbacks, used for cleaning up memory when exiting app
+
+------------------------------------------------------------------------------*/
+
 static void on_exit_client_callback (void *params) {
     
 }
@@ -281,9 +325,11 @@ static void on_exit_server_callback (void *params) {
     ssp_cleanup_ftp(app);
 }
 
+/*------------------------------------------------------------------------------
+    
+    on std in
 
-//this function is just for stdin fun, I haven't decided if we need need to use
-//std in for anything, but we could use it to pass in args to the daemon.
+------------------------------------------------------------------------------*/
 static int on_stdin_callback(void *other) {
 
     /*
@@ -324,11 +370,9 @@ static int on_stdin_callback(void *other) {
 
 /*------------------------------------------------------------------------------
     
-    Tasks
+    different server/client drivers
 
 ------------------------------------------------------------------------------*/
-
-
 
 static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port){
     //convert int to char *
@@ -348,8 +392,6 @@ static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port)
     }
     return 0;
 }
-//------------------------------------------------------------------------------
-
 
 void *ssp_connectionless_server_task(void *params) {
     #ifdef POSIX_PORT

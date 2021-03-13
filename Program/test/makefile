@@ -22,7 +22,7 @@ CFILES += $(PROJDIR)/src/csp_server_provider.c
 CFILES += $(PROJDIR)/src/protocol_handler.c
 CFILES += $(PROJDIR)/src/mib.c
 CFILES += $(PROJDIR)/src/requests.c
-CFILES += $(PROJDIR)/src/tasks.c
+CFILES += $(PROJDIR)/src/app_control.c
 CFILES += $(PROJDIR)/src/file_delivery_app.c
 CFILES += $(PROJDIR)/src/list.c
 CFILES += $(PROJDIR)/src/packet.c
@@ -73,7 +73,7 @@ STATIC_FILES += $(PROJDIR)/libcsp/build/libcsp.a
 #---------------------------Compiler flags---------------------------
 
 #32 bit machines, leave this out if your machine is 64 bit
-CFLAGS += -m32
+#CFLAGS += -m32
 CFLAGS += -g -UUSE_STDIO -D__GCC_POSIX__=1
 CFLAGS += -pthread
 CFLAGS += -DDEBUG=1
