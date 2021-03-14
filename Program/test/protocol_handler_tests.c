@@ -190,6 +190,9 @@ int test_process_nak() {
     memset(packet, 0, 1500);
 
     Request *req = mock_request();
+    Response *res = mock_response();
+    Client *client = mock_client();
+
     ssp_free_file(req->file);
     req->file = create_file("test_files/nak_test.jpg", 0);
 
@@ -199,7 +202,8 @@ int test_process_nak() {
     File *file = create_file(req->destination_file_name, 1);
     add_first_offset(file, req->file->total_size);
 
-    process_nak_pdu(&packet[start + SIZE_OF_DIRECTIVE_CODE], file);
+
+    process_nak_pdu(&packet[start + SIZE_OF_DIRECTIVE_CODE], req, *res, client);
 
     int error = 0;
     error = ASSERT_EQUALS_INT("Nak list count should be of size 1",  file->missing_offsets->count, 1);
@@ -224,7 +228,7 @@ int protocol_handler_test() {
     error = test_process_pdu_eof();
     //error = test_on_server_time_out();
     error = test_process_data_packet();
-    //error = test_process_nak();
+    error = test_process_nak();
 
     return error;
 }

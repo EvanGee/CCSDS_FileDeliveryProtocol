@@ -65,6 +65,10 @@ File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *fil
     return file;
 }
 
+Client *mock_client() {
+    return init_client(2, 1);
+
+}
 
 Response *mock_response(char *buffer) {
     Response *res = calloc(1, sizeof(Response));

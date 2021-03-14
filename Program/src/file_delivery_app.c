@@ -225,15 +225,15 @@ void *create_ftp_task(uint32_t cfdp_id, FTP *app){
     return handler;
 }
 
-Client *ssp_client(uint32_t cfdp_id, FTP *app) {
+
+Client *init_client(uint32_t dest_cfdp_id, uint32_t my_cfdp_id){
 
     Remote_entity remote_entity;
-    int error = get_remote_entity_from_json(&remote_entity, cfdp_id);
+    int error = get_remote_entity_from_json(&remote_entity, dest_cfdp_id);
     if (error < 0) {
         ssp_error("couldn't get client remote_entity from mib\n");
         return NULL;
     }
-
 
     Client *client = ssp_alloc(sizeof(Client), 1);
     if (client == NULL)
@@ -255,16 +255,30 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
 
     client->close = 0;
     client->remote_entity = remote_entity;
-    get_header_from_mib(&client->pdu_header, remote_entity, app->my_cfdp_id);
+    get_header_from_mib(&client->pdu_header, remote_entity, my_cfdp_id);
     
     client->current_request = NULL;
-    client->app = app;
+    return client;
+}
 
-    error = create_ssp_client_drivers(client);
+Client *ssp_client(uint32_t cfdp_id, FTP *app) {
+
+    Client *client = init_client(cfdp_id, app->my_cfdp_id);
+    if (client == NULL) {
+        return NULL;
+    }
+
+    int error = create_ssp_client_drivers(client);
     if (error < 0) {
-        ssp_free(client);
-        ssp_free(client->buff);
-        client->request_list->freeOnlyList(client->request_list);        
+        ssp_cleanup_client(client);
+        return NULL;
+    }
+
+    client->app = app;
+    error = app->active_clients->insert(app->active_clients, client, cfdp_id);
+    if (error < 0) {
+        ssp_cleanup_client(client);
+        ssp_printf("failed to add client to list of existing clients\n");
         return NULL;
     }
     return client;

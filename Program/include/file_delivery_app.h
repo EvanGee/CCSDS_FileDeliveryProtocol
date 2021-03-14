@@ -13,5 +13,6 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app);
 void create_ssp_server(FTP *app);
 int create_ssp_server_drivers(FTP *app);
 void *create_ftp_task(uint32_t cfdp_id, FTP *app);
+Client *init_client(uint32_t dest_cfdp_id, uint32_t my_cfdp_id);
 
 #endif
