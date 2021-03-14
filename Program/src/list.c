@@ -12,7 +12,7 @@ Author: Evan Giese
     new node, or NULL if failed
 ------------------------------------------------------------------------------*/
 
-Node *createNode(void *element, uint32_t id)
+Node *createNode(void *element, int id)
 {
     Node *newNode = ssp_alloc(sizeof(Node), 1);
     if (newNode == NULL) {
@@ -57,7 +57,7 @@ static void *pop(List *list) {
     linked list, returns the new node. 
 ------------------------------------------------------------------------------*/
 
-static int insert(List *list, void *element, uint32_t id) {
+static int insert(List *list, void *element, int id) {
 
     Node *head = list->head;
     Node *node = createNode(element, id);
@@ -79,7 +79,7 @@ static int insert(List *list, void *element, uint32_t id) {
     0 if failed.
 ------------------------------------------------------------------------------*/
 
-static int push(List *list, void *element, uint32_t id)
+static int push(List *list, void *element, int id)
 {
 
     Node *newNode = createNode(element, id);
@@ -142,7 +142,7 @@ static void *removeNode(List *list, Node *node) {
     element (callback can be the find function)
 ------------------------------------------------------------------------------*/
 
-static void *removeElement(List *list, uint32_t id, int (*f)(void *element, void *args), void *args)
+static void *removeElement(List *list, int id, int (*f)(void *element, void *args), void *args)
 {
     Node *cur = list->head;
     int found_with_func = 0;
@@ -211,7 +211,7 @@ static void freeNodes(List *list) {
     either a callback, or id
 ------------------------------------------------------------------------------*/
 
-static void *findElement(List *list, uint32_t id, int (*f)(void *element, void *args), void *args)
+static void *findElement(List *list, int id, int (*f)(void *element, void *args), void *args)
 {
 
     Node *cur = list->head->next;
@@ -233,7 +233,7 @@ static void *findElement(List *list, uint32_t id, int (*f)(void *element, void *
     return NULL;
 }
 
-static int insertAt(List *list, void *element, uint32_t id, int (*f)(void *element, void *args), void *args) {
+static int insertAt(List *list, void *element, int id, int (*f)(void *element, void *args), void *args) {
   
     Node *cur = list->head->next;
     int found_with_func = 0;
@@ -261,7 +261,7 @@ static int insertAt(List *list, void *element, uint32_t id, int (*f)(void *eleme
 }
 
  
-static Node *findNode(List *list, uint32_t id, int (*f)(void *element, void *args), void *args) {
+static Node *findNode(List *list, int id, int (*f)(void *element, void *args), void *args) {
 
     Node *cur = list->head->next;
     int found_with_func = 0;

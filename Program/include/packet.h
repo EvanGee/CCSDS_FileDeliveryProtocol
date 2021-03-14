@@ -18,6 +18,16 @@ int build_pdu_header(char *packet, uint64_t transaction_sequence_number, uint32_
 uint8_t build_finished_pdu(char *packet, uint32_t start);
 uint8_t build_put_packet_metadata(char *packet, uint32_t start, Request *req);
 uint8_t build_nak_response(char *packet, uint32_t start, uint32_t offset, Request *req, Client* client);
+void get_finished_pdu(char *packet, Pdu_finished *pdu_finished);
+int get_nak_packet(char *packet, Pdu_nak *nak);
+
+int copy_id_to_packet(char *bytes, uint64_t id);
+int copy_id_lv_to_packet(char *bytes, uint64_t id);
+int copy_id_lv_from_packet(char *bytes,  uint64_t *id);
+uint64_t copy_id_from_packet(char *bytes, uint32_t length_of_ids);
+void set_packet_directive(char *packet, uint32_t location, uint8_t directive);
+void set_bits_to_protocol_byte(char *byte, uint8_t from_position, uint8_t to_position, uint8_t value);
+
 
 uint32_t get_data_offset_from_packet(char *packet);
 

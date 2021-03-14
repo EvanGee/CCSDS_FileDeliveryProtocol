@@ -8,9 +8,9 @@ Author: Evan Giese
 #define PROTOCOL_H
 #include "types.h"
 
-#define RESEND_EOF_TIMES 3
-#define RESEND_FINISHED_TIMES 10
-#define RESEND_META_TIMES 3
+#define RESEND_EOF_TIMES 1
+#define RESEND_FINISHED_TIMES 1
+#define RESEND_META_TIMES 1
 
 #define TIMEOUT_BEFORE_CANCEL_REQUEST 60
 #define TIMEOUT_BEFORE_SAVE_REQUEST 30
@@ -34,10 +34,9 @@ void process_messages(Request *req, FTP *app);
 void process_data_packet(char *packet, uint32_t data_len, File *file);
 int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t length);
 
-
+int process_nak_pdu(char *packet, Request *req, Response res, Client *client);
 uint8_t build_ack (char *packet, uint32_t start, uint8_t type);
 int process_file_request_metadata(Request *req);
-int nak_response(char *packet, uint32_t start, Request *req, Response res, Client *client);
 void set_data_length(char*packet, uint16_t data_len);
 uint32_t build_nak_packet(char *packet, uint32_t start, Request *req);
 uint16_t get_data_length(char*packet);

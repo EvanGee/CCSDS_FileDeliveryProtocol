@@ -157,7 +157,7 @@ int csp_custom_ftp_ping(uint32_t dest_id){
     if (conn == NULL) {
         /* Connect failed */
         ssp_printf("Connection failed\n");
-        return;
+        return -1;
     }
 
     ssp_printf("connection established, sending ping to id %d port %d \n", dest_id, 1);
@@ -208,8 +208,6 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
         return;
     }
 
-    uint8_t src_id = csp_get_address();
-
 	//Bind all ports to socket
 	error = csp_bind(sock, my_port);
 	if (error != CSP_ERR_NONE) {
@@ -224,7 +222,6 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
     }
 	//Pointer to current connection and packet
 	csp_conn_t *conn;
-	csp_conn_t *conn_waiting;
 	csp_packet_t *packet;
 
     char *buff = ssp_alloc(packet_len, sizeof(char));
@@ -233,43 +230,28 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
         return;
     }
 
-	/* Process incoming connections */
-	for (;;) {
 
-        if (get_exit() || checkExit(other)){
-            ssp_printf("exiting serv thread\n");
+    for (;;) {
+
+        if (get_exit() || checkExit(other))
             break;
-        }
-        
-		/* Wait for connection, 1000 ms timeout */
-		if ((conn = csp_accept(sock, 10)) == NULL) {
+    
+        conn = csp_accept(sock, 1000);
+        if (conn == NULL) {
             onTimeOut(other);
             continue;
         }
 
-        for (;;) {
+        while ((packet = csp_read(conn, 1000)) != NULL) {
 
-            if (get_exit() || checkExit(other))
-                break;
-        
-            conn_waiting = csp_accept(sock, 1000);
-            if (conn_waiting != NULL) {
-                csp_close(conn);
-                conn = conn_waiting;
-            }
+            memcpy(buff, (char *)packet->data, packet_len);
 
-            onTimeOut(other);
+            if (onRecv(-1, buff, packet_len, NULL, conn, sizeof(struct csp_conn_s), other) == -1)
+                    ssp_printf("recv failed\n");
 
-            while ((packet = csp_read(conn, 1000)) != NULL) {
-
-                memcpy(buff, (char *)packet->data, packet_len);
-
-                if (onRecv(-1, buff, packet_len, NULL, conn, sizeof(struct csp_conn_s), other) == -1)
-                        ssp_printf("recv failed\n");
-
-                csp_buffer_free(packet);
-            }
+            csp_buffer_free(packet);
         }
+        
 
         csp_close(conn);
         onExit(other);

@@ -16,7 +16,12 @@ Author: Evan Giese
                                     creating packets
 
 ------------------------------------------------------------------------------*/
-
+void set_bits_to_protocol_byte(char *byte, uint8_t from_position, uint8_t to_position, uint8_t value) {
+    char bit_mask = value;
+    uint8_t bits_to_shift_left = 7-to_position;
+    char bits_to_add = bit_mask << bits_to_shift_left;
+    *byte = *byte | bits_to_add;
+}
 
 // if is_data_packet is false, then is directive pacnket
 static void set_packet_header(char *packet, uint16_t data_len, bool is_data_packet) {
@@ -24,12 +29,7 @@ static void set_packet_header(char *packet, uint16_t data_len, bool is_data_pack
     set_data_length(packet, data_len);
 }
 
-void set_bits_to_protocol_byte(char *byte, uint8_t from_position, uint8_t to_position, uint8_t value) {
-    char bit_mask = value;
-    uint8_t bits_to_shift_left = 7-to_position;
-    char bits_to_add = bit_mask << bits_to_shift_left;
-    *byte = *byte | bits_to_add;
-}
+
 //get bits fromleft to right
 uint8_t get_bits_from_protocol_byte(char byte, uint8_t from_position, uint8_t to_position){
     uint8_t bits_to_shift_left = from_position;
@@ -110,9 +110,10 @@ int copy_id_lv_to_packet(char *bytes, uint64_t id) {
 int copy_id_lv_from_packet(char *bytes,  uint64_t *id){
 
     uint8_t len = bytes[0];
+    uint64_t error = -1;
 
     uint64_t id_recv = copy_id_from_packet(&bytes[1], len);
-    if (id_recv < 0) {
+    if (id_recv == error) {
         ssp_printf("failed to copy id from packet %d\n", id_recv);
         return -1;
     }
@@ -161,24 +162,25 @@ int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
     
 
     //ssp_printf("length of entities %d\n", pdu_header->length_of_entity_IDs);
+    uint64_t error = -1;
 
     int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
     pdu_header->source_id = copy_id_from_packet(&packet[source_id_location], pdu_header->length_of_entity_IDs);
-    if (pdu_header->source_id < 0) {
+    if (pdu_header->source_id == error) {
         ssp_error("failed to get source_id");
         return -1;
     }   
 
     int32_t transaction_number_location = source_id_location + pdu_header->length_of_entity_IDs;
     pdu_header->transaction_sequence_number = copy_id_from_packet(&packet[transaction_number_location], pdu_header->transaction_seq_num_len);
-    if (pdu_header->transaction_sequence_number < 0) {
+    if (pdu_header->transaction_sequence_number == error) {
         ssp_error("failed to get transaction_sequence_number");
         return -1;
     }   
 
     int32_t dest_id_location = transaction_number_location + pdu_header->transaction_seq_num_len;
     pdu_header->destination_id = copy_id_from_packet(&packet[dest_id_location], pdu_header->length_of_entity_IDs);
-    if (pdu_header->destination_id < 0) {
+    if (pdu_header->destination_id == error) {
         ssp_error("failed to get destination_id");
         return -1;
     }   
@@ -243,7 +245,7 @@ typedef struct pdu_finished {
 
 }Pdu_finished;
 */
-uint32_t get_finished_pdu(char *packet, Pdu_finished *pdu_finished) {
+void get_finished_pdu(char *packet, Pdu_finished *pdu_finished) {
 
     pdu_finished->condition_code = get_bits_from_protocol_byte(packet[0], 0, 3);
     pdu_finished->end_system_status = get_bits_from_protocol_byte(packet[0], 4, 4);
@@ -649,7 +651,7 @@ static void add_messages_callback(Node *node, void *element, void *args) {
     char *packet = params->packet;
     uint32_t packet_index = *(params->packet_index);
     Message *message = (Message *) element;
-    int error, bytes = 0;
+    int bytes = 0;
 
     //since this is a callback functions, we can't return -1, intead we just log
     char *error_msg = "there was an issue copying bytes for the message: %s\n";
@@ -737,7 +739,6 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
     uint32_t message_type = start + 5;
     uint32_t message_start = start + 6;
 
-    int error = 0;
     int id_len = 0;
     switch (packet[message_type])
     {

@@ -29,23 +29,23 @@ typedef struct List
     struct Node *head;
     struct Node *tail;
     uint32_t count;
-    int (*push)(struct List *list, void *element,  uint32_t id);
-    void *(*remove)(struct List *list, uint32_t id, int (*f)(void *element, void *args), void *args);
+    int (*push)(struct List *list, void *element,  int id);
+    void *(*remove)(struct List *list, int id, int (*f)(void *element, void *args), void *args);
     void (*iterate)(struct List *list, void (*f)(Node *node, void *element, void *args), void *args);
     void (*free)(struct List *list, void (*f)(void *element));
     void *(*pop) (struct List *list);
-    int (*insert) (struct List *list, void *element, uint32_t id);
-    int (*insertAt)(struct List *list, void *element, uint32_t id, int (*f)(void *element, void *args), void *args);
+    int (*insert) (struct List *list, void *element, int id);
+    int (*insertAt)(struct List *list, void *element, int id, int (*f)(void *element, void *args), void *args);
     //returns a void pointer that should be cast to the type
-    void *(*find)(struct List *list, uint32_t id, int (*f)(void *element, void *args), void *args);
-    struct Node *(*findNode)(struct List *list, uint32_t id, int (*f)(void *element, void *args), void *args);
+    void *(*find)(struct List *list, int id, int (*f)(void *element, void *args), void *args);
+    struct Node *(*findNode)(struct List *list, int id, int (*f)(void *element, void *args), void *args);
     void (*freeOnlyList)(struct List *list);
     void (*freeNode)(Node *node);
     void *(*removeNode)(struct List *list, Node *node);
 
 } List;
 
-Node *createNode(void *element, uint32_t id);
+Node *createNode(void *element, int id);
 /*------------------------------------------------------------------------------
     Purpose:    This function initializes a linked list LIST *.
     Perameters: empty is just for the compiler errors, TODO use it for something

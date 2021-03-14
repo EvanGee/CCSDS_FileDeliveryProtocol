@@ -72,14 +72,9 @@ static int create_ssp_client_drivers(Client *client) {
 }
 
 
+static void make_default_data(){
 
-int init_ftp(uint32_t my_cfdp_address, FTP *app) {
-    int error = 0;
-
-    memset(app, 0, sizeof(FTP));
-
-    
-    error = ssp_mkdir("incomplete_requests");
+    int error = ssp_mkdir("incomplete_requests");
     if (error < 0) {
         ssp_error("couldn't make directory incomplete_requests it either already exists or there is an issue\n");
     }
@@ -159,6 +154,14 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
             ssp_error("couldn't write default file\n");
         }
     }
+}
+
+int init_ftp(uint32_t my_cfdp_address, FTP *app) {
+    int error = 0;
+
+    memset(app, 0, sizeof(FTP));
+    make_default_data();
+    
 
     Remote_entity remote_entity;
     memset(&remote_entity, 0, sizeof(Remote_entity));

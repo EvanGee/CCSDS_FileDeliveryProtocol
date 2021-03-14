@@ -377,7 +377,7 @@ int put_request_no_client(
     int error =  add_first_offset(req->file, req->file->total_size);
     if (error < 0) {
         ssp_free_file(req->file);
-        return NULL;
+        return -1;
     }
 
     req->file_size = file_size;

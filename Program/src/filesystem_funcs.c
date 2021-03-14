@@ -103,6 +103,8 @@ int get_offset(File *file, void *buff, uint32_t buf_size, int offset) {
     int bytes = ssp_read(file->fd, buff, buf_size);
     if (bytes == -1){
         ssp_error("Could not read anything from file\n");
+    } else if (bytes == 0) {
+        ssp_error("Bytes read 0\n");    
     }
 
     return bytes;
@@ -266,6 +268,7 @@ int add_first_offset(File *file, uint32_t file_size){
     offset->end = file_size;
     offset->start = 0;
     file->missing_offsets->insert(file->missing_offsets, offset, file_size);
+    return 1;
 }
 
 File *create_temp_file(char *file_name, uint32_t size) {
@@ -495,6 +498,7 @@ int write_id(int fd, uint64_t id){
         ssp_error(error_message);
         return -1;
     }
+    return 1;
 }
 
 int read_id(int fd, uint64_t *id){
@@ -636,7 +640,7 @@ static int get_file_name(char *filename, uint32_t dest_cfdp_id, uint32_t cfdp_id
     if (error < 0)
         return -1;
 
-    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s%llu%s", "incomplete_requests/CFID:", dest_cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".request");
+    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s%lu%s", "incomplete_requests/CFID:", dest_cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".request");
 
     return 1;
 }
