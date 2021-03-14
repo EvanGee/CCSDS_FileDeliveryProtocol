@@ -276,7 +276,7 @@ Client *ssp_client(uint32_t cfdp_id, FTP *app) {
 
     client->app = app;
     error = app->active_clients->insert(app->active_clients, client, cfdp_id);
-    if (error < 0) {
+    if (error == 0) {
         ssp_cleanup_client(client);
         ssp_printf("failed to add client to list of existing clients\n");
         return NULL;
