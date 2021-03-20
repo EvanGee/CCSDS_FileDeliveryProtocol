@@ -48,6 +48,7 @@ typedef struct config
     uint8_t verbose_level;
     uint32_t baudrate;
     char *uart_device;
+    bool unackowledged_mode;
 } Config;
 
 
@@ -65,10 +66,10 @@ static Config *configuration(int argc, char **argv)
     conf->my_cfdp_id = 0;
     conf->baudrate = 9600;
     conf->uart_device = NULL;
-    
+    conf->unackowledged_mode = 0;
 
     uint32_t tmp;
-    while ((ch = getopt(argc, argv, "t: i: c: v: k: h ")) != -1)
+    while ((ch = getopt(argc, argv, "t: i: c: v: k: hu ")) != -1)
     {
         switch (ch)
         {
@@ -86,7 +87,9 @@ static Config *configuration(int argc, char **argv)
             tmp = strtol(optarg, NULL, 10);
             conf->verbose_level = (uint8_t) tmp;
             break;
-
+        case 'u':
+            conf->unackowledged_mode = true;
+            break;
         case 'c': 
             tmp = strtol(optarg, NULL, 10);
             conf->client_cfdp_id = tmp;
@@ -105,6 +108,7 @@ static Config *configuration(int argc, char **argv)
             ssp_printf("\n-----------HELP MESSAGE------------\n");
             ssp_printf("\nusage: %s [options] \n\n", basename(argv[0]));
             ssp_printf("Options: %s%s%s%s\n",
+                    "-u un_ackowledged mode\n"
                     "-t <timeout>\n",
                     "-i <my cfdp id for server>\n",
                     "-c <client id>\n",
@@ -196,7 +200,7 @@ int main(int argc, char** argv) {
         csp_route_print_table();
     #endif
 
-
+    
 
 
     FTP app;
@@ -214,11 +218,10 @@ int main(int argc, char** argv) {
     if (client_id != -1) {
 
         sleep(5);
-
         //csp_custom_ftp_ping(conf->client_cfdp_id);
-        //put_request(client_id, "test.txt", "test-received.txt", UN_ACKNOWLEDGED_MODE, &app);
+        put_request(client_id, "udp.jpeg", "test-received.jpg", conf->unackowledged_mode, &app);
         
-        put_request(client_id, "mib/peer_1.json", "mib/peer_test.json", ACKNOWLEDGED_MODE, &app);
+        //put_request(client_id, "mib/peer_1.json", "mib/peer_test.json", ACKNOWLEDGED_MODE, &app);
         //sleep(5);
         //put_request(client_id, "test.txt", "test-received.txt", UN_ACKNOWLEDGED_MODE, &app);
     /*

@@ -537,7 +537,7 @@ uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
     packet_index += 16;
     
     struct packet_nak_helper holder;
-    holder.max_number_of_nak_segments = (req->buff_len - packet_index) / sizeof(Offset);
+    holder.max_number_of_nak_segments = (req->res.packet_len - packet_index) / sizeof(Offset);
     holder.packet = &packet[packet_index];
     holder.current_number_of_segments = 0;
 
@@ -550,6 +550,7 @@ uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
     uint32_t net_end_scope = ssp_htonl(end_scope);
     uint64_t net_segments_number = ssp_htonll(holder.current_number_of_segments);
 
+    ssp_printf("building nak packet offset start:end %d:%d\n", start_scope, end_scope);
     packet_index = start + 1;
 
     memcpy(&packet[packet_index], &net_start_scope, sizeof(uint32_t));

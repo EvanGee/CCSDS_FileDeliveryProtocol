@@ -191,16 +191,18 @@ static int find_nak(void *element, void* args) {
 
     Offset *offset_in_list = (Offset *) element;
     Offset *offset_to_insert = (Offset *) args;
-    if (offset_to_insert->start >= offset_in_list->start && offset_to_insert->start <= offset_in_list->end
-    && offset_to_insert->end <= offset_in_list->end && offset_to_insert->end >= offset_in_list->start) { 
+
+    if (offset_to_insert->start >= offset_in_list->start \
+    && offset_to_insert->start <= offset_in_list->end \
+    && offset_to_insert->end <= offset_in_list->end \
+    && offset_to_insert->end >= offset_in_list->start) { 
         return 1;
     }
-
     return 0;
 }
 
-//ack is 1, nak is 0
-int receive_offset(File *file, uint8_t ack, uint32_t offset_start, uint32_t offset_end) {
+//add_first_offset should be in create file
+int receive_offset(File *file, uint32_t offset_start, uint32_t offset_end) {
     
     List * nak_list = file->missing_offsets;
 
@@ -208,54 +210,61 @@ int receive_offset(File *file, uint8_t ack, uint32_t offset_start, uint32_t offs
     offset_to_insert.start = offset_start;
     offset_to_insert.end = offset_end;
 
+    //iterate through the list, and return the list node
     Node *node = nak_list->findNode(nak_list, -1, find_nak, &offset_to_insert);
-    if (node == NULL){
 
-        ssp_printf("trying to receive offset start:%u end:%u\n", offset_to_insert.start, offset_to_insert.end);
-        ssp_printf("no begining node for receive_offset, or offset we already received, can't add new offset\n");
+    if (node == NULL){
+        ssp_printf("offset already received, can't add new offset:%u end:%u\n", offset_start, offset_end);
         return 0; 
     }
 
     Offset *offset_in_list = (Offset *) node->element;
-    //ssp_printf("received offset start:%u end:%u, found node: start:%u end:%u\n", offset_to_insert.start, offset_to_insert.end, offset_in_list->start, offset_in_list->end);
-
-    //remove node if both start and end are equal
-    if (offset_to_insert.start == offset_in_list->start && offset_to_insert.end == offset_in_list->end) {
-        //ssp_printf("removing node\n");  
+       
+    //remove node if both start and end are equal (remove at function)
+    if (offset_start == offset_in_list->start && offset_end == offset_in_list->end) {
         node->next->prev = node->prev;
         node->prev->next = node->next;
         ssp_free(node->element);
         ssp_free(node);
         nak_list->count--;
         return 1;
-    }
+    
+    //if new offset is in the start, but the end of the offset is smaller than list's end, change the list's node's start
+    } else if (offset_start == offset_in_list->start && offset_start < offset_in_list->end) {
+        offset_in_list->start = offset_end;
+        return 1;
 
-    //if new offset is in the start, change the list's node's start
-    if (offset_to_insert.start == offset_in_list->start && offset_to_insert.start < offset_in_list->end) {
-        offset_in_list->start = offset_to_insert.end;
+    //if offset is at the list end, but the start of the offset is larger than list's start, move previous end down
+    } else if (offset_end == offset_in_list->end && offset_start > offset_in_list->start) {
+        offset_in_list->end = offset_start;
         return 1;
     }
-
+    //if the offset is inbetween the 'start' and the 'end' offsets in the list, add new offset, and make the 
+    //end of the lists first offset the start of the incoming offset, and the start of the second, the end of the incoming 
     Offset *new_offset = ssp_alloc(1, sizeof(Offset));
+    if (new_offset == NULL) {
+        return -1;
+    }
 
-    new_offset->start = offset_in_list->start;
-    offset_in_list->start = offset_end;
-    new_offset->end = offset_start;
+    new_offset->start = offset_end;
+    new_offset->end = offset_in_list->end;
+    offset_in_list->end = offset_start;
 
+    
     Node *cur = node;
     Node *new = createNode(new_offset, new_offset->start);
+    if (new == NULL) {
+        ssp_free(new_offset);
+        return -1;
+    }
 
-    new->next = cur;
-    new->prev = cur->prev;
-    new->prev->next = new;
-    cur->prev = new;
+    new->next = cur->next;
+    new->prev = cur;
+    cur->next = new;
+    new->next->prev = new;
+
     nak_list->count++;
         
-    //remove end node
-    if (offset_in_list->start == offset_in_list->end){
-        ssp_printf("removing last node\n");
-        ssp_free(nak_list->pop(nak_list));
-    }
     return 1;
 
 }

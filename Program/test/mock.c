@@ -13,7 +13,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 
-char buff[1500];
+//char buff[1500];
 
 void mock_mock_remote_entity(Remote_entity *remote_entity, uint32_t cfdp_id) {
 
@@ -66,7 +66,8 @@ File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *fil
 }
 
 Client *mock_client() {
-    return init_client(2, 1);
+    Client *c = init_client(2, 1);
+    return c;
 
 }
 
@@ -84,7 +85,8 @@ Response *mock_response(char *buffer) {
 }
 
 Request *mock_empty_request() {
-    return init_request(buff, sizeof(buff));
+    void *buff = calloc(1500, sizeof(char));
+    return init_request(buff, 1500);
 }
 
 Request *mock_request() {
@@ -114,8 +116,9 @@ Request *mock_request() {
     int addr = 16;
     req->res.addr = malloc(5);
     ssp_memcpy(req->res.addr, &addr, 4);
+
     req->res.sfd = 1;
-    req->res.packet_len = sizeof(buff);
+    req->res.packet_len = 250;
     req->res.size_of_addr = 16;
     req->res.type_of_network = posix_connectionless;
     req->res.transmission_mode = UN_ACKNOWLEDGED_MODE;

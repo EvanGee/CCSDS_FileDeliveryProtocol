@@ -222,12 +222,13 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
     uint32_t offset_start = get_data_offset_from_packet(packet);
     uint32_t packet_index = 4;
 
-    
     //ssp_printf("received data packet offset:%d\n", offset_start);
     // size of 'offset' bytes in packet
     uint32_t offset_end = offset_start + data_len - packet_index;
-    
-    if (!receive_offset(file, 0, offset_start, offset_end)) {
+
+    ssp_printf("received offset %d:%d\n", offset_start, offset_end);
+
+    if (!receive_offset(file, offset_start, offset_end)) {
         ssp_printf("throwing out packet\n");
         return;
     }
@@ -238,11 +239,11 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
         ssp_error("no new data was written\n");
         return;
     }
+
     file->partial_checksum += calc_check_sum(&packet[packet_index], bytes);
-    
+
     if (file->missing_offsets->count == 0)
         return;
-
 }
 
 
@@ -498,7 +499,7 @@ static int segment_offset_into_data_packets(char *packet, uint32_t start, uint32
             segment_len = offset_end - i;
         }
         
-        //ssp_printf("sending offset start %d to %d\n", i, i + segment_len);
+        ssp_printf("sending offset start %d to %d\n", i, i + segment_len);
         //ssp_printf("segment len %d\n",segment_len);
 
         error = build_data_packet(packet, start, segment_len + start, i, req->file);
@@ -515,9 +516,8 @@ static int segment_offset_into_data_packets(char *packet, uint32_t start, uint32
 
 int process_nak_pdu(char *packet, Request *req, Response res, Client *client){
     Pdu_nak nak;
-    get_nak_packet(packet, &nak);
-
-    uint32_t packet_index = 0;
+    
+    uint32_t packet_index = get_nak_packet(packet, &nak);
     uint32_t offset_start = 0;
     uint32_t offset_end = 0;
     //build new header for outgoing packets
@@ -525,11 +525,10 @@ int process_nak_pdu(char *packet, Request *req, Response res, Client *client){
     int i = 0;
 
     ssp_printf("sending offset packet start %d offset end %d\n", nak.start_scope, nak.end_scope);
+    ssp_printf("number of segments requests %d\n", nak.segment_requests);
 
     for (i = 0; i < nak.segment_requests; i++){
         
-        packet_index = 0;
-
         memcpy(&offset_start, (uint32_t*)&nak.segments[packet_index], sizeof(uint32_t));
         offset_start = ssp_ntohl(offset_start);
         packet_index += 4;

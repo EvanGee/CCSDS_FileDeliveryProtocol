@@ -76,7 +76,7 @@ static void test_build_data_packet(char *packet, uint32_t packet_index){
 }
 
 
-static void nak_print(void *element, void *args){
+static void nak_print(Node *node, void *element, void *args){
     Offset *offset = (Offset *)element;
     ssp_printf("start: %u end: %u\n", offset->start, offset->end);
 }
@@ -120,10 +120,9 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
     ASSERT_EQUALS_INT("start offset == 0 ", start_scope, 0);
     ASSERT_EQUALS_INT("end scope == 100000 ", end_scope, 100000);
 
-
-    receive_offset(req->file, 0, 1250, 5000);
-    receive_offset(req->file, 0, 6000, 9000);
-    receive_offset(req->file, 0, 10000, 15000);
+    receive_offset(req->file, 1250, 5000);
+    receive_offset(req->file, 6000, 9000);
+    receive_offset(req->file, 10000, 15000);
 
     data_len = build_nak_packet(packet, start, req);
     set_data_length(packet, data_len);
@@ -182,6 +181,106 @@ static int test_build_nak_packet(char* packet, uint32_t start) {
 }
 
 
+
+static int test_receive_end_offset(File *file){
+    add_first_offset(file, file->total_size);
+    ASSERT_EQUALS_INT("file filesize", 150033, file->total_size);
+    ASSERT_EQUALS_INT("offset length should be 1", 1, file->missing_offsets->count);
+
+    receive_offset(file, 100000, 150033);
+
+    ASSERT_EQUALS_INT("offset length should be 1 after insert end", 1, file->missing_offsets->count);
+    Offset *of =(Offset *) file->missing_offsets->pop(file->missing_offsets);
+    ASSERT_EQUALS_INT("offset start should be 0 after insert end", 0, of->start);
+    ASSERT_EQUALS_INT("offset end should be 100000 after insert end", 100000, of->end);
+    ssp_free(of);
+}
+
+
+static int test_receive_start_offset(File *file){
+    add_first_offset(file, file->total_size);
+    ASSERT_EQUALS_INT("file filesize", 150033, file->total_size);
+    ASSERT_EQUALS_INT("offset length should be 1", 1, file->missing_offsets->count);
+
+    receive_offset(file, 0, 10000);
+
+    ASSERT_EQUALS_INT("offset length should be 1 after insert end", 1, file->missing_offsets->count);
+    Offset *of =(Offset *) file->missing_offsets->pop(file->missing_offsets);
+    ASSERT_EQUALS_INT("offset start should be 10000 after insert start", 10000, of->start);
+    ASSERT_EQUALS_INT("offset end should be 150033 after insert start", file->total_size, of->end);
+    ssp_free(of);
+}
+
+
+static int test_receive_middle_offset(File *file){
+    add_first_offset(file, file->total_size);
+    ASSERT_EQUALS_INT("file filesize", 150033, file->total_size);
+    ASSERT_EQUALS_INT("offset length should be 1", 1, file->missing_offsets->count);
+
+    receive_offset(file, 5000, 10000);
+
+    ASSERT_EQUALS_INT("offset length should be 1 after insert end", 2, file->missing_offsets->count);
+    Offset *of =(Offset *) file->missing_offsets->pop(file->missing_offsets);
+    
+    ASSERT_EQUALS_INT("offset start should be 10000 after insert mid", 10000, of->start);
+    ASSERT_EQUALS_INT("offset end should be 150033 after insert mid", file->total_size, of->end);
+
+    ASSERT_EQUALS_INT("offset length should be 1 after insert end", 1, file->missing_offsets->count);
+    ssp_free(of);
+    of =(Offset *) file->missing_offsets->pop(file->missing_offsets);
+    
+    ASSERT_EQUALS_INT("offset start should be 0 after insert mid", 0, of->start);
+    ASSERT_EQUALS_INT("offset end should be 5000 after insert mid", 5000, of->end);
+    ssp_free(of);
+}
+
+
+static int test_receive_parts_offset(File *file){
+    add_first_offset(file, file->total_size);
+    ASSERT_EQUALS_INT("file filesize", 150033, file->total_size);
+    ASSERT_EQUALS_INT("offset length should be 1", 1, file->missing_offsets->count);
+
+    receive_offset(file, 500, 1000);
+    receive_offset(file, 1000, 10000);
+    receive_offset(file, 0, 500);
+    receive_offset(file, 10000, 10500);
+    receive_offset(file, 10500, 150033);
+
+
+    ASSERT_EQUALS_INT("offset length should be 0 after insert end", 0, file->missing_offsets->count);
+}
+
+static int test_receive_final_offset(File *file){
+    add_first_offset(file, file->total_size);
+    ASSERT_EQUALS_INT("file filesize", 150033, file->total_size);
+    ASSERT_EQUALS_INT("offset length should be 1", 1, file->missing_offsets->count);
+
+    receive_offset(file, 0, 150033);
+    ASSERT_EQUALS_INT("offset length should be 0 after insert end", 0, file->missing_offsets->count);
+
+    add_first_offset(file, file->total_size);
+    receive_offset(file, 0, 100000);
+    receive_offset(file, 100000, 150032);
+    receive_offset(file, 150032, 150033);
+
+    ASSERT_EQUALS_INT("offset length should be 0 after insert end", 0, file->missing_offsets->count);
+}
+
+
+
+static int test_receive_offset(){
+
+
+    File *file = create_file("test_files/test_receive.jpg", 0);
+    test_receive_end_offset(file);
+    test_receive_start_offset(file);
+    test_receive_middle_offset(file);
+    test_receive_parts_offset(file);
+    test_receive_final_offset(file);
+    file->missing_offsets->iterate(file->missing_offsets, nak_print, NULL);
+
+}
+
 static int test_build_very_large_nak_packet(char* packet, uint32_t start) {
 
     DECLARE_NEW_TEST("testing build very large nak packet");
@@ -195,7 +294,7 @@ static int test_build_very_large_nak_packet(char* packet, uint32_t start) {
 
     //fail receiving weird offsets
     for (int i = 0; i < 10000; i+=10) {
-        receive_offset(file, 0, i, i+10);
+        receive_offset(file, i, i+10);
         i++;
     }
     uint64_t count = file->missing_offsets->count;
@@ -269,8 +368,8 @@ int test_build_pdu_header(char *packet, Pdu_header *header) {
     header->transaction_seq_num_len = 2;
 
     memset(&new_header, 0, 4);
-
-    int length = build_pdu_header(packet, header->transaction_sequence_number, header->direction, header->PDU_data_field_len, header);
+    
+    int length = build_pdu_header(packet, header->transaction_sequence_number, header->transmission_mode, header->PDU_data_field_len, header);
     if (length < 0) {
         ssp_printf("failed to build pdu header\n");
     }
@@ -649,10 +748,10 @@ int packet_tests() {
 
     int error = get_remote_entity_from_json (&remote_entity, 1);
     get_header_from_mib(&pdu_header, remote_entity, 2);
-    
+    /*
     error = test_copying_lvs();
     int data_start_index = test_build_pdu_header(packet, &pdu_header);
-
+    
     test_build_metadata_packet(packet, data_start_index);
     test_get_messages_from_packet(packet, data_start_index);
     test_add_cont_part_to_packet(packet, data_start_index);
@@ -661,11 +760,14 @@ int packet_tests() {
 
     test_build_eof_packet(packet, data_start_index);
     test_build_data_packet(packet, data_start_index);
-    test_build_nak_packet(packet, data_start_index);
+    */
+    //test_build_nak_packet(packet, data_start_index);
+    test_receive_offset();
+    /*
     test_build_finished_pdu(packet, data_start_index);
     test_add_messages_to_packet(packet, data_start_index);
     test_get_message_from_packet(packet, data_start_index);
-
+    */
     //next up
     
     //Skip for now, will fix after connection server works

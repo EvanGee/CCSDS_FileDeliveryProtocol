@@ -183,6 +183,7 @@ int test_process_data_packet() {
 
 int test_process_nak() {
 
+
     DECLARE_NEW_TEST("testing nak client response");
     char packet[2000];
     uint32_t start = 20;
@@ -192,17 +193,16 @@ int test_process_nak() {
     Request *req = mock_request();
     Response *res = mock_response();
     Client *client = mock_client();
-
+    
     ssp_free_file(req->file);
     req->file = create_file("test_files/nak_test.jpg", 0);
-
     add_first_offset(req->file, req->file->total_size);
+
     build_nak_packet(packet, start, req);
 
     File *file = create_file(req->destination_file_name, 1);
     add_first_offset(file, req->file->total_size);
-
-
+    
     process_nak_pdu(&packet[start + SIZE_OF_DIRECTIVE_CODE], req, *res, client);
 
     int error = 0;
@@ -213,8 +213,14 @@ int test_process_nak() {
     error = ASSERT_EQUALS_INT("offset start should be 0", offset->start, 0);
     error = ASSERT_EQUALS_INT("offset end should be file size", offset->end, 150033);
 
+    ssp_free(offset);
+    ssp_free_file(file);
     ssp_cleanup_req(req);
+    ssp_cleanup_client(client);
+    ssp_free(res);
+
     return error;
+    
 }
 
 void test_send_data_from_nak_array(){
@@ -224,10 +230,10 @@ void test_send_data_from_nak_array(){
 
 int protocol_handler_test() {
     int error = 0;
-    error = test_process_pdu_header();
-    error = test_process_pdu_eof();
+    //error = test_process_pdu_header();
+    //error = test_process_pdu_eof();
     //error = test_on_server_time_out();
-    error = test_process_data_packet();
+    //error = test_process_data_packet();
     error = test_process_nak();
 
     return error;

@@ -16,13 +16,13 @@ static void nak_print(Node *node, void *element, void *args){
 static int receive_offset_tests(){
 
     File *file = create_temp_file("temp_test", 2000);
-    receive_offset(file, 0, 5, 50);
+    receive_offset(file, 5, 50);
     
     file->missing_offsets->iterate(file->missing_offsets, nak_print, 0);
-    receive_offset(file, 0, 100, 1000);
+    receive_offset(file, 100, 1000);
 
     file->missing_offsets->iterate(file->missing_offsets, nak_print, 0);
-    receive_offset(file, 0, 50, 100);
+    receive_offset(file, 50, 100);
 
     file->missing_offsets->iterate(file->missing_offsets, nak_print, 0);
     return 0;

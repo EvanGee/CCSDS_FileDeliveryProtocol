@@ -19,6 +19,7 @@ File *mock_eof_packet(char *packet, uint32_t dest_id, uint32_t src_id, char *fil
 Request *mock_request();
 Request *mock_empty_request();
 List *populate_request_list();
+Client *mock_client();
 
 #define TEMP_FILESIZE 1000
 
