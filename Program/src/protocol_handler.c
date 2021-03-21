@@ -793,7 +793,7 @@ void on_server_time_out(Response res, Request *req) {
             return;
         }
         
-        ssp_printf("checksum have: %u checksum_need: %u\n", ssp_htonl(req->file->partial_checksum), req->file->eof_checksum);
+        ssp_printf("checksum have: %u checksum_need: %u\n", req->file->partial_checksum, req->file->eof_checksum);
         //uint32_t checksum = check_sum_file(req->file, 1000);
         //ssp_printf("checksum re-calculated: %u\n", checksum);
         
