@@ -13,7 +13,7 @@ Author: Evan Giese
 #include "types.h"
 #include "utils.h"
 
-static void transasction_log(char *msg, uint32_t transaction_sequence_number){
+static void transasction_log(char *msg, uint64_t transaction_sequence_number){
     ssp_printf("transaction: %llu ", transaction_sequence_number);
     ssp_printf(msg);
     ssp_printf("\n");

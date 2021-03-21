@@ -170,7 +170,8 @@ void ssp_sendto(Response res) {
     #ifdef TEST
         return;
      #endif
-    
+   // sleep(1);
+
     if (res.type_of_network == generic) {
 
         #ifdef FREE_RTOS_PORT 
@@ -263,7 +264,7 @@ void *ssp_alloc(uint32_t n_memb, size_t size) {
     #ifdef FREE_RTOS_PORT
         void *mem = pvPortMalloc(n_memb * size);
         memset(mem, 0, n_memb * size);
-        return mem
+        return mem;
     #else
         void *mem = calloc(n_memb, size);
     #endif

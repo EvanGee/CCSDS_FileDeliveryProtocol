@@ -22,7 +22,6 @@ void ssp_print_hex(char *stuff, int size){
 
 void ssp_print_bits(char *stuff, int size){
     
-    uint32_t current_packet_index = 0;
     ssp_printf("printing number of bytes: %u\n", size);
     int j, i, bit_set, byte = 0;
     unsigned char bit_mask = 0;
