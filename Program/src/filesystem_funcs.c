@@ -219,7 +219,7 @@ int receive_offset(File *file, uint32_t offset_start, uint32_t offset_end) {
     }
 
     Offset *offset_in_list = (Offset *) node->element;
-       
+
     //remove node if both start and end are equal (remove at function)
     if (offset_start == offset_in_list->start && offset_end == offset_in_list->end) {
         node->next->prev = node->prev;
@@ -255,7 +255,7 @@ int receive_offset(File *file, uint32_t offset_start, uint32_t offset_end) {
     Node *new = createNode(new_offset, new_offset->start);
     if (new == NULL) {
         ssp_free(new_offset);
-        return -1;
+        return 0;
     }
 
     new->next = cur->next;
@@ -294,14 +294,13 @@ File *create_temp_file(char *file_name, uint32_t size) {
     return file;
 }
 
-/*
+
 static int print_nak(void *element, void* args) {
 
     Offset *offset_in_list = (Offset *) element;
     ssp_printf("start: %u, end: %u\n", offset_in_list->start, offset_in_list->end);
     return 0;
 }
-*/
 
 int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t file_size, File *file) {
 

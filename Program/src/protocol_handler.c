@@ -226,7 +226,7 @@ void process_data_packet(char *packet, uint32_t data_len, File *file) {
     // size of 'offset' bytes in packet
     uint32_t offset_end = offset_start + data_len - packet_index;
 
-    ssp_printf("received offset %d:%d\n", offset_start, offset_end);
+    //ssp_printf("received offset %d:%d\n", offset_start, offset_end);
 
     if (!receive_offset(file, offset_start, offset_end)) {
         ssp_printf("throwing out packet\n");
@@ -489,9 +489,12 @@ static void start_sequence(Request *req, Response res) {
 
 static int segment_offset_into_data_packets(char *packet, uint32_t start, uint32_t offset_start, uint32_t offset_end, Request *req, Response res){
 
+
     int i = 0;
-    int error = 0;
-    uint32_t segment_len = req->buff_len - start;
+    int error = 0; 
+
+    //the segment length has to reduce the length of the segment by the 'offset' bytes in the data packet
+    uint32_t segment_len = req->buff_len - start - sizeof(uint32_t);
 
     for (i = offset_start; i < offset_end; i+= segment_len) {
 
@@ -499,19 +502,20 @@ static int segment_offset_into_data_packets(char *packet, uint32_t start, uint32
             segment_len = offset_end - i;
         }
         
-        ssp_printf("sending offset start %d to %d\n", i, i + segment_len);
+        //ssp_printf("sending offset start %d to %d\n", i, i + segment_len);
         //ssp_printf("segment len %d\n",segment_len);
 
-        error = build_data_packet(packet, start, segment_len + start, i, req->file);
+        error = build_data_packet(packet, start, req->buff_len, i, req->file);
         if (error < 0) {
             ssp_printf("couldn't create data packet for offset %d\n", i);
             continue;
         }
-        
         ssp_sendto(res);
     }
     return 0;
 }
+
+
 
 
 int process_nak_pdu(char *packet, Request *req, Response res, Client *client){
@@ -525,17 +529,20 @@ int process_nak_pdu(char *packet, Request *req, Response res, Client *client){
     int i = 0;
 
     ssp_printf("sending offset packet start %d offset end %d\n", nak.start_scope, nak.end_scope);
-    ssp_printf("number of segments requests %d\n", nak.segment_requests);
-
+    //ssp_printf("number of segments requests %d\n", nak.segment_requests);
+    
     for (i = 0; i < nak.segment_requests; i++){
         
-        memcpy(&offset_start, (uint32_t*)&nak.segments[packet_index], sizeof(uint32_t));
+        memcpy(&offset_start, &packet[packet_index], sizeof(uint32_t));
         offset_start = ssp_ntohl(offset_start);
         packet_index += 4;
 
-        memcpy(&offset_end, (uint32_t*)&nak.segments[packet_index], sizeof(uint32_t));
+        memcpy(&offset_end, &packet[packet_index], sizeof(uint32_t));
         offset_end = ssp_ntohl(offset_end);
         packet_index += 4;
+
+
+        //ssp_printf("offset_start %d offset_end %d \n", offset_start, offset_end);
 
         segment_offset_into_data_packets(req->buff, outgoing_packet_index, offset_start, offset_end, req, res);
     }
@@ -786,7 +793,7 @@ void on_server_time_out(Response res, Request *req) {
             return;
         }
         
-        ssp_printf("checksum have: %u checksum_need: %u\n", req->file->partial_checksum, req->file->eof_checksum);
+        ssp_printf("checksum have: %u checksum_need: %u\n", ssp_htonl(req->file->partial_checksum), req->file->eof_checksum);
         //uint32_t checksum = check_sum_file(req->file, 1000);
         //ssp_printf("checksum re-calculated: %u\n", checksum);
         

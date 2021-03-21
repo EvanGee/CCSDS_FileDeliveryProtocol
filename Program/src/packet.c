@@ -370,7 +370,8 @@ int build_data_packet(char *packet, uint32_t start, uint32_t end, uint32_t offse
 
     packet_index += sizeof(uint32_t);
 
-    int bytes = get_offset(file, &packet[packet_index], data_size - 4, offset);
+    //the -4 is because wehave to include the 'bet_offset' bytes
+    int bytes = get_offset(file, &packet[packet_index], data_size-4, offset);
     if (bytes <= 0){
         ssp_error("could not get offset, this could because the file is empty!\n");
         return -1;
@@ -477,6 +478,7 @@ void fill_nak_array_callback(Node *node, void *element, void *args){
 
     Offset *offset = (Offset *)element;
     Offset offset_to_copy;
+    ssp_printf("sending start:end %d:%d\n", offset->start, offset->end);
     offset_to_copy.start = ssp_htonl(offset->start);
     offset_to_copy.end = ssp_htonl(offset->end);
 
@@ -525,6 +527,13 @@ int get_nak_packet(char *packet, Pdu_nak *nak) {
     
 
     return packet_index;
+}
+
+static int print_nak(void *element, void* args) {
+
+    Offset *offset_in_list = (Offset *) element;
+    ssp_printf("start: %d, end: %d\n", offset_in_list->start, offset_in_list->end);
+    return 0;
 }
 
 //this function is weird because it uses a callback into an iterator. We fill the array

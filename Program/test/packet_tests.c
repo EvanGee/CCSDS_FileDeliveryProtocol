@@ -65,7 +65,7 @@ static void test_build_data_packet(char *packet, uint32_t packet_index){
 
     File *file = create_file("test_files/testfile", 0);
 
-    create_data_burst_packets(packet, packet_index, file, 1000);
+    create_data_burst_packets(packet, packet_index, file, 1500);
 
     uint32_t offset = get_data_offset_from_packet(&packet[packet_index]);
 
@@ -266,10 +266,19 @@ static int test_receive_final_offset(File *file){
     ASSERT_EQUALS_INT("offset length should be 0 after insert end", 0, file->missing_offsets->count);
 }
 
+static int test_nak_print(File *file){
 
+    add_first_offset(file, file->total_size);
+    ASSERT_EQUALS_INT("file filesize", 150033, file->total_size);
+    ASSERT_EQUALS_INT("offset length should be 1", 1, file->missing_offsets->count);
+
+
+    receive_offset(file, 148900, 150033);
+
+    file->missing_offsets->iterate(file->missing_offsets, nak_print, NULL);
+}
 
 static int test_receive_offset(){
-
 
     File *file = create_file("test_files/test_receive.jpg", 0);
     test_receive_end_offset(file);
@@ -277,7 +286,9 @@ static int test_receive_offset(){
     test_receive_middle_offset(file);
     test_receive_parts_offset(file);
     test_receive_final_offset(file);
-    file->missing_offsets->iterate(file->missing_offsets, nak_print, NULL);
+    test_nak_print(file);
+
+
 
 }
 
@@ -748,19 +759,21 @@ int packet_tests() {
 
     int error = get_remote_entity_from_json (&remote_entity, 1);
     get_header_from_mib(&pdu_header, remote_entity, 2);
+
+    int data_start_index = test_build_pdu_header(packet, &pdu_header);
     /*
     error = test_copying_lvs();
-    int data_start_index = test_build_pdu_header(packet, &pdu_header);
     
     test_build_metadata_packet(packet, data_start_index);
     test_get_messages_from_packet(packet, data_start_index);
     test_add_cont_part_to_packet(packet, data_start_index);
     test_get_cont_partial_from_packet(packet, data_start_index);
     test_build_ack_eof_pdu(packet, data_start_index);
-
+*/
     test_build_eof_packet(packet, data_start_index);
+    
     test_build_data_packet(packet, data_start_index);
-    */
+    
     //test_build_nak_packet(packet, data_start_index);
     test_receive_offset();
     /*
