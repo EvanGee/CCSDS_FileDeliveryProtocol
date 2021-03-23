@@ -222,6 +222,8 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
     }
 	//Pointer to current connection and packet
 	csp_conn_t *conn;
+    csp_conn_t *old_conn;
+    
 	csp_packet_t *packet;
 
     char *buff = ssp_alloc(packet_len, sizeof(char));
@@ -238,11 +240,11 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
     
         conn = csp_accept(sock, 1000);
         if (conn == NULL) {
-            onTimeOut(other);
+            csp_close(old_conn);
             continue;
         }
 
-        while ((packet = csp_read(conn, 1000)) != NULL) {
+        while ((packet = csp_read(conn, 10000)) != NULL) {
 
             memcpy(buff, (char *)packet->data, packet_len);
 
@@ -251,12 +253,11 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
 
             csp_buffer_free(packet);
         }
-        
-
-        csp_close(conn);
-
+        onTimeOut(other);
+        old_conn = conn;
 	}
 
+    csp_close(conn);
     onExit(other);
     ssp_free(buff);
 }
@@ -283,6 +284,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 	while (1) {
 
         if (get_exit() || checkExit(params)){
+            ssp_printf("exiting client thread\n");
             break;
         }
         
@@ -294,27 +296,27 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 			return;
 		}
 
-        for (;;) {
-            if (get_exit() || checkExit(params)){
-                ssp_printf("exiting client thread\n");
-                break;
-            }
-            onSend(-1, conn, sizeof(conn), params);
-            while ((packet = csp_read(conn, 10)) != NULL) {
-                            
-                memcpy(buff, (char *)packet->data, packet_len);
 
-                if (onRecv(-1, buff, packet_len, NULL, conn, sizeof(struct csp_conn_s), params) == -1)
-                        ssp_printf("recv failed\n");
+        onSend(-1, conn, sizeof(conn), params);
+        
+        while ((packet = csp_read(conn, 100)) != NULL) {
+                        
+            memcpy(buff, (char *)packet->data, packet_len);
 
-                csp_buffer_free(packet);
+            if (onRecv(-1, buff, packet_len, NULL, conn, sizeof(struct csp_conn_s), params) == -1)
+                    ssp_printf("recv failed\n");
 
-            }
+            csp_buffer_free(packet);
+
         }
         
-		/* Close connection */
-		csp_close(conn);
-        onExit(params);
+        
+        
 	}
+
+    /* Close connection */
+    csp_close(conn);
+    onExit(params);
+    
     ssp_free(buff);
 }
