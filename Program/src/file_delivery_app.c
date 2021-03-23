@@ -87,7 +87,7 @@ static void make_default_data(){
     \"cfdp_id\": 0,\n\
     \"UT_address\" : 0,\n\
     \"UT_port\" : 20,\n\
-    \"type_of_network\" : 3,\n\
+    \"type_of_network\" : 2,\n\
     \"default_transmission_mode\" : 1,\n\
     \"MTU\" : 250,\n\
     \"one_way_light_time\" : 123,\n\
@@ -109,7 +109,7 @@ static void make_default_data(){
     \"cfdp_id\": 10,\n\
     \"UT_address\" : 10,\n\
     \"UT_port\" : 1,\n\
-    \"type_of_network\" : 3,\n\
+    \"type_of_network\" : 2,\n\
     \"default_transmission_mode\" : 1,\n\
     \"MTU\" : 250,\n\
     \"one_way_light_time\" : 123,\n\

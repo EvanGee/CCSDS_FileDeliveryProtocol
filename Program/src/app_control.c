@@ -221,7 +221,7 @@ int refresh_response_struct(Response old_res, Response new_res){
     }
 
     ssp_printf("setting response struct\n");
-    memcpy(new_res.addr, old_res.addr, old_res.size_of_addr);
+    memcpy(old_res.addr, new_res.addr, old_res.size_of_addr);
     return 1;
 
 }

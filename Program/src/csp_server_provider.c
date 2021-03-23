@@ -254,10 +254,10 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
         
 
         csp_close(conn);
-        onExit(other);
 
 	}
 
+    onExit(other);
     ssp_free(buff);
 }
 
