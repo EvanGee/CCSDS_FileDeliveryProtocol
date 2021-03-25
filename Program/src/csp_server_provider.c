@@ -253,6 +253,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
 
             csp_buffer_free(packet);
         }
+
         onTimeOut(other);
         old_conn = conn;
 	}
@@ -281,25 +282,22 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         return;
     }
 
+    
 	while (1) {
 
         if (get_exit() || checkExit(params)){
             ssp_printf("exiting client thread\n");
             break;
         }
-        
-		/* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
-		conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 1000, CSP_SO_NONE);
-		if (conn == NULL) {
-			/* Connect failed */
-			ssp_printf("Connection failed\n");
-			return;
-		}
-
+        /* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
+        conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 10, CSP_SO_NONE);
+        if (conn == NULL) {        
+            continue;
+        }
 
         onSend(-1, conn, sizeof(conn), params);
-        
-        while ((packet = csp_read(conn, 100)) != NULL) {
+    
+        while ((packet = csp_read(conn, 10000)) != NULL) {
                         
             memcpy(buff, (char *)packet->data, packet_len);
 
@@ -309,13 +307,13 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
             csp_buffer_free(packet);
 
         }
-        
-        
+
+        csp_close(conn);
         
 	}
 
     /* Close connection */
-    csp_close(conn);
+    
     onExit(params);
     
     ssp_free(buff);

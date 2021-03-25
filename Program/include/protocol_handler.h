@@ -12,7 +12,7 @@ Author: Evan Giese
 #define RESEND_FINISHED_TIMES 1
 #define RESEND_META_TIMES 1
 
-#define TIMEOUT_BEFORE_CANCEL_REQUEST 60
+#define TIMEOUT_BEFORE_CANCEL_REQUEST 1000000
 #define TIMEOUT_BEFORE_SAVE_REQUEST 30
 
 int parse_packet_server(char *packet, uint32_t packet_index, Response res, Request *req, Pdu_header incoming_header, FTP *app);
