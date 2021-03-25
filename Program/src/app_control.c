@@ -130,6 +130,8 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
 
     Request **request_container = &client->current_request;
     Pdu_header incoming_pdu_header;
+
+    
     
     int packet_index = process_pdu_header(packet, false, &incoming_pdu_header, res, request_container, client->request_list, client->app);
     if (packet_index < 0) {
@@ -183,7 +185,7 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
     res.type_of_network = client->remote_entity.type_of_network;
     res.transmission_mode = client->remote_entity.default_transmission_mode;
     res.msg = client->buff;
-
+    
     struct user_request_check_params params = {
         res,
         client
@@ -273,12 +275,14 @@ static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, u
     app->current_request = current_request;
     
     //refresh response
+    /*
     int error = refresh_response_struct(current_request->res, res);
     if (error < 0) {
         ssp_printf("failed to connect to new client\n");
         return -1;
     }
-    
+    */
+   
     int count = parse_packet_server(packet, packet_index, app->current_request->res, current_request, incoming_pdu_header, app);
 
     reset_timeout(&current_request->timeout_before_cancel);
