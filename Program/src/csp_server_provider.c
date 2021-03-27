@@ -242,9 +242,14 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
         }
 
         while(1) {
+
+            if (get_exit() || checkExit(other))
+                break;
+
             //if the request has timedout, go back to waiting for accept
             if (!onTimeOut(other))
                 break;
+
 
             while ((packet = csp_read(conn, 1000)) != NULL) {
 
@@ -289,7 +294,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
             break;
         }
         /* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
-        conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 10, CSP_SO_NONE);
+        conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 100, CSP_SO_NONE);
         if (conn == NULL) {        
             continue;
         }
@@ -297,7 +302,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         onSend(-1, conn, sizeof(conn), params);
     
         while ((packet = csp_read(conn, 10000)) != NULL) {
-                        
+            
             memcpy(buff, (char *)packet->data, packet_len);
 
             if (onRecv(-1, buff, packet_len, NULL, conn, sizeof(struct csp_conn_s), params) == -1)
@@ -305,14 +310,12 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 
             csp_buffer_free(packet);
 
-        }
-
-        csp_close(conn);
-        
+        }       
+        csp_close(conn); 
 	}
 
     /* Close connection */
-    
+    csp_close(conn);
     onExit(params);
     
     ssp_free(buff);
