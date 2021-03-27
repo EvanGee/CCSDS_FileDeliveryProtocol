@@ -59,7 +59,7 @@ void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_p
         ssp_error("couldn't get new packet for sending!\n");
         set_exit();
     }
-    char buff[packet_len];
+    char *buff = ssp_alloc(sizeof(char), packet_len);
     memset(buff, 0, packet_len);
 
     for (;;) {
@@ -238,12 +238,13 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
 
         conn = csp_accept(sock, 10);
         if (conn == NULL) {
-            onTimeOut(other);
             continue;
         }
 
         while(1) {
-            onTimeOut(other);
+            //if the request has timedout, go back to waiting for accept
+            if (!onTimeOut(other))
+                break;
 
             while ((packet = csp_read(conn, 1000)) != NULL) {
 
@@ -251,7 +252,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
                 memcpy(buff, (char *)packet->data, packet->length);
 
                 if (onRecv(-1, buff, packet_len, NULL, conn, sizeof(struct csp_conn_s), other) == -1)
-                        ssp_printf("recv failed\n");
+                    ssp_printf("recv failed\n");
 
                 csp_buffer_free(packet);
             }
@@ -300,7 +301,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
             memcpy(buff, (char *)packet->data, packet_len);
 
             if (onRecv(-1, buff, packet_len, NULL, conn, sizeof(struct csp_conn_s), params) == -1)
-                    ssp_printf("recv failed\n");
+                ssp_printf("recv failed\n");
 
             csp_buffer_free(packet);
 

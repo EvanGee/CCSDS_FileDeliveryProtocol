@@ -235,6 +235,7 @@ static void timeout_check_callback_server(Node *node, void *request, void *args)
     remove_request_check(node, request, args);
 }
 
+//return 1 if there are active requests, 0 if not
 static int on_time_out_callback_server(void *other) {
 
     FTP *app = (FTP*) other;
@@ -244,9 +245,12 @@ static int on_time_out_callback_server(void *other) {
     } 
     if (app->request_list->count) {
         app->request_list->iterate(app->request_list, timeout_check_callback_server, app->request_list);
+
+    } else {
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *other) {
