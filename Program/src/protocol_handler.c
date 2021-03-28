@@ -485,7 +485,7 @@ static void start_sequence(Request *req, Response res) {
     }
     acknowledged_start(req, res);
     //set timeout to 0, databurst can take a while, timeout should start after data burst
-    reset_timeout(req->timeout_before_cancel);
+    reset_timeout(&req->timeout_before_cancel);
 }
 
 
