@@ -246,10 +246,6 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
             if (get_exit() || checkExit(other))
                 break;
 
-            //if the request has timedout, go back to waiting for accept
-            if (!onTimeOut(other))
-                break;
-
 
             while ((packet = csp_read(conn, 1000)) != NULL) {
 
@@ -261,7 +257,12 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
 
                 csp_buffer_free(packet);
             }
+            //if the request has timedout, go back to waiting for accept
+            if (!onTimeOut(other))
+                break;
+
         }
+
     }
     onExit(other);
     ssp_free(buff);
@@ -298,7 +299,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         if (conn == NULL) {        
             continue;
         }
-
+        
         onSend(-1, conn, sizeof(conn), params);
     
         while ((packet = csp_read(conn, 10000)) != NULL) {
@@ -311,6 +312,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
             csp_buffer_free(packet);
 
         }       
+        csp_close(conn);
 	}
 
     /* Close connection */
