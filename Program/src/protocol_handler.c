@@ -12,6 +12,7 @@ Author: Evan Giese
 #include "requests.h"
 #include "types.h"
 #include "utils.h"
+#include "app_control.h"
 
 static void transasction_log(char *msg, uint64_t transaction_sequence_number){
     ssp_printf("transaction: %llu ", transaction_sequence_number);
@@ -483,6 +484,8 @@ static void start_sequence(Request *req, Response res) {
         return;
     }
     acknowledged_start(req, res);
+    //set timeout to 0, databurst can take a while, timeout should start after data burst
+    reset_timeout(req->timeout_before_cancel);
 }
 
 
@@ -731,6 +734,7 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
         printf("just receiving messages, closing request\n");
         req->local_entity.EOF_recv_indication = true;
         req->procedure = none;
+        req->paused = true;
     }
 }
 

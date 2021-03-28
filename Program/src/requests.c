@@ -418,6 +418,25 @@ Request *put_request(
     return req;
 }
 
+Request *get_request(
+            uint32_t dest_id,
+            char *source_file_name,
+            char *destination_file_name,
+            uint8_t transmission_mode,
+            FTP *app){
+
+    Request *req = init_request_no_client();
+    put_request_no_client(req, NULL, NULL, transmission_mode, app);
+    add_proxy_message_to_request(app->my_cfdp_id, 1, source_file_name, destination_file_name, req);
+
+    Client *client = start_client(app, dest_id);
+    if (client == NULL) {
+        ssp_printf("client failed to start\n");
+    } else 
+        add_request_to_client(req, client);
+
+    return req;
+}
 /*NULL for source and destination filenames shall indicate that only Meta
 data will be delivered. Side effect: add request to client request list
 returns the request*/

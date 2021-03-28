@@ -25,6 +25,7 @@ void ssp_client_join(Client *client);
 void *ssp_generic_client_task(void *params);
 void *ssp_generic_server_task(void *params);
 
+void reset_timeout(int *prevtime);
 void remove_request_check(Node *node, void *request, void *args);
 
 #endif

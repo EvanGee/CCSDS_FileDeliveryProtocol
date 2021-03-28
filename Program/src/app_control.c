@@ -38,7 +38,7 @@ static int is_negative(int number) {
 }
 */
 
-static void reset_timeout(int *prevtime) {
+void reset_timeout(int *prevtime) {
     *prevtime = ssp_time_count();
 }
 
@@ -211,23 +211,6 @@ static void client_check_callback(Node *node, void *client, void *args) {
 }
 
 
-int refresh_response_struct(Response old_res, Response new_res){
-
-    if (old_res.size_of_addr != new_res.size_of_addr){
-        ssp_printf("res struct sizes are not the same\n");
-        return -1;
-    }
-    
-    if (memcmp(old_res.addr, new_res.addr, old_res.size_of_addr) == 0 ) {
-        return 1;
-    }
-
-    ssp_printf("setting response struct\n");
-    memcpy(old_res.addr, new_res.addr, old_res.size_of_addr);
-    return 1;
-
-}
-
 static void timeout_check_callback_server(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
     on_server_time_out(req->res, req); 
@@ -277,16 +260,7 @@ static int on_recv_server_callback(int sfd, char *packet, uint32_t packet_len, u
 
     Request *current_request = (*request_container);
     app->current_request = current_request;
-    
-    //refresh response
-    /*
-    int error = refresh_response_struct(current_request->res, res);
-    if (error < 0) {
-        ssp_printf("failed to connect to new client\n");
-        return -1;
-    }
-    */
-   
+
     int count = parse_packet_server(packet, packet_index, app->current_request->res, current_request, incoming_pdu_header, app);
 
     reset_timeout(&current_request->timeout_before_cancel);

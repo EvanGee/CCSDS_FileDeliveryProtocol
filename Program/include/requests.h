@@ -9,9 +9,7 @@ Author: Evan Giese
 
 #include "types.h"
 
-void ssp_cleanup_req(void *request);
-Request *init_request(char *buff, uint32_t buff_len);
-void start_request(Request *req);
+
 
 Request *put_request(
             uint32_t dest_id,
@@ -21,6 +19,17 @@ Request *put_request(
             FTP *app
             );
 
+Request *get_request(
+            uint32_t dest_id,
+            char *source_file_name,
+            char *destination_file_name,
+            uint8_t transmission_mode,
+            FTP *app);
+
+
+void ssp_cleanup_req(void *request);
+Request *init_request(char *buff, uint32_t buff_len);
+void start_request(Request *req);
 int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req);
 int add_cont_partial_message_to_request(uint32_t beneficial_cfid, 
                                     uint32_t originator_id,
