@@ -310,8 +310,7 @@ Client *start_client(FTP *app, uint8_t dest_id) {
         client = ssp_client(dest_id, app);
         if (client == NULL)
             return NULL;
-
-        app->active_clients->insert(app->active_clients, client, dest_id);
+        
     } else {
         ssp_printf("adding request to existing client thread\n");
     }

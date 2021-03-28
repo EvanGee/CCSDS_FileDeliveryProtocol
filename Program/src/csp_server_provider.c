@@ -276,8 +276,8 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
     void *params)
 {
 
-	csp_packet_t * packet;
-	csp_conn_t * conn;
+	csp_packet_t * packet = NULL;
+	csp_conn_t * conn = NULL;
 
 
     char *buff = ssp_alloc(packet_len, sizeof(char));
@@ -311,11 +311,12 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
             csp_buffer_free(packet);
 
         }       
-        csp_close(conn); 
 	}
 
     /* Close connection */
-    csp_close(conn);
+    if (conn != NULL)
+        csp_close(conn);
+
     onExit(params);
     
     ssp_free(buff);

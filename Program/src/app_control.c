@@ -323,7 +323,11 @@ static int check_exit_client_callback(void *params) {
 ------------------------------------------------------------------------------*/
 
 static void on_exit_client_callback (void *params) {
-    
+    Client *client = (Client *) params;
+    if (client == NULL)
+        return;
+
+    client->close = true;
 }
 
 static void on_exit_server_callback (void *params) {
@@ -624,6 +628,9 @@ void *ssp_generic_server_task(void *params) {
 ------------------------------------------------------------------------------*/
 
 void ssp_cleanup_client(Client *client) {
+    if (client == NULL)
+        return;
+
     client->request_list->free(client->request_list, ssp_cleanup_req);
     ssp_free(client->buff);
     ssp_free(client);
@@ -635,6 +642,9 @@ void ssp_client_join(Client *client) {
 }
 
 static void exit_client(Node *node, void *element, void *args) {
+    if (element == NULL)
+        return;
+
     Client *client = (Client *) element;
     client->close = true;
 }
@@ -643,6 +653,7 @@ void ssp_cleanup_ftp(FTP *app) {
     app->request_list->free(app->request_list, ssp_cleanup_req);
     app->active_clients->iterate(app->active_clients, exit_client, NULL);
     app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
-    app->active_clients->freeOnlyList(app->active_clients);
+    app->active_clients->freeOnlyList(app->active_clients);   
     ssp_free(app->buff);
+    
 }
