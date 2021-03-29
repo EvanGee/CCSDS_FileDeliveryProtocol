@@ -325,7 +325,7 @@ void process_messages(Request *req, FTP *app) {
 
                 put_request(p_put->destination_id,
                 (char *)p_put->source_file_name.value, 
-                (char *)p_put->destination_file_name.value, UN_ACKNOWLEDGED_MODE, app);
+                (char *)p_put->destination_file_name.value, req->remote_entity.default_transmission_mode, app);
 
                 break;
 

@@ -569,6 +569,7 @@ static void print_messages_callback(Node *node, void *element, void *args) {
     
     Message *m = (Message*) element;
 
+    ssp_printf("----------------Printing Message---------------\n");
     ssp_printf("Message type: %d\n", m->header.message_type);
     ssp_printf("id: %s\n", m->header.message_id_cfdp);
     Message_put_proxy *proxy;
@@ -578,7 +579,7 @@ static void print_messages_callback(Node *node, void *element, void *args) {
         ssp_printf("Message type: PROXY_PUT_REQUST\n");
         ssp_printf("dest filename: %s\n", proxy->destination_file_name.value);
         ssp_printf("source filename: %s\n", proxy->source_file_name.value);
-        ssp_printf("id: %d\n", *(uint8_t*) proxy->destination_id);
+        ssp_printf("id: %llu\n", proxy->destination_id);
 
     }
 
