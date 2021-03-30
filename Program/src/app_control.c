@@ -315,39 +315,6 @@ static void on_exit_server_callback (void *params) {
 
 ------------------------------------------------------------------------------*/
 static int on_stdin_callback(void *other) {
-
-    /*
-    FTP *app = (FTP *) other;
-    Request *req = app->newClient->req;
-
-    char input[MAX_PATH];
-    fgets(input, MAX_PATH, stdin);
-    input[strlen(input)-1]='\0';
-    
-    if (req->procedure == none){
-        if (strnlen(req->source_file_name, MAX_PATH) == 0){
-            if (get_file_size(input) == -1){
-                ssp_printf("file: %s, we had trouble opening this file, please enter a new file\n", input);
-                return 0;
-            }
-            ssp_memcpy(app->newClient->req->source_file_name, input, MAX_PATH);
-            ssp_printf("Enter a destination file name:\n");
-        }
-        else if (strnlen(req->destination_file_name, MAX_PATH) == 0){
-            ssp_memcpy(app->newClient->req->destination_file_name, input, MAX_PATH);
-            ssp_printf("sending file: %s As file named: %s To cfid enditity %d\n", app->newClient->req->source_file_name, app->newClient->req->destination_file_name, app->newClient->cfdp_id);
-            ssp_printf("cancel connection mode (yes):\n");
-        } 
-        else if (strncmp(input, "yes", 3) == 0){
-            ssp_printf("sending file connectionless\n");
-            put_request(app->newClient->req->source_file_name, app->newClient->req->destination_file_name, 0, 0, 0, 1, NULL, NULL, app->newClient, app);
-        } 
-        else {
-            ssp_printf("sending file connected\n");
-            put_request(app->newClient->req->source_file_name, app->newClient->req->destination_file_name, 0, 0, 0, 0, NULL, NULL, app->newClient, app); 
-        }
-   }
-   */
     return 0;
 }
 

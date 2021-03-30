@@ -142,8 +142,6 @@ int main(int argc, char** argv) {
     }
     
 
-
-
     #ifdef CSP_NETWORK
 
         csp_debug_level_t debug_level = CSP_INFO;
@@ -200,97 +198,51 @@ int main(int argc, char** argv) {
         csp_route_print_table();
     #endif
 
-    
-
-
     FTP app;
-    //init_ftp(conf->my_cfdp_id, &app);
+
     uint32_t id = conf->my_cfdp_id;
     void *handler = create_ftp_task(id, &app);
     if (handler == NULL) {
         return 1;
     }
-    
-    
-    //sleep(5);
+
+    int buff_len = 25000;
+    char input[buff_len];
+    memset(input, 0, buff_len);
+
     uint32_t client_id = conf->client_cfdp_id;
-    //
+    
+    for (;;) {
+        
+        fgets(input, buff_len, stdin);
+        input[strlen(input)-1]='\0';
+        
+        printf("%s\n", input);
+
+        if (get_exit())
+            break;
+
+        if (strncmp(input, "exit", 5) == 0) {
+            set_exit();
+            break;
+        }
+    }
+    
+    /*
     if (client_id != -1) {
 
-        sleep(5);
-        //csp_custom_ftp_ping(conf->client_cfdp_id);
-        put_request(client_id, "udp.jpeg", "test-received.jpg", conf->unackowledged_mode, &app);
+        //sleep(5);
+        //put_request(client_id, "udp.jpeg", "test-received.jpg", conf->unackowledged_mode, &app);
+        //put_request(client_id, "udp.jpeg", "udp.jpeg", conf->unackowledged_mode, &app);
         
         //put_request(client_id, "mib/peer_1.json", "mib/peer_test.json", ACKNOWLEDGED_MODE, &app);
-        //sleep(5);
-        //put_request(client_id, "test.txt", "test-received.txt", UN_ACKNOWLEDGED_MODE, &app);
-    /*
-        Request *req2 = init_request_no_client();
-        put_request_no_client(req2, NULL, NULL, UN_ACKNOWLEDGED_MODE, &app);
-        add_proxy_message_to_request(app.my_cfdp_id, 1, "mib/peer_0.json","GET_REQUEST", req2);
+        //get_request(client_id, "mib/peer_0.json", "GET_REQUEST.json", ACKNOWLEDGED_MODE, &app);
 
-        Client *client = start_client(&app,client_id);
-        if (client == NULL) {
-            ssp_printf("client failed to start\n");
-        } else 
-            add_request_to_client(req2, client);
-    */
-    
-    }
-
-
-/*
-    if (conf->client_cfdp_id == 1) {
-        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled5.jpg", ACKNOWLEDGED_MODE, app);
-        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled6.jpg", ACKNOWLEDGED_MODE, app);
-        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled7.jpg", UN_ACKNOWLEDGED_MODE, app);
-        schedule_put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/scheduled8.jpg", UN_ACKNOWLEDGED_MODE, app);
-        start_scheduled_requests(conf->client_cfdp_id, app);
-    }
-    else if (conf->client_cfdp_id == 2) {
-        Request *req = init_request_no_client();
-        put_request_no_client(req, "pictures/pic.jpeg", "pictures/scheduled.jpg", ACKNOWLEDGED_MODE, app);
-
-        Client *client = start_client(app, conf->client_cfdp_id);
-        if (client == NULL) {
-            ssp_printf("client failed to start\n");
-        } else 
-            add_request_to_client(req, client);
-    } else if (conf->client_cfdp_id == 3) {
-        Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/udp.jpg", ACKNOWLEDGED_MODE, app);
-        start_request(req);
-        //Request *req = put_request(conf->client_cfdp_id, NULL, NULL, ACKNOWLEDGED_MODE, app);
-        //add_cont_partial_message_to_request(4, 1, conf->client_cfdp_id, 1, 0, 1, req);
-        //start_request(req);
-
-    }
-
-*/
-    //Request *req = put_request(conf->my_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy2.jpg", ACKNOWLEDGED_MODE, app);
-    //start_request(req);
-    
-    /*
-    if (conf->my_cfdp_id == 1) {
-        Request *re
-    if (conf->client_cfdp_id == 3) {
-          }q = put_request(conf->client_cfdp_id, "pictures/videoplayback.mp4", "pictures/vid_tcp.jpg", ACKNOWLEDGED_MODE, app);
-        start_request(req);
-    }
-    if (conf->client_cfdp_id == 4) {
-        //Request *req = put_request(conf->client_cfdp_id, NULL, NULL, UN_ACKNOWLEDGED_MODE, app);
-        //add_cont_partial_message_to_request(conf->my_cfdp_id, 3, 1, 4, 1, 1, req);
-        //add_proxy_message_to_request(7, 1, "pictures/pic.jpeg","pictures/proxy_yo!.jpeg", req);
-
-        Request *req = put_request(conf->client_cfdp_id, "pictures/pic.jpeg", "pictures/noProxy2.jpg", UN_ACKNOWLEDGED_MODE, app);
-        //add_proxy_message_to_request(7, 1, "pictures/pic.jpeg","pictures/proxy_yo!.jpeg", req);
-        start_request(req);
     }
     */
 
     free(conf); 
     ssp_thread_join(handler);
-
-    //ssp_thread_join(app2->server_handle);
   
     return 0;
 }
