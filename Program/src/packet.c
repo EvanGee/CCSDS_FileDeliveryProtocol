@@ -478,7 +478,7 @@ void fill_nak_array_callback(Node *node, void *element, void *args){
 
     Offset *offset = (Offset *)element;
     Offset offset_to_copy;
-    ssp_printf("sending start:end %d:%d\n", offset->start, offset->end);
+    //ssp_printf("sending nak:end %d:%d\n", offset->start, offset->end);
     offset_to_copy.start = ssp_htonl(offset->start);
     offset_to_copy.end = ssp_htonl(offset->end);
 

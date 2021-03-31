@@ -128,19 +128,7 @@ static Config *configuration(int argc, char **argv)
     return conf;
 }
 
-int main(int argc, char** argv) {
-
-
-    //exit handler for the main thread;
-    prepareSignalHandler();
-
-    //get-opt configuration
-    Config *conf = configuration(argc, argv);
-    if (conf->my_cfdp_id == 0){
-        printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
-        return 1;
-    }
-    
+static int init_csp_stuff(Config conf){
 
     #ifdef CSP_NETWORK
 
@@ -151,7 +139,7 @@ int main(int argc, char** argv) {
         }
 
         Remote_entity remote_entity;
-        int error = get_remote_entity_from_json(&remote_entity, conf->my_cfdp_id);
+        int error = get_remote_entity_from_json(&remote_entity, conf.my_cfdp_id);
         if (error < 0) {
             ssp_error("couldn't get client remote_entity from mib\n");
             return 1;
@@ -173,9 +161,9 @@ int main(int argc, char** argv) {
 
         // Add interface(s) 
         csp_iface_t * default_iface = NULL;
-        if (conf->uart_device != NULL) {
-            csp_usart_conf_t uart_conf = {.device = conf->uart_device,
-                            .baudrate = conf->baudrate, // supported on all platforms 
+        if (conf.uart_device != NULL) {
+            csp_usart_conf_t uart_conf = {.device = conf.uart_device,
+                            .baudrate = conf.baudrate, // supported on all platforms 
                             .databits = 8,
                             .stopbits = 2,
                             .paritysetting = 0,
@@ -191,12 +179,57 @@ int main(int argc, char** argv) {
         //printf("Connection table\r\n");
         //csp_conn_print_table();
 
-        printf("Interfaces\r\n");
-        csp_route_print_interfaces();
+        //printf("Interfaces\r\n");
+        //csp_route_print_interfaces();
 
-        printf("Route table\r\n");
-        csp_route_print_table();
+        //printf("Route table\r\n");
+        //csp_route_print_table();
     #endif
+    return 0;
+}
+//sets file_name and returns the length of the file_name
+static int get_file_name(char *buff, int len, char *file_name) {
+    int i = 0;
+    for (i = 0; i < len; i++) {
+        if (buff[i] == ' ' || buff[i] == '\0') {
+            file_name[i] = '\0';
+            break;
+        }
+        file_name[i] = buff[i];
+    }
+
+    return i;
+}
+
+
+static int confirm(){
+    char buff[100];
+    memset(buff, 0, 100);
+    fgets(buff, 100, stdin);
+    if ((buff[0] == 'y' || buff[0] == 'Y') && buff[1] == '\0') {
+        return 1;    
+    } 
+    else if ((buff[0] == 'n' || buff[0] == 'N') && buff[1] == '\0') {
+        return 0;
+
+    } else {
+        return -1;
+    }
+}
+int main(int argc, char** argv) {
+
+
+    //exit handler for the main thread;
+    prepareSignalHandler();
+
+    //get-opt configuration
+    Config *conf = configuration(argc, argv);
+    if (conf->my_cfdp_id == 0){
+        printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
+        return 1;
+    }
+    
+    init_csp_stuff(*conf);
 
     FTP app;
 
@@ -211,23 +244,66 @@ int main(int argc, char** argv) {
     memset(input, 0, buff_len);
 
     uint32_t client_id = conf->client_cfdp_id;
-    
+
+    char src_file[MAX_PATH];
+    char dest_file[MAX_PATH];
     for (;;) {
+            
+        printf("send a file? type 'PUT <source_file> <destination_file>' or 'GET <destination_file> <source_file>'\n");
+        memset(src_file, 0 , MAX_PATH);
+        memset(dest_file, 0 , MAX_PATH);
         
         fgets(input, buff_len, stdin);
         input[strlen(input)-1]='\0';
         
-        printf("%s\n", input);
 
-        if (get_exit())
+        if (get_exit()) {
             break;
-
-        if (strncmp(input, "exit", 5) == 0) {
+        }
+        else if (strncmp(input, "exit", 5) == 0) {
             set_exit();
             break;
         }
+
+        if (strncmp(input, "PUT ", 4) == 0) {
+            
+            int len = get_file_name(&input[4], buff_len, src_file);
+            len = get_file_name(&input[len + 5], buff_len, dest_file);
+                        
+            while(1) {
+                printf("put source_file:%s destination_file:%s?(y/n)\n", src_file, dest_file);
+                int confirming = confirm();
+                if (confirming) {
+                    put_request(client_id, src_file, dest_file, conf->unackowledged_mode, &app);
+                    break;
+                } else if (confirming == 0) {
+                    break;
+                } else {
+                    printf("please type either 'Y' or 'N'");
+                }
+            }
+
+            break;
+
+        } else if (strncmp(input, "GET ", 4) == 0) {
+
+            int len = get_file_name(&input[4], buff_len, dest_file);
+            len = get_file_name(&input[len + 5], buff_len, src_file);
+            while(1) {
+                printf("get destination_file:%s source_file:%s?(y/n)\n", src_file, dest_file);
+                int confirming = confirm();
+                if (confirming) {
+                    get_request(client_id, src_file, dest_file, conf->unackowledged_mode, &app);
+                    break;
+                } else if (confirming == 0) {
+                    break;
+                } else {
+                    printf("please type either 'Y' or 'N'");
+                }
+            }
+            break;
+        }
     }
-    
     /*
     if (client_id != -1) {
 
@@ -237,7 +313,6 @@ int main(int argc, char** argv) {
         
         //put_request(client_id, "mib/peer_1.json", "mib/peer_test.json", ACKNOWLEDGED_MODE, &app);
         //get_request(client_id, "mib/peer_0.json", "GET_REQUEST.json", ACKNOWLEDGED_MODE, &app);
-
     }
     */
 

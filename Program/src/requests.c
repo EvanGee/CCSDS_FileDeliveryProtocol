@@ -618,7 +618,7 @@ void print_request_state(Request *req) {
     ssp_printf("request header PDU_data_field_len: %d\n", req->pdu_header.PDU_data_field_len);
     ssp_printf("request header pdu type: %d\n", req->pdu_header.PDU_type);
     ssp_printf("request header transaction_seq_num_len: %d\n", req->pdu_header.transaction_seq_num_len);
-    ssp_printf("request header transaction_sequence_number: %d\n", req->pdu_header.transaction_sequence_number);
+    ssp_printf("request header transaction_sequence_number: %llu\n", req->pdu_header.transaction_sequence_number);
     ssp_printf("request header transmission_mode: %d\n", req->pdu_header.transmission_mode);
     ssp_printf("request header version: %d\n", req->pdu_header.version);
     ssp_printf("---------------------------------------------\n");
