@@ -327,7 +327,7 @@ void add_request_to_client(Request *req, Client *client) {
     req->buff = client->buff;
     req->buff_len = client->packet_len;
     client->request_list->insert(client->request_list, req, -1);
-    start_request(req);
+
 }
 
 int put_request_no_client(

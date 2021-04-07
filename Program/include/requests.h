@@ -6,10 +6,18 @@ Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #ifndef REQUESTS_H
 #define REQUESTS_H
-
 #include "types.h"
 
 
+//--------------------------------------------User functions--------------------------------
+/*
+params:  
+    id of destination,  
+    source file name,  
+    name of the file as it will arrive at destination,  
+    ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+    app from create_ftp_task
+*/
 
 Request *put_request(
             uint32_t dest_id,
@@ -19,6 +27,14 @@ Request *put_request(
             FTP *app
             );
 
+/*
+params:  
+    id of destination,  
+    source file name,  
+    name of the file as it will arrive at destination,  
+    ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+    app from create_ftp_task
+*/
 Request *get_request(
             uint32_t dest_id,
             char *source_file_name,
@@ -26,16 +42,30 @@ Request *get_request(
             uint8_t transmission_mode,
             FTP *app);
 
-
-void ssp_cleanup_req(void *request);
-Request *init_request(char *buff, uint32_t buff_len);
+//to start sending packets
 void start_request(Request *req);
+
+/*
+params:  
+    id of destination,  
+    source file name,  
+    name of the file as it will arrive at destination,  
+    ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+    app from create_ftp_task
+*/
 int add_proxy_message_to_request(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name, Request *req);
+
+//doesn't really work yet (have to fix byte order for storate)
 int add_cont_partial_message_to_request(uint32_t beneficial_cfid, 
                                     uint32_t originator_id,
                                     uint32_t transaction_id,
                                     Request *req);
 
+
+//-----------------------------------------------------------------------------------------
+
+void ssp_cleanup_req(void *request);
+Request *init_request(char *buff, uint32_t buff_len);
 Message_put_proxy *create_message_put_proxy(uint32_t beneficial_cfid, uint8_t length_of_id, char *source_name, char *dest_name);
 Message_cont_part_request *create_message_cont_partial_request(uint32_t beneficial_cfid, 
                                                     uint32_t originator_id,

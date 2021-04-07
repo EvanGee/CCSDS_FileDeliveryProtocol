@@ -89,7 +89,7 @@ static void make_default_data(){
     \"UT_port\" : 20,\n\
     \"type_of_network\" : 3,\n\
     \"default_transmission_mode\" : 1,\n\
-    \"MTU\" : 250,\n\
+    \"MTU\" : 1450,\n\
     \"one_way_light_time\" : 123,\n\
     \"total_round_trip_allowance\" : 123,\n\
     \"async_NAK_interval\" : 123,\n\
@@ -111,7 +111,7 @@ static void make_default_data(){
     \"UT_port\" : 1,\n\
     \"type_of_network\" : 3,\n\
     \"default_transmission_mode\" : 1,\n\
-    \"MTU\" : 250,\n\
+    \"MTU\" : 1450,\n\
     \"one_way_light_time\" : 123,\n\
     \"total_round_trip_allowance\" : 123,\n\
     \"async_NAK_interval\" : 123,\n\

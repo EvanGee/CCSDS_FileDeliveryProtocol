@@ -60,10 +60,10 @@ run make to compile!
 
 # Getting started:
 
-init the app with:
+init the app or task with:
 
-    FTP *app = init_ftp(my_cfdp_id);
-    if (app == NULL) {
+    void *handler = create_ftp_task(id, &app);
+    if (handler == NULL) {
         return 1;
     }
 
@@ -72,7 +72,7 @@ if you want to join this thread, and it is a posix thread, you can run:
 ssp_thread_join(app->server_handle);
 
 if you want to exit this task for any reason set app->close = 1;
-this will run the exiting subroutines and close the task if it is a FreeRTOS task.
+this will run the exiting subroutines and close the task.
 
 if you wish to send a file to a peer:
 
@@ -85,12 +85,11 @@ app
 
 example:  
 
-    Request *req = put_request(<destination id>, "pictures/src.jpg", "pictures/desination.jpg", ACKNOWLEDGED_MODE, app);
+    Request *req = put_request(<destination id>, <src_file_name>, <dest_file_name>, <acknowledged_mode>, &app);
     start_request(req);
     
-    
-if you wish to get a file from a peer, we need to add a 'message' onto a put request,
-we can specify that there is no associated put request if we set the filenames to NULL:
+
+if you wish to get a file from a peer, you can call get_request:
 
 params:  
 id of destination,  
@@ -101,13 +100,27 @@ app
 
 example:  
 
-    Request *req = put_request(<cfid of destination>, NULL, NULL, ACKNOWLEDGED_MODE, app);
+    Request *req = get_request(<destination id>, <src_file_name>, <dest_file_name>, <acknowledged_mode>, &app);
+    start_request(req);
 
-    add_proxy_message_to_request(<cfid of proxy destination>, , "source_file_name" "destination_file_name", req);
+if you wish to send a file from a peer via a proxy node, we need to add a 'message' onto a put request,
+if we jsut want to send messages, we can set the filenames to NULL:
+
+params:  
+id of destination,  
+source file name,  
+name of the file as it will arrive at destination,  
+ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+app  
+
+example:  
+
+    Request *req = put_request(<cfid of destination>, NULL, NULL, <acknowledged_mode>, &app);
+
+    add_proxy_message_to_request(<cfid of proxy destination>, <src_file_name>, <dest_file_name>, req);
 
     start_request(req);
     
-hint, if you want to 'get' a file, set the <cfid of proxy destination> to your id.
 
 # MIB (management information base)
     
@@ -165,15 +178,14 @@ Below are the meanings of the fields for the MIB
     currently, the only acceptable values are 0 and 1. 
     - 0: UDP
     - 1: TCP
-    - 2: csp
+    - 2: csp (connectionless)
+    - 3: csp (connection based)
 
 - default_transmission_mode:
     not implemented
 
 - MTU
-    This number represents the 'maximum transmissible unit' -- this will also
-    take the form of a buffer in the program. This value is the maximum size 
-    packet that the application will receive. 
+    This number represents the 'maximum transmissible unit' This value is the size of the packet the peer expects. Make sure your underlaying network layer is big enough!
 
 - one_way_light_time : not implemented
 - total_round_trip_allowance : not implemented

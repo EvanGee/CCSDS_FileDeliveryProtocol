@@ -149,6 +149,7 @@ static int init_csp_stuff(Config conf){
         csp_conf_get_defaults(&csp_conf);       
         csp_conf.buffers = 4096; 
         csp_conf.address = remote_entity.UT_address;
+        csp_conf.buffer_data_size = 1500;
     
         error = csp_init(&csp_conf);
         if (error != CSP_ERR_NONE) {
@@ -216,37 +217,17 @@ static int confirm(){
         return -1;
     }
 }
-int main(int argc, char** argv) {
 
-
-    //exit handler for the main thread;
-    prepareSignalHandler();
-
-    //get-opt configuration
-    Config *conf = configuration(argc, argv);
-    if (conf->my_cfdp_id == 0){
-        printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
-        return 1;
-    }
-    
-    init_csp_stuff(*conf);
-
-    FTP app;
-
-    uint32_t id = conf->my_cfdp_id;
-    void *handler = create_ftp_task(id, &app);
-    if (handler == NULL) {
-        return 1;
-    }
+void input_daemon(uint32_t client_id, FTP *app){
 
     int buff_len = 25000;
     char input[buff_len];
     memset(input, 0, buff_len);
 
-    uint32_t client_id = conf->client_cfdp_id;
 
     char src_file[MAX_PATH];
     char dest_file[MAX_PATH];
+
     for (;;) {
             
         printf("send a file? type 'PUT <source_file> <destination_file>' or 'GET <destination_file> <source_file>'\n");
@@ -274,7 +255,7 @@ int main(int argc, char** argv) {
                 printf("put source_file:%s destination_file:%s?(y/n)\n", src_file, dest_file);
                 int confirming = confirm();
                 if (confirming) {
-                    put_request(client_id, src_file, dest_file, conf->unackowledged_mode, &app);
+                    put_request(client_id, src_file, dest_file, ACKNOWLEDGED_MODE, app);
                     break;
                 } else if (confirming == 0) {
                     break;
@@ -293,7 +274,7 @@ int main(int argc, char** argv) {
                 printf("get destination_file:%s source_file:%s?(y/n)\n", src_file, dest_file);
                 int confirming = confirm();
                 if (confirming) {
-                    get_request(client_id, src_file, dest_file, conf->unackowledged_mode, &app);
+                    get_request(client_id, src_file, dest_file, ACKNOWLEDGED_MODE, app);
                     break;
                 } else if (confirming == 0) {
                     break;
@@ -304,17 +285,45 @@ int main(int argc, char** argv) {
             break;
         }
     }
-    /*
+}
+int main(int argc, char** argv) {
+
+
+    //exit handler for the main thread;
+    prepareSignalHandler();
+
+    //get-opt configuration
+    Config *conf = configuration(argc, argv);
+    if (conf->my_cfdp_id == 0){
+        printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
+        return 1;
+    }
+    
+    init_csp_stuff(*conf);
+
+    FTP app;
+
+    uint32_t id = conf->my_cfdp_id;
+    void *handler = create_ftp_task(id, &app);
+    if (handler == NULL) {
+        return 1;
+    }
+
+    uint32_t client_id = conf->client_cfdp_id;
+
+    //input_daemon(client_id, &app);
+    
     if (client_id != -1) {
 
-        //sleep(5);
-        //put_request(client_id, "udp.jpeg", "test-received.jpg", conf->unackowledged_mode, &app);
-        //put_request(client_id, "udp.jpeg", "udp.jpeg", conf->unackowledged_mode, &app);
+        sleep(5);
+        Request *req = put_request(client_id, "pictures/udp.jpg", "test-received.jpg", conf->unackowledged_mode, &app);
+        start_request(req);
         
+        //put_request(client_id, "udp.jpeg", "udp.jpeg", conf->unackowledged_mode, &app);
         //put_request(client_id, "mib/peer_1.json", "mib/peer_test.json", ACKNOWLEDGED_MODE, &app);
         //get_request(client_id, "mib/peer_0.json", "GET_REQUEST.json", ACKNOWLEDGED_MODE, &app);
     }
-    */
+    
 
     free(conf); 
     ssp_thread_join(handler);

@@ -170,7 +170,7 @@ void ssp_sendto(Response res) {
     #ifdef TEST
         return;
      #endif
-   // sleep(1);
+    //sleep(1);
 
     if (res.type_of_network == generic) {
 
@@ -302,11 +302,12 @@ void ssp_printf(char *stuff, ...) {
     fflush(stdout);
 }
 
+static int shit_time = 1;
 //returns seconds elapsed, need FREE RTOS realtime clock lib to properly port
 int ssp_time_count() {
 
     #ifdef FREE_RTOS_PORT
-        return 1;//INSERT TIME FUNCTIONS get delta time since last call
+        return shit_time++;//INSERT TIME FUNCTIONS get delta time since last call
     #else
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
