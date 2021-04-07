@@ -363,7 +363,6 @@ void *ssp_connectionless_server_task(void *params) {
             app->packet_len, 
             on_recv_server_callback, 
             on_time_out_callback_server, 
-            on_stdin_callback, 
             check_exit_server_callback, 
             on_exit_server_callback, 
             app);
@@ -426,8 +425,7 @@ void *ssp_connection_server_task(void *params) {
             app->packet_len,
             10, 
             on_recv_server_callback, 
-            on_time_out_callback_server, 
-            on_stdin_callback, 
+            on_time_out_callback_server,
             check_exit_server_callback, 
             on_exit_server_callback, 
             app);
@@ -477,8 +475,7 @@ void *ssp_csp_connectionless_server_task(void *params) {
             app->remote_entity.UT_port,
             app->remote_entity.mtu,
             on_recv_server_callback, 
-            on_time_out_callback_server, 
-            on_stdin_callback, 
+            on_time_out_callback_server,
             check_exit_server_callback, 
             on_exit_server_callback, 
             app);
@@ -520,7 +517,6 @@ void *ssp_csp_connection_server_task(void *params) {
             app->remote_entity.mtu,
             on_recv_server_callback,
             on_time_out_callback_server,
-            on_stdin_callback,
             check_exit_server_callback,
             on_exit_server_callback,
             params);

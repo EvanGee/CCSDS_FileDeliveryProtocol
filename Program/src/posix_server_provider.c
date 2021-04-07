@@ -188,7 +188,6 @@ static int resizeBuff(char **buffer, uint32_t *newBufferSize, uint32_t *prev_buf
 void connection_server(char *host_name, char* port, int initial_buff_size, int connection_limit, 
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
     int (*checkExit)(void *other),
     void (*onExit)(void *other),
     void *other)
@@ -256,11 +255,6 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
 
             if (ssp_fd_is_set(i, read_socket_set)) {
 
-                if (i == STDIN_FILENO) {
-                    onStdIn(other);
-                    break;
-                }
-
                 if (i == sfd) {
                     int new_socket = accept(i, (struct sockaddr*) addr, &size_of_addr);
                     if (new_socket < 0)
@@ -313,7 +307,6 @@ void connection_server(char *host_name, char* port, int initial_buff_size, int c
 void connectionless_server(char *host_name, char* port, int initial_buff_size, 
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
-    int (*onStdIn)(void *other),
     int (*checkExit)(void *other),
     void (*onExit)(void *other),
     void *other)
@@ -368,11 +361,6 @@ void connectionless_server(char *host_name, char* port, int initial_buff_size,
         if (nrdy == 0) {
             if (onTimeOut(other) == -1)
                 ssp_printf("timeout failed\n");
-            continue;
-        }
-        
-        if (ssp_fd_is_set(STDIN_FILENO, read_socket_set)) {
-            onStdIn(other);
             continue;
         }
 
