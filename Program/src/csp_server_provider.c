@@ -92,7 +92,7 @@ void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_p
 
 
 
-void csp_connectionless_server(uint8_t my_port, uint32_t packet_len,
+void csp_connectionless_server(uint8_t my_port, uint32_t packet_len, uint32_t time_out,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
     int (*checkExit)(void *other),
@@ -117,7 +117,7 @@ void csp_connectionless_server(uint8_t my_port, uint32_t packet_len,
             break;
         }
     
-        csp_packet_t *packet = csp_recvfrom(soc, 10);
+        csp_packet_t *packet = csp_recvfrom(soc, time_out);
         //timeout
         if (packet == NULL) {
             onTimeOut(other);
@@ -188,7 +188,7 @@ int csp_custom_ftp_ping(uint32_t dest_id){
     return -1;
 }
 
-void csp_connection_server(uint8_t my_port, uint32_t packet_len,
+void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_out,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
     int (*checkExit)(void *other),
@@ -245,7 +245,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len,
                 break;
 
 
-            while ((packet = csp_read(conn, 1000)) != NULL) {
+            while ((packet = csp_read(conn, time_out)) != NULL) {
 
                 memset(buff, 0, packet_len);
                 memcpy(buff, (char *)packet->data, packet->length);

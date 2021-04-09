@@ -471,9 +471,11 @@ void *ssp_csp_connectionless_server_task(void *params) {
         ssp_printf("starting csp connectionless server\n");
         FTP *app = (FTP *) params;
 
+
         csp_connectionless_server(
             app->remote_entity.UT_port,
             app->remote_entity.mtu,
+            app->remote_entity.async_NAK_interval,
             on_recv_server_callback, 
             on_time_out_callback_server,
             check_exit_server_callback, 
@@ -515,6 +517,7 @@ void *ssp_csp_connection_server_task(void *params) {
 
         csp_connection_server(app->remote_entity.UT_port,
             app->remote_entity.mtu,
+            app->remote_entity.async_NAK_interval,
             on_recv_server_callback,
             on_time_out_callback_server,
             check_exit_server_callback,
