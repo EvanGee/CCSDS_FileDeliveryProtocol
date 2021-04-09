@@ -15,14 +15,14 @@ void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_p
     void (*onExit)(void *params),
     void *params);
 
-void csp_connectionless_server(uint8_t my_port, uint32_t packet_len,
+void csp_connectionless_server(uint8_t my_port, uint32_t packet_len, uint32_t time_out,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
     int (*checkExit)(void *other),
     void (*onExit)(void *other),
     void *other);
 
-void csp_connection_server(uint8_t my_port, uint32_t packet_len,
+void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_out,
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len,  uint32_t *buff_size, void *addr, size_t size_of_addr, void *other), 
     int (*onTimeOut)(void *other),
     int (*checkExit)(void *other),
