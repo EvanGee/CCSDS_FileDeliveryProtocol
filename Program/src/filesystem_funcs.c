@@ -252,16 +252,16 @@ int receive_offset(File *file, uint32_t offset_start, uint32_t offset_end) {
 
     
     Node *cur = node;
-    Node *new = createNode(new_offset, new_offset->start);
-    if (new == NULL) {
+    Node *ne = createNode(new_offset, new_offset->start);
+    if (ne == NULL) {
         ssp_free(new_offset);
         return 0;
     }
 
-    new->next = cur->next;
-    new->prev = cur;
-    cur->next = new;
-    new->next->prev = new;
+    ne->next = cur->next;
+    ne->prev = cur;
+    cur->next = ne;
+    ne->next->prev = ne;
 
     nak_list->count++;
         

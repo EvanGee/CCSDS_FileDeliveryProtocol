@@ -114,7 +114,7 @@ static void make_default_data(){
     \"MTU\" : 1450,\n\
     \"one_way_light_time\" : 123,\n\
     \"total_round_trip_allowance\" : 123,\n\
-    \"async_NAK_interval\" 1000,\n\
+    \"async_NAK_interval\" : 30000,\n\
     \"async_keep_alive_interval\" : 123,\n\
     \"async_report_interval\" : 123,\n\
     \"immediate_nak_mode_enabled\" : 123,\n\
