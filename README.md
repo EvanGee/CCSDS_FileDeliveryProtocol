@@ -181,15 +181,15 @@ Below are the meanings of the fields for the MIB
     - 2: csp (connectionless)
     - 3: csp (connection based)
 
-- default_transmission_mode:
-    not implemented
-
 - MTU
     This number represents the 'maximum transmissible unit' This value is the size of the packet the peer expects. Make sure your underlaying network layer is big enough!
 
+- async_NAK_interval
+    This number represents the time in miliseconds we wait to recv a packet. If it expires, we send NAKs
+
+- default_transmission_mode: not implemented
 - one_way_light_time : not implemented
-- total_round_trip_allowance : not implemented
-- async_NAK_interval : not implemented
+- total_round_trip_allowance : not implemented 
 - async_keep_alive_interval : not implemented
 - async_report_interval : not implemented
 - immediate_nak_mode_enabled : not implemented
