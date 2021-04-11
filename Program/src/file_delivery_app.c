@@ -85,7 +85,7 @@ static void make_default_data(){
     }
     const char *peer_file_sat = "{\n\
     \"cfdp_id\": 0,\n\
-    \"UT_address\" : 0,\n\
+    \"UT_address\" : 1,\n\
     \"UT_port\" : 20,\n\
     \"type_of_network\" : 3,\n\
     \"default_transmission_mode\" : 1,\n\
@@ -127,7 +127,7 @@ static void make_default_data(){
     \"transaction_inactivity_limit\" : 123\n\
 }";
 
-    int fd = ssp_open("mib/peer_0.json", SSP_O_CREAT | SSP_O_RDWR);
+    int fd = ssp_open("mib/peer_1.json", SSP_O_CREAT | SSP_O_RDWR);
     if (fd < 0) {
         if (fd == SSP_EEXIST) {
             ssp_error("file exists\n");

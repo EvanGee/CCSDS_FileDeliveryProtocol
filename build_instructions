@@ -1,0 +1,12 @@
+right click /Program/src/main.c and 'exclude from build'
+right click /Program/test directory and 'exclude from build'
+right click /Program/src/posix_server_provider.c directory and 'exclude from build'
+
+project -> properties ->  include Options -> add ${workspace_loc:/${ProjName}/libcsp/src}
+project -> properties ->  include Options -> add ${workspace_loc:/${ProjName}/ex2_ftp/Program/include}
+project -> properties ->  include Options -> add ${workspace_loc:/${ProjName}/libcsp/include}
+project -> properties ->  include Options -> add${workspace_loc:/${ProjName}/include/ex2_os}
+
+then right click the ext_ftp folder and go to the 'includes' and select restore defaults
+
+make sure the connection in Project -> properties -> general -> connection isset to XDS110 USB
