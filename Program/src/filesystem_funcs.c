@@ -53,7 +53,7 @@ File *create_file(char *source_file_name, int clear_file_contents) {
     }
 
 
-    uint32_t total_size = get_file_size(source_file_name);
+    int total_size = get_file_size(source_file_name);
     if (total_size == -1){
         ssp_error("couldn't get file size\n");
         return NULL;
@@ -331,13 +331,12 @@ int read_json(char *file_name, int (*callback)(char *key, char *value, void *par
 
     jsmntok_t tok[255];
 
-    uint32_t total_size = get_file_size(file_name);
+    int total_size = get_file_size(file_name);
 
-    if (total_size == 0){
+    if (total_size < 0){
         ssp_error("couldn't get file size\n");
         return -1;
     }
-
     char *buff = ssp_alloc(total_size, sizeof(char));
     if (buff == NULL) 
         return -1;

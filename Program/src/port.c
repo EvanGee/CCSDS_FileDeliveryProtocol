@@ -31,7 +31,8 @@ static int exit_now = 0;
 
 #ifdef FREE_RTOS_PORT 
     #include "FreeRTOS.h"
-    #include "task.h"
+    #include <os_task.h>
+    #include <os_queue.h>
     //#include "portable.h" //not sure what i need here for sat build
 
     //make sure these are available in FREERTOS
@@ -161,8 +162,7 @@ int ssp_readdir(void *dir, char *file){
     Network port functions, these are used to interchange different network
     stacks
 ------------------------------------------------------------------------------*/
-#ifdef FREE_RTOS_PORT 
-#include "queue.h"
+#ifdef FREE_RTOS_PORT
 extern QueueHandle_t sendQueue;
 #endif
 
@@ -174,7 +174,7 @@ void ssp_sendto(Response res) {
 
     if (res.type_of_network == generic) {
 
-        #ifdef FREE_RTOS_PORT 
+        #ifdef FREE_RTOS_PORT
         while (true) {
             if (xQueueSendToBack(sendQueue, res.msg, 100) != pdPASS)
                 ssp_printf("queue full, failed to post packet, blocking task untill sent\n");
