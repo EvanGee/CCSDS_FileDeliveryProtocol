@@ -9,7 +9,7 @@ Author: Evan Giese
 #include "filesystem_funcs.h"
 #include "jsmn.h"
 #include "requests.h"
-
+#include "utils.h"
 
 int get_file_size(char *source_file_name) {
 
@@ -322,11 +322,12 @@ int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t 
     return 0;
 }
 
-int read_json(char *file_name, void (*callback)(char *key, char *value, void *params), void *params) {
+int read_json(char *file_name, int (*callback)(char *key, char *value, void *params), void *params) {
 
     int number_of_tokens = 255;
     jsmn_parser p;
     jsmn_init(&p);
+    int error = 0;
 
     jsmntok_t tok[255];
 
@@ -367,7 +368,6 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
         int key_size = tok[i].end - tok[i].start;
         int value_size = tok[i+1].end - tok[i+1].start;
 
-        //char key[key_size + 1];
         char *key = ssp_alloc(key_size + 1, sizeof(char));
         if (key == NULL) {
             ssp_free(buff);
@@ -387,10 +387,16 @@ int read_json(char *file_name, void (*callback)(char *key, char *value, void *pa
         value[value_size] = '\0';
         strncpy(value, &buff[tok[i+1].start], value_size);
 
-        callback(key, value, params);
+        error = callback(key, value, params);
+
         ssp_free(key);
         ssp_free(value);
         i++;
+
+        if (error < 0) {
+            return error;
+        }
+        
     }
 
     ssp_free(buff);
@@ -876,4 +882,482 @@ int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint3
     }
     
     return 0;
+}
+
+
+//NEEEEEEEEEEEEW stuff
+
+/*
+//incoming requests spin up requests
+typedef struct request {
+    Request_procedure procedure;
+
+    uint64_t transaction_sequence_number;
+    uint32_t dest_cfdp_id;
+    uint32_t my_cfdp_id;
+
+    File *file;
+    uint32_t file_size;
+
+    char source_file_name[MAX_PATH];
+    char destination_file_name[MAX_PATH];
+
+    //previous timeout time in seconds
+    int timeout_before_cancel;
+    int timeout_before_journal;
+    
+    uint8_t segmentation_control;
+    uint8_t fault_handler_overides;
+    uint8_t flow_lable;
+    uint8_t transmission_mode;
+    bool paused;
+
+    //counter for resending eof packets == 3
+    uint8_t resent_eof;
+    //counter for resending finished packets == 3
+    uint8_t resent_finished;
+
+    //bool for sending first blast of data packets
+   // uint8_t sent_first_data_round;
+
+    Remote_entity remote_entity;
+    Local_entity local_entity;
+
+    List *messages_to_user;
+    
+    //sets the buffer length, for making packets
+    uint32_t buff_len;
+
+    //buffer for making packets
+    char* buff;
+
+    //header for building response packets
+    Pdu_header pdu_header;
+
+    //handler for sending responses back
+    Response res;
+} Request;
+
+typedef struct file {
+    int fd;
+    uint8_t is_temp;
+    uint32_t next_offset_to_send;
+    uint32_t total_size;
+    uint32_t partial_checksum;
+    uint32_t eof_checksum;
+    List *missing_offsets;
+
+} File;
+*/
+
+
+static int parse_json_missing_offset_list(List *list, char *value) {
+
+    int i = 0;
+    char *parse_string = (char *) value;
+    int len = strnlen(parse_string, 10000);
+
+    int value_length = 15;
+    char tmp_offset[value_length];
+    char start[value_length];
+    int value_index = 0;
+
+    Offset *offset;
+    int comma_number = 0;
+
+    //add comma at end for algorithm
+    parse_string[len-1] = ',';
+
+    for (i = 1; i < len; i++) {
+
+        if (parse_string[i] == ',') {
+            tmp_offset[value_index] = '\0';
+            value_index = 0;
+            comma_number++;
+
+            if (comma_number % 2 == 0) {
+                offset = ssp_alloc(1, sizeof(Offset));
+                if (offset == NULL) {
+                    ssp_printf("memory allocation failed\n");
+                    return -1;
+                }
+                offset->start = ssp_atol(start);
+                offset->end = ssp_atol(tmp_offset);
+
+                list->push(list, offset, -1);
+                continue;
+            }
+
+            memcpy(start, tmp_offset, value_length);
+            continue;
+        } 
+
+        tmp_offset[value_index] = parse_string[i];
+        value_index++;
+
+    }
+    return 0;
+}
+
+
+
+enum {
+    REQ_my_cfdp_id,
+    REQ_dest_cfdp_id,
+    REQ_transaction_sequence_number,
+    REQ_file_size,
+    REQ_source_file_name,
+    REQ_destination_file_name,
+    REQ_transmission_mode,
+    REQ_paused,
+    REQ_resent_eof,
+    REQ_resent_finished,
+    REQ_sent_first_data_round,
+    REQ_local_entity_EOF_sent_indication,
+    REQ_local_entity_EOF_recv_indication,
+    REQ_local_entity_file_segment_recv_indication,
+    REQ_local_entity_transaction_finished_indication,
+    REQ_local_entity_suspended_indication,
+    REQ_local_entity_resumed_indication,
+    REQ_local_entity_Metadata_recv_indication,
+    REQ_local_entity_Metadata_sent_indication,
+    REQ_messages_to_user,
+    REQ_file_is_temp,
+    REQ_file_next_offset_to_send,
+    REQ_file_total_size,
+    REQ_file_partial_checksum,
+    REQ_file_eof_checksum,
+    REQ_file_missing_offsets,
+    REQ_TOTAL
+};
+
+static char *parse_list[REQ_TOTAL] = {   
+    "my_cfdp_id",
+    "dest_cfdp_id",
+    "transaction_sequence_number",
+    "file_size",
+    "source_file_name",
+    "destination_file_name",
+    "transmission_mode",
+    "paused",
+    "resent_eof",
+    "resent_finished",
+    "sent_first_data_round",
+    "local_entity.EOF_sent_indication",
+    "local_entity.EOF_recv_indication",
+    "local_entity.file_segment_recv_indication",
+    "local_entity.transaction_finished_indication",
+    "local_entity.suspended_indication",
+    "local_entity.resumed_indication",
+    "local_entity.Metadata_recv_indication",
+    "local_entity.Metadata_sent_indication",
+    "messages_to_user",
+    "file.is_temp",
+    "file.next_offset_to_send",
+    "file.total_size",
+    "file.partial_checksum",
+    "file.eof_checksum",
+    "file.missing_offsets"
+};
+
+
+static int parse_json_request(char *key, char *value, void *params) {
+
+    int len = 0;
+    int i = 0;
+    int error = 0;
+
+    Request *req = (Request *) params;
+
+    for (i = 0; i < REQ_TOTAL; i++) {
+        len = strnlen(parse_list[i], 50);
+        
+        //ssp_printf("parsing %s\n", parse_list[i]);
+        if (strncmp(key, parse_list[i], len) != 0)
+            continue;
+
+        switch (i)
+        {
+            case REQ_my_cfdp_id:
+                req->my_cfdp_id = ssp_atol(value);
+                break;
+            case REQ_dest_cfdp_id:
+                req->dest_cfdp_id = ssp_atol(value);
+                break;
+            case REQ_transaction_sequence_number:
+                req->transaction_sequence_number = ssp_atoll(value);
+                break;
+            case REQ_file_size:
+                req->file_size = ssp_atol(value);
+                break;
+            case REQ_source_file_name:
+                //req->my_cfdp_id = ssp_atol(value);
+                break;
+            case REQ_destination_file_name:
+                //req->my_cfdp_id = ssp_atol(value);
+                break;
+            case REQ_transmission_mode:
+                req->transmission_mode = ssp_atol(value);
+                break;
+            case REQ_paused:
+                req->paused = ssp_atol(value);
+                break;
+            case REQ_resent_eof:
+                req->resent_eof = ssp_atol(value);
+                break;
+            case REQ_resent_finished:
+                req->resent_finished = ssp_atol(value);
+                break;
+            case REQ_sent_first_data_round:
+                req->sent_first_data_round = ssp_atol(value);
+                break;
+            case REQ_local_entity_EOF_sent_indication:
+                req->local_entity.EOF_sent_indication = ssp_atol(value);
+                break;
+            case REQ_local_entity_EOF_recv_indication:
+                req->local_entity.EOF_recv_indication = ssp_atol(value);
+                break;
+            case REQ_local_entity_file_segment_recv_indication:
+                req->local_entity.file_segment_recv_indication = ssp_atol(value);
+                break;
+            case REQ_local_entity_transaction_finished_indication:
+                req->local_entity.transaction_finished_indication = ssp_atol(value);
+                break;
+            case REQ_local_entity_suspended_indication:
+                req->local_entity.suspended_indication = ssp_atol(value);
+                break;
+            case REQ_local_entity_resumed_indication:
+                req->local_entity.resumed_indication = ssp_atol(value);
+                break;
+            case REQ_local_entity_Metadata_recv_indication:
+                req->local_entity.Metadata_recv_indication = ssp_atol(value);
+                break;
+            case REQ_local_entity_Metadata_sent_indication:
+                req->local_entity.Metadata_sent_indication = ssp_atol(value);
+                break;
+            case REQ_messages_to_user:
+                //req->messages_to_user = ssp_atol(value);
+                break;
+            case REQ_file_is_temp:
+                req->file->is_temp = ssp_atol(value);
+                break;
+            case REQ_file_next_offset_to_send:
+                req->file->next_offset_to_send = ssp_atol(value);
+                break;
+            case REQ_file_total_size:
+                req->file->total_size = ssp_atol(value);
+                break;
+            case REQ_file_partial_checksum:
+                req->file->partial_checksum = ssp_atol(value);
+                break;
+            case REQ_file_eof_checksum:
+                req->file->eof_checksum = ssp_atol(value);
+                break;
+            case REQ_file_missing_offsets:
+                error = parse_json_missing_offset_list(req->file->missing_offsets, value);
+                if (error < 0) {
+                    ssp_printf("ERROR %d\n", error);
+                    return error;
+                }
+                break;
+            case REQ_TOTAL:
+                break;
+            default:
+                break;
+        }
+    }
+    
+    return 0;
+}
+
+int get_request_from_json (Request *req, char *file_name) {
+
+    int error = read_json(file_name, parse_json_request, req);
+
+    if (error < 0) {
+        ssp_error("json parsing failed\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+static struct json_write_callback {
+    int error;
+    int fd;
+    int bytes_written;
+};
+
+static void save_file_callback_json(Node *node, void *element, void *param) {
+
+    char *error_message = "failed to write offset\n";
+
+    struct json_write_callback *p = (struct json_write_callback *) param;
+    if (p->error < 0){
+        return;
+    }
+
+    Offset *offset = (Offset *)element;
+    char buff[100];
+
+    int bytes_added = ssp_snprintf(buff, sizeof(buff), "%d,%d,", offset->start, offset->end);
+
+    int err = ssp_write(p->fd, buff, bytes_added);
+
+    if (err < 0) {
+        ssp_error(error_message);
+        p->error = err;
+        return;
+    }
+    p->bytes_written += err;
+
+}
+
+static int add_file_json(int fd, File *file) {
+
+
+    char buff[500];
+    int size = sizeof(buff);
+
+    int bytes_added = ssp_snprintf(buff, size, "\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":[",
+    parse_list[REQ_file_is_temp], file->is_temp,
+    parse_list[REQ_file_next_offset_to_send], file->next_offset_to_send,
+    parse_list[REQ_file_total_size], file->total_size,
+    parse_list[REQ_file_partial_checksum], file->partial_checksum,
+    parse_list[REQ_file_eof_checksum], file->eof_checksum,
+    parse_list[REQ_file_missing_offsets]);    
+
+    int bytes = ssp_write(fd, buff, strnlen(buff, sizeof(buff)));
+    if (bytes < 0) {
+        ssp_printf("couldn't write file\n");
+        return bytes;
+    }
+
+    struct json_write_callback p = {
+        0,
+        fd,
+        bytes,
+    };
+
+    file->missing_offsets->iterate(file->missing_offsets, save_file_callback_json, &p);
+    if (p.error < 0) {
+        ssp_printf("couldn't write file offsets\n");
+        return -1;
+    }
+
+    if (ssp_lseek(fd, -1, SSP_SEEK_END) == -1){
+        ssp_error("could'nt set offset\n");
+    }
+
+    p.bytes_written += ssp_write(fd, "],\n", 3);
+    if (bytes < 0) {
+        ssp_printf("couldn't write file\n");
+        return bytes;
+    }
+
+    return p.bytes_written;
+
+}
+
+static int add_end_of_json(int fd) {
+ 
+    if (ssp_lseek(fd, -2, SSP_SEEK_END) == -1){
+        ssp_error("could'nt set offset\n");
+    }
+
+    int err = ssp_write(fd, "\n\
+}", 2);
+    if (err < 0) {
+        return -1;
+    }
+    return 1;
+}
+
+static int add_base_req_json(int fd, Request *req){
+
+    char buff[1000];
+    int size = sizeof(buff);
+
+    int bytes_added = ssp_snprintf(buff, size, "{\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%llu,\n\
+    \"%s\":%d,\n\
+    \"%s\":\"%s\",\n\
+    \"%s\":\"%s\",\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":%d,\n\
+    \"%s\":[],\n",
+    parse_list[REQ_my_cfdp_id], req->my_cfdp_id,
+    parse_list[REQ_dest_cfdp_id], req->dest_cfdp_id,
+    parse_list[REQ_transaction_sequence_number], req->transaction_sequence_number,
+    parse_list[REQ_file_size], req->file_size,
+
+    parse_list[REQ_source_file_name], req->source_file_name,
+    parse_list[REQ_destination_file_name], req->destination_file_name,
+    parse_list[REQ_transmission_mode], req->transmission_mode,
+    parse_list[REQ_paused], req->paused,
+    parse_list[REQ_resent_eof], req->resent_eof,
+    parse_list[REQ_resent_finished], req->resent_finished,
+    parse_list[REQ_sent_first_data_round], req->sent_first_data_round,
+    parse_list[REQ_local_entity_EOF_sent_indication], req->local_entity.EOF_sent_indication,
+    parse_list[REQ_local_entity_EOF_recv_indication], req->local_entity.EOF_recv_indication,
+    parse_list[REQ_local_entity_file_segment_recv_indication], req->local_entity.file_segment_recv_indication,
+    parse_list[REQ_local_entity_transaction_finished_indication], req->local_entity.transaction_finished_indication,
+    parse_list[REQ_local_entity_suspended_indication], req->local_entity.suspended_indication,
+    parse_list[REQ_local_entity_resumed_indication], req->local_entity.resumed_indication,
+    parse_list[REQ_local_entity_Metadata_recv_indication], req->local_entity.Metadata_recv_indication,
+    parse_list[REQ_local_entity_Metadata_sent_indication], req->local_entity.Metadata_sent_indication,
+    parse_list[REQ_messages_to_user]
+    );
+
+
+    int bytes = ssp_write(fd, buff, strnlen(buff, sizeof(buff)));
+    if (bytes < 0) {
+        ssp_printf("couldn't write file\n");
+        return bytes;
+    }
+
+    return bytes;
+}
+
+int write_request_json (Request *req, char *file_name) {
+
+    if (req == NULL) {
+        return -1;
+    }
+    
+    int fd = ssp_open(file_name, SSP_O_RDWR | SSP_O_CREAT | SSP_O_TRUNC);
+    if (fd == -1) {
+        ssp_error("count not open file\n");
+        return fd;
+    }
+
+    int bytes_added = add_base_req_json(fd, req);
+
+    if (req->file != NULL)
+        bytes_added += add_file_json(fd, req->file);
+
+    
+    add_end_of_json(fd);
+
 }
