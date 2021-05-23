@@ -60,9 +60,9 @@ static int check_timeout(int *prevtime, uint32_t timeout) {
 }
 
 //sets request procedure as clean_up if ttl has passed
-static void timeout(Request *req) {
+static void timeout(Request *req, uint32_t time_out_before_cancel) {
 
-    bool is_timeout = check_timeout(&req->timeout_before_cancel, TIMEOUT_BEFORE_CANCEL_REQUEST);
+    bool is_timeout = check_timeout(&req->timeout_before_cancel, time_out_before_cancel);
     if (is_timeout) {
         if (req->local_entity.transaction_finished_indication){
             ssp_printf("ACKNOWLEDGED request successfully sent without issue transaction: %llu\n", req->transaction_sequence_number);
@@ -77,7 +77,7 @@ static void timeout(Request *req) {
         req->procedure = clean_up;
     } 
     
-    is_timeout = check_timeout(&req->timeout_before_journal, TIMEOUT_BEFORE_SAVE_REQUEST);
+    is_timeout = check_timeout(&req->timeout_before_journal, time_out_before_cancel/2);
     if (is_timeout) {
         int error = save_req_to_file(req);
         if (error < 0) {
@@ -131,13 +131,12 @@ static int on_recv_client_callback(int sfd, char *packet, uint32_t packet_len, u
     Request **request_container = &client->current_request;
     Pdu_header incoming_pdu_header;
 
-    
-    
     int packet_index = process_pdu_header(packet, false, &incoming_pdu_header, res, request_container, client->request_list, client->app);
     if (packet_index < 0) {
         ssp_printf("error parsing header\n");
         return -1;
     }
+
 
     Request *current_request = (*request_container);
 
@@ -163,7 +162,7 @@ static void user_request_check(Node *node, void *request, void *args) {
     memset(params->res.msg, 0, params->client->packet_len);
 
     user_request_handler(params->res, req, params->client);
-    timeout(req);
+    timeout(req, params->client->remote_entity.transaction_inactivity_limit);
     
     remove_request_check(node, request, params->client->request_list);
 }
@@ -213,9 +212,11 @@ static void client_check_callback(Node *node, void *client, void *args) {
 
 static void timeout_check_callback_server(Node *node, void *request, void *args) {
     Request *req = (Request *) request;
+    FTP *app = (FTP *) args;
+
     on_server_time_out(req->res, req); 
-    timeout(req);
-    remove_request_check(node, request, args);
+    timeout(req, app->remote_entity.transaction_inactivity_limit);
+    remove_request_check(node, request, app->request_list);
 }
 
 //return 1 if there are active requests, 0 if not
@@ -227,7 +228,7 @@ static int on_time_out_callback_server(void *other) {
         app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
     } 
     if (app->request_list->count) {
-        app->request_list->iterate(app->request_list, timeout_check_callback_server, app->request_list);
+        app->request_list->iterate(app->request_list, timeout_check_callback_server, app);
 
     } else {
         return 0;
@@ -538,6 +539,7 @@ void *ssp_csp_connection_client_task(void *params) {
             client->remote_entity.UT_port,
             CSP_ANY,
             client->remote_entity.mtu,
+            client->remote_entity.total_round_trip_allowance,
             on_send_client_callback,
             on_recv_client_callback,
             check_exit_client_callback,

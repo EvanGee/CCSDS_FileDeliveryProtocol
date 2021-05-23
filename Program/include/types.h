@@ -614,7 +614,7 @@ typedef struct request {
     uint8_t resent_finished;
 
     //bool for sending first blast of data packets
-   // uint8_t sent_first_data_round;
+    uint8_t sent_first_data_round;
 
     Remote_entity remote_entity;
     Local_entity local_entity;

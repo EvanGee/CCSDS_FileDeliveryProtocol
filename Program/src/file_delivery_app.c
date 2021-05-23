@@ -84,25 +84,25 @@ static void make_default_data(){
         ssp_error("couldn't make directory mib it either already exists or there is an issue\n");
     }
     const char *peer_file_sat = "{\n\
-    \"cfdp_id\": 0,\n\
+    \"cfdp_id\": 1,\n\
     \"UT_address\" : 1,\n\
     \"UT_port\" : 20,\n\
     \"type_of_network\" : 3,\n\
     \"default_transmission_mode\" : 1,\n\
-    \"MTU\" : 1450,\n\
-    \"one_way_light_time\" : 123,\n\
-    \"total_round_trip_allowance\" : 123,\n\
+    \"MTU\" : 200,\n\
+    \"total_round_trip_allowance\" : 100000,\n\
     \"async_NAK_interval\" : 30000,\n\
-    \"async_keep_alive_interval\" : 123,\n\
+    \"transaction_inactivity_limit\" : 15000,\n\
     \"async_report_interval\" : 123,\n\
     \"immediate_nak_mode_enabled\" : 123,\n\
     \"prompt_transmission_interval\" : 123,\n\
     \"disposition_of_incomplete\" : 123,\n\
-    \"CRC_required\" : 0,\n\
-    \"keep_alive_discrepancy_limit\" : 8,\n\
+    \"CRC_required\" : 123,\n\
+    \"keep_alive_discrepancy_limit\" : 123,\n\
     \"positive_ack_timer_expiration_limit\" : 123,\n\
     \"nak_timer_expiration_limit\" : 123,\n\
-    \"transaction_inactivity_limit\" : 123\n\
+    \"async_keep_alive_interval\" : 123,\n\
+    \"one_way_light_time\" : 123\n\
 }";
 
     const char *peer_file_ground_station = "{\n\
@@ -111,10 +111,10 @@ static void make_default_data(){
     \"UT_port\" : 1,\n\
     \"type_of_network\" : 3,\n\
     \"default_transmission_mode\" : 1,\n\
-    \"MTU\" : 1450,\n\
-    \"one_way_light_time\" : 123,\n\
-    \"total_round_trip_allowance\" : 123,\n\
+    \"MTU\" : 200,\n\
+    \"total_round_trip_allowance\" : 100000,\n\
     \"async_NAK_interval\" : 30000,\n\
+    \"transaction_inactivity_limit\" : 15000,\n\
     \"async_keep_alive_interval\" : 123,\n\
     \"async_report_interval\" : 123,\n\
     \"immediate_nak_mode_enabled\" : 123,\n\
@@ -124,7 +124,7 @@ static void make_default_data(){
     \"keep_alive_discrepancy_limit\" : 8,\n\
     \"positive_ack_timer_expiration_limit\" : 123,\n\
     \"nak_timer_expiration_limit\" : 123,\n\
-    \"transaction_inactivity_limit\" : 123\n\
+    \"one_way_light_time\" : 123\n\
 }";
 
     int fd = ssp_open("mib/peer_1.json", SSP_O_CREAT | SSP_O_RDWR);
@@ -159,7 +159,11 @@ static void make_default_data(){
 int init_ftp(uint32_t my_cfdp_address, FTP *app) {
     int error = 0;
 
+    //sanitize everything but the server_handle in case of race condition which sets the handler first.
+    void *handler = app->server_handle;
     memset(app, 0, sizeof(FTP));
+    app->server_handle = handler;
+
     make_default_data();
     
 

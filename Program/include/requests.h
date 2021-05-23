@@ -82,7 +82,7 @@ void free_lv(LV lv);
 void print_request_procedure(Request *req);
 int start_scheduled_requests(uint32_t dest_id, FTP *app);
 int schedule_put_request(uint32_t dest_id,char *source_file_name,char *destination_file_name,uint8_t transmission_mode, FTP *app);
-int schedule_request(Request *req, uint32_t dest_id, uint8_t transmission_mode, FTP *app);
+int schedule_request(Request *req, uint32_t dest_id, FTP *app);
 
 Request *init_request_no_client();
 

@@ -59,7 +59,6 @@ static char *parse_list[PARSE_TOTAL] = {
     "UT_port" ,
     "type_of_network",  
     "default_transmission_mode" ,
-
     "one_way_light_time" ,
     "total_round_trip_allowance" ,
     "async_NAK_interval",
@@ -68,7 +67,6 @@ static char *parse_list[PARSE_TOTAL] = {
     "immediate_nak_mode_enabled" ,
     "prompt_transmission_interval" ,
     "disposition_of_incomplete" ,
-
     "CRC_required" ,
     "MTU" ,
     "keep_alive_discrepancy_limit" ,
@@ -78,7 +76,7 @@ static char *parse_list[PARSE_TOTAL] = {
 };
 
 
-static void parse_mib(char *key, char *value, void *params) {
+static int parse_mib(char *key, char *value, void *params) {
 
     int len = 0;
     int i = 0;
@@ -153,6 +151,7 @@ static void parse_mib(char *key, char *value, void *params) {
                 break;
         }
     }
+    return 0;
 }
 
 int get_remote_entity_from_json (Remote_entity *remote, uint32_t cfdp_id) {

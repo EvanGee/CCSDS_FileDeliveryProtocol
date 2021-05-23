@@ -144,7 +144,7 @@ void csp_connectionless_server(uint8_t my_port, uint32_t packet_len, uint32_t ti
     }
 }
 
-int csp_custom_ftp_ping(uint32_t dest_id){
+int csp_custom_ftp_ping(uint32_t dest_id, uint32_t port){
 
     char buff[255];
     memset(buff, 0, 255);
@@ -152,7 +152,7 @@ int csp_custom_ftp_ping(uint32_t dest_id){
     csp_packet_t * packet;
     csp_conn_t * conn;
     /* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
-    conn = csp_connect(CSP_PRIO_NORM, dest_id, 1, 1000, CSP_SO_NONE);
+    conn = csp_connect(CSP_PRIO_NORM, dest_id, port, 1000, CSP_SO_NONE);
     if (conn == NULL) {
         /* Connect failed */
         ssp_printf("Connection failed\n");
@@ -178,7 +178,7 @@ int csp_custom_ftp_ping(uint32_t dest_id){
     } else {
         
         memcpy(buff, (char *)p->data, p->length);
-        ssp_printf("%s\n", buff);
+        ssp_printf("received: %s\n", buff);
 
         csp_close(conn);
         return 1;
@@ -269,7 +269,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_o
 }
 
 
-void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uint32_t packet_len,
+void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uint32_t packet_len, uint32_t time_out,
     int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
@@ -287,7 +287,8 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         return;
     }
 
-    
+    Client *client = (Client*) params;
+
 	while (1) {
 
         if (get_exit() || checkExit(params)){
@@ -301,8 +302,8 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         }
         
         onSend(-1, conn, sizeof(conn), params);
-    
-        while ((packet = csp_read(conn, 10000)) != NULL) {
+
+        while ((packet = csp_read(conn, time_out)) != NULL) {
             
             memcpy(buff, (char *)packet->data, packet_len);
 
@@ -313,8 +314,9 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 
         }       
         csp_close(conn);
-	}
-
+        break;
+    
+        }
     /* Close connection */
     if (conn != NULL)
         csp_close(conn);

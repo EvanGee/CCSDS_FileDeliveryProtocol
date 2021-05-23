@@ -170,8 +170,7 @@ void ssp_sendto(Response res) {
     #ifdef TEST
         return;
      #endif
-    //sleep(1);
-
+    
     if (res.type_of_network == generic) {
 
         #ifdef FREE_RTOS_PORT
@@ -289,6 +288,7 @@ void ssp_free(void *pointer) {
 
 //what kind of errorno functions do we have in RED_FS?
 void ssp_error(char *error){
+    ssp_printf("ERROR: ");
     perror(error);
 }
 
@@ -355,13 +355,13 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 
     int err = pthread_attr_init(attr);
     if (0 != err) {
-        perror("pthread_init failed");
+        ssp_error("pthread_init failed");
         ssp_free(attr);
         ssp_free(handler);
     }
     err = pthread_attr_setstacksize(attr, stack_size);
     if (0 != err)
-        ssp_error("ERROR pthread_attr_setstacksize %d");
+        ssp_error("pthread_attr_setstacksize %d");
         
     if (EINVAL == err) {
         ssp_printf("the stack size is less that PTHREAD_STACK_MIN %d\n", PTHREAD_STACK_MIN);
@@ -372,7 +372,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 
     err = pthread_create(handler, attr, thread_func, params);
     if (0 != err) {
-        perror("ERROR pthread_create");
+        ssp_error("pthread_create");
         ssp_free(handler);
     }
     ssp_free(attr);
