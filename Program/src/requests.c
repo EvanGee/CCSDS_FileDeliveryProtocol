@@ -441,10 +441,9 @@ Request *get_request(
 data will be delivered. Side effect: add request to client request list
 returns the request*/
 
-int schedule_request(Request *req, uint32_t dest_id, uint8_t transmission_mode, FTP *app) {
+int schedule_request(Request *req, uint32_t dest_id, FTP *app) {
     req->dest_cfdp_id = dest_id;
     req->my_cfdp_id = app->my_cfdp_id;
-    req->transmission_mode = transmission_mode;
     req->procedure = sending_start;
     int error = save_req_to_file(req);
     return error;
@@ -458,19 +457,26 @@ int schedule_put_request(
             FTP *app
             ) {
     int error = 0;
+
     Request *req = init_request_no_client();
     if (req == NULL) {
         ssp_error("couldn't init request");
-        return error;
+        return -1;
     } 
 
-    if (put_request_no_client(req, source_file_name, destination_file_name, transmission_mode, app) < 0){
+    
+    error = put_request_no_client(req, source_file_name, destination_file_name, transmission_mode, app);
+    if (error < 0){
         ssp_error("couldn't configure request");
-        return error;
+        return -1;
     }
 
-    error = schedule_request(req, dest_id, transmission_mode, app);
-    return error;
+    error = schedule_request(req, dest_id, app);
+    if (error < 0) {
+        ssp_error("failed to schedule request");
+        return -1;
+    }
+    return 0;
 }
 
 static void clean_up_start_scheduled_requests(int fd, Request *req){
@@ -506,6 +512,12 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
     //adding +2 here because file->name is of max 256 size, and then we add a /. 
     char file_path[MAX_PATH + 2];
 
+    client = start_client(app, dest_id);
+    if (client == NULL) {
+        ssp_error("couldn't start new request");
+        return -1;
+    }
+
     while( (ssp_readdir(dir, file)) )
     {
         if (strncmp(file, ".", 1) == 0 || strncmp(file, "..", 2) == 0)
@@ -513,40 +525,21 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
 
         ssp_snprintf(file_path, sizeof(file_path), "%s/%s", dir_name, file);
 
-        fd = ssp_open(file_path, SSP_O_RDWR);
-        if (fd < 0) {
-            clean_up_start_scheduled_requests(fd, req);
-            ssp_error("couldn't open request data file");
-            continue;
-        }
-        
-        client = start_client(app, dest_id);
-        if (client == NULL) {
-            clean_up_start_scheduled_requests(fd, req);
-            ssp_error("couldn't start new request");
-            continue;
-        }
-
         req = init_request_no_client();
         if (req == NULL) {
-            clean_up_start_scheduled_requests(fd, req);
+            ssp_cleanup_req(req);
             ssp_error("couldn't init request");
             continue;
         } 
 
-        error = read_request_from_file(fd, req);
+        error = get_request_from_json(req, file_path);
         if (error < 0) {
-            clean_up_start_scheduled_requests(fd, req);
-            ssp_error("couldn't read in request");
+            ssp_cleanup_req(req);
+            ssp_error("couldn't read in json request");
             continue;
         }
 
         add_request_to_client(req, client);
-
-        error = ssp_close(fd);
-        if (error < 0) {
-            ssp_error("there was an error closing the file descriptor");
-        }
     }
 
     ssp_closedir(dir);
