@@ -430,7 +430,7 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
 }
 
 
-static void acknowledged_start(Request *req, Response res) {
+static void acknowledged_start(Request *req, Response res, bool *close) {
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
 
     send_put_metadata(req, res);
@@ -442,6 +442,9 @@ static void acknowledged_start(Request *req, Response res) {
 
     while (!create_data_burst_packets(req->buff, start, req->file, res.packet_len)) {
         ssp_sendto(res);
+        if (*close) {
+            return;
+        }
     }
     ssp_sendto(res);
 
@@ -449,7 +452,7 @@ static void acknowledged_start(Request *req, Response res) {
     req->procedure = none;
 }
 
-static void unacknowledged_start(Request *req, Response res){
+static void unacknowledged_start(Request *req, Response res, bool *close){
 
     uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
     int i = 0;
@@ -465,6 +468,9 @@ static void unacknowledged_start(Request *req, Response res){
 
     while (!create_data_burst_packets(req->buff, start, req->file, res.packet_len)) {
         ssp_sendto(res);
+        if (*close) {
+            return;
+        }
     }
 
     ssp_sendto(res);
@@ -477,15 +483,16 @@ static void unacknowledged_start(Request *req, Response res){
 }
 
 //if no file attached to request, set procedure to none
-static void start_sequence(Request *req, Response res) {
+static void start_sequence(Request *req, Response res, bool *close) {
     
     if (req->transmission_mode == UN_ACKNOWLEDGED_MODE) {
-        unacknowledged_start(req, res);
+        unacknowledged_start(req, res, close);
         return;
     }
-    acknowledged_start(req, res);
+    acknowledged_start(req, res, close);
     //set timeout to 0, databurst can take a while, timeout should start after data burst
     reset_timeout(&req->timeout_before_cancel);
+    
 }
 
 
@@ -557,12 +564,6 @@ int process_nak_pdu(char *packet, Request *req, Response res, Client *client){
 //fills the current request with packet data, responses from servers
 void parse_packet_client(char *packet, uint32_t packet_index, Response res, Request *req, Client* client) {
  
-    //if client is still sending the first data_burst, don't accepts packets
-    if (req->procedure == sending_start)
-        return;
-    
-    //ssp_printf("NO %d\n", req->procedure);
-
     uint8_t directive = packet[packet_index];
     packet_index += 1; 
 
@@ -629,7 +630,7 @@ void user_request_handler(Response res, Request *req, Client* client) {
             break;
 
         case sending_start:
-            start_sequence(req, res);
+            start_sequence(req, res, &client->close);
             break;
 
         case clean_up: // will close the request happens in the previous functions
@@ -812,14 +813,17 @@ int parse_packet_server(char *packet, uint32_t packet_index, Response res, Reque
         
     uint16_t data_len = get_data_length(packet);
     uint32_t packet_len = packet_index + data_len;
+    int error = 0;
 
     //process file data
     if (incoming_header.PDU_type == DATA) {
         if (!req->local_entity.Metadata_recv_indication) {
             if (req->file == NULL) {
-
                 transasction_log("file is null", incoming_header.transaction_sequence_number);
-                build_temperary_file(req, TEMP_FILESIZE);
+                error = get_req_from_file(incoming_header.source_id, incoming_header.transaction_sequence_number, incoming_header.destination_id, req);
+                if (error < 0)
+                    build_temperary_file(req, TEMP_FILESIZE);
+                
             }
         }
         process_data_packet(&packet[packet_index], data_len, req->file);
