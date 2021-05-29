@@ -396,7 +396,6 @@ static void send_eof_pdu(Request *req, Response res) {
     return;
 }
 
-
 int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t length) {
 
     if (file->next_offset_to_send >= file->total_size){
@@ -427,6 +426,56 @@ int create_data_burst_packets(char *packet, uint32_t start, File *file, uint32_t
     ssp_printf("sending packet data offset_start:offset_end:total_size %d:%d:%d\n", file->next_offset_to_send - bytes, file->next_offset_to_send, file->total_size);
 
     return 0;
+}
+
+static struct cont_partial_params {
+    uint32_t start;
+    Response *res;
+    Request *req;
+};
+
+static void continue_partials_send_partials(Node *node, void *element, void *args) {
+
+    struct cont_partial_params *params = (struct cont_partial_params *) args;
+
+    
+    Request *req = params->req;
+    Response *res = params->res;
+    uint32_t start = params->start;
+    Offset *o = (Offset *) element;
+
+    int i = 0;
+    for (i = o->start; i < o->end; i += res->packet_len) {
+        req->file->next_offset_to_send = i;
+        create_data_burst_packets(req->buff, start, req->file, res->packet_len);
+        ssp_sendto(*res);
+    }
+    
+}
+
+static void continue_partials_start(Request *req, Response res, bool *close) {
+    uint32_t start = build_pdu_header(req->buff, req->transaction_sequence_number, req->transmission_mode, 0, &req->pdu_header);
+    int i = 0;
+
+    for (i = 0; i < RESEND_META_TIMES; i++) {
+        send_put_metadata(req, res);
+    }
+
+    
+    struct cont_partial_params params = {
+        start,
+        &res,
+        req,
+    };
+    
+    //send all missing offsets
+    req->file->missing_offsets->iterate(req->file->missing_offsets, continue_partials_send_partials, &params);
+    
+    for (i = 0; i < RESEND_EOF_TIMES; i++) {
+        send_eof_pdu(req, res);
+    }
+    
+    req->procedure = none;
 }
 
 
@@ -627,6 +676,7 @@ void user_request_handler(Response res, Request *req, Client* client) {
     switch (req->procedure)
     {
         case sending_nak_data:
+            continue_partials_start(req, res, &client->close);
             break;
 
         case sending_start:

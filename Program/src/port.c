@@ -244,7 +244,6 @@ void ssp_sendto(Response res) {
         break;
 
     case test:
-        ssp_printf("test\n");
         break;
 
     default:
