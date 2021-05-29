@@ -167,12 +167,18 @@ extern QueueHandle_t sendQueue;
 #endif
 
 void ssp_sendto(Response res) {
-    #ifdef TEST
-        return;
-     #endif
-    
-    if (res.type_of_network == generic) {
 
+    #ifdef CSP_NETWORK
+        csp_packet_t *packet_sending;
+        csp_packet_t *packet;
+        csp_conn_t *conn;
+    #endif
+    int err = 0;
+
+    switch (res.type_of_network)
+    {
+    case generic:
+        /* code */
         #ifdef FREE_RTOS_PORT
         while (true) {
             if (xQueueSendToBack(sendQueue, res.msg, 100) != pdPASS)
@@ -184,37 +190,39 @@ void ssp_sendto(Response res) {
         #else
         ssp_printf("FreeRtos not defined, can't use generic queues");
         #endif
-    }
-    else if (res.type_of_network == csp_connectionless) {
+        break;
+    case csp_connectionless:
         #ifdef CSP_NETWORK
-            csp_packet_t *packet = (csp_packet_t *) res.addr;
-            csp_packet_t *packet_sending;
+        packet = (csp_packet_t *) res.addr;
 
-            if (csp_buffer_remaining() != 0) {
-                packet_sending = csp_buffer_get(1);
-                if (packet_sending == NULL) {
-                    ssp_printf("couldn't get packet, is NULL");
-                }  
-                                
-                ssp_printf("sending packet to dest %d port %d srcaddr %d srcport %d \n", packet->id.dst, packet->id.dport, packet->id.src, packet->id.sport);
+        if (csp_buffer_remaining() != 0) {
+            packet_sending = csp_buffer_get(1);
+            if (packet_sending == NULL) {
+                ssp_printf("couldn't get packet, is NULL");
+            }  
+                            
+            ssp_printf("sending packet to dest %d port %d srcaddr %d srcport %d \n", packet->id.dst, packet->id.dport, packet->id.src, packet->id.sport);
+        
+            ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
+            packet_sending->length = res.packet_len;
+
+            int err = csp_sendto(packet->id.pri, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
             
-                ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
-                packet_sending->length = res.packet_len;
-
-                int err = csp_sendto(packet->id.pri, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
-                
-                if (err < 0) {
-                    ssp_error("ERROR in ssp_sento");
-                    csp_buffer_free(packet_sending);
-                }
+            if (err < 0) {
+                ssp_error("ERROR in ssp_sento");
+                csp_buffer_free(packet_sending);
             }
-            else 
-                ssp_error("couldn't get new packet for sending!\n");
+        }
+        else 
+            ssp_error("couldn't get new packet for sending!\n");
+        #else
+        ssp_printf("CSP network not defined, but network is trying to use it\n");
         #endif
-    } else if (res.type_of_network == csp_connection) {
+        break;
+
+    case csp_connection:
         #ifdef CSP_NETWORK
-            csp_conn_t *conn = (csp_conn_t*) res.addr;
-            csp_packet_t *packet_sending;
+            conn = (csp_conn_t*) res.addr;
 
             if (csp_buffer_remaining() != 0) {
                 packet_sending = csp_buffer_get(1);
@@ -230,24 +238,34 @@ void ssp_sendto(Response res) {
                     csp_buffer_free(packet_sending);
                 }
             }
-        #endif
-    }
-    else {
-        #ifdef POSIX_PORT
-            struct sockaddr* addr = (struct sockaddr*) res.addr;
-            
-            //ssp_print_bits(res.msg, 10);
-            //Pdu_header header;
-            //memset(&header, 0, sizeof(Pdu_header));
-            //get_pdu_header_from_packet(res.msg, &header);
-            //ssp_print_header(&header);
+        #else 
+        ssp_printf("CSP network not defined, but network is trying to use it\n");
+        #endif        
+        break;
 
-            int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
-            if (err < 0) {
-                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, addr, sizeof(struct sockaddr));
-                ssp_error("ERROR in sendto");
-            }
+    case test:
+        ssp_printf("test\n");
+        break;
+
+    default:
+        #ifdef POSIX_PORT
+        
+        //ssp_print_bits(res.msg, 10);
+        //Pdu_header header;
+        //memset(&header, 0, sizeof(Pdu_header));
+        //get_pdu_header_from_packet(res.msg, &header);
+        //ssp_print_header(&header);
+
+        err = sendto(res.sfd, res.msg, res.packet_len, 0, (struct sockaddr*)res.addr, sizeof(struct sockaddr));
+        if (err < 0) {
+            ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, (struct sockaddr*)res.addr, sizeof(struct sockaddr));
+            ssp_error("ERROR in sendto");
+        }
+        break;
+        #else
+        ssp_printf("Posix network not defined, but network is trying to use it\n");
         #endif
+        break;
     }
        
 }

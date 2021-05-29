@@ -499,7 +499,8 @@ typedef enum Network_type {
     posix_connection,
     csp_connectionless,
     csp_connection,
-    generic
+    generic,
+    test
 
 } Network_type;
 
