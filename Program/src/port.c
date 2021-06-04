@@ -31,7 +31,8 @@ static int exit_now = 0;
 
 #ifdef FREE_RTOS_PORT 
     #include "FreeRTOS.h"
-    #include "task.h"
+    #include <os_task.h>
+    #include <os_queue.h>
     //#include "portable.h" //not sure what i need here for sat build
 
     //make sure these are available in FREERTOS
@@ -161,20 +162,24 @@ int ssp_readdir(void *dir, char *file){
     Network port functions, these are used to interchange different network
     stacks
 ------------------------------------------------------------------------------*/
-#ifdef FREE_RTOS_PORT 
-#include "queue.h"
+#ifdef FREE_RTOS_PORT
 extern QueueHandle_t sendQueue;
 #endif
 
 void ssp_sendto(Response res) {
-    #ifdef TEST
-        return;
-     #endif
-    //sleep(1);
 
-    if (res.type_of_network == generic) {
+    #ifdef CSP_NETWORK
+        csp_packet_t *packet_sending;
+        csp_packet_t *packet;
+        csp_conn_t *conn;
+    #endif
+    int err = 0;
 
-        #ifdef FREE_RTOS_PORT 
+    switch (res.type_of_network)
+    {
+    case generic:
+        /* code */
+        #ifdef FREE_RTOS_PORT
         while (true) {
             if (xQueueSendToBack(sendQueue, res.msg, 100) != pdPASS)
                 ssp_printf("queue full, failed to post packet, blocking task untill sent\n");
@@ -185,37 +190,39 @@ void ssp_sendto(Response res) {
         #else
         ssp_printf("FreeRtos not defined, can't use generic queues");
         #endif
-    }
-    else if (res.type_of_network == csp_connectionless) {
+        break;
+    case csp_connectionless:
         #ifdef CSP_NETWORK
-            csp_packet_t *packet = (csp_packet_t *) res.addr;
-            csp_packet_t *packet_sending;
+        packet = (csp_packet_t *) res.addr;
 
-            if (csp_buffer_remaining() != 0) {
-                packet_sending = csp_buffer_get(1);
-                if (packet_sending == NULL) {
-                    ssp_printf("couldn't get packet, is NULL");
-                }  
-                                
-                ssp_printf("sending packet to dest %d port %d srcaddr %d srcport %d \n", packet->id.dst, packet->id.dport, packet->id.src, packet->id.sport);
+        if (csp_buffer_remaining() != 0) {
+            packet_sending = csp_buffer_get(1);
+            if (packet_sending == NULL) {
+                ssp_printf("couldn't get packet, is NULL");
+            }  
+                            
+            ssp_printf("sending packet to dest %d port %d srcaddr %d srcport %d \n", packet->id.dst, packet->id.dport, packet->id.src, packet->id.sport);
+        
+            ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
+            packet_sending->length = res.packet_len;
+
+            int err = csp_sendto(packet->id.pri, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
             
-                ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
-                packet_sending->length = res.packet_len;
-
-                int err = csp_sendto(packet->id.pri, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
-                
-                if (err < 0) {
-                    ssp_error("ERROR in ssp_sento");
-                    csp_buffer_free(packet_sending);
-                }
+            if (err < 0) {
+                ssp_error("ERROR in ssp_sento");
+                csp_buffer_free(packet_sending);
             }
-            else 
-                ssp_error("couldn't get new packet for sending!\n");
+        }
+        else 
+            ssp_error("couldn't get new packet for sending!\n");
+        #else
+        ssp_printf("CSP network not defined, but network is trying to use it\n");
         #endif
-    } else if (res.type_of_network == csp_connection) {
+        break;
+
+    case csp_connection:
         #ifdef CSP_NETWORK
-            csp_conn_t *conn = (csp_conn_t*) res.addr;
-            csp_packet_t *packet_sending;
+            conn = (csp_conn_t*) res.addr;
 
             if (csp_buffer_remaining() != 0) {
                 packet_sending = csp_buffer_get(1);
@@ -231,24 +238,33 @@ void ssp_sendto(Response res) {
                     csp_buffer_free(packet_sending);
                 }
             }
-        #endif
-    }
-    else {
-        #ifdef POSIX_PORT
-            struct sockaddr* addr = (struct sockaddr*) res.addr;
-            
-            //ssp_print_bits(res.msg, 10);
-            //Pdu_header header;
-            //memset(&header, 0, sizeof(Pdu_header));
-            //get_pdu_header_from_packet(res.msg, &header);
-            //ssp_print_header(&header);
+        #else 
+        ssp_printf("CSP network not defined, but network is trying to use it\n");
+        #endif        
+        break;
 
-            int err = sendto(res.sfd, res.msg, res.packet_len, 0, addr, sizeof(struct sockaddr));
-            if (err < 0) {
-                ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, addr, sizeof(struct sockaddr));
-                ssp_error("ERROR in sendto");
-            }
+    case test:
+        break;
+
+    default:
+        #ifdef POSIX_PORT
+        
+        //ssp_print_bits(res.msg, 10);
+        //Pdu_header header;
+        //memset(&header, 0, sizeof(Pdu_header));
+        //get_pdu_header_from_packet(res.msg, &header);
+        //ssp_print_header(&header);
+
+        err = sendto(res.sfd, res.msg, res.packet_len, 0, (struct sockaddr*)res.addr, sizeof(struct sockaddr));
+        if (err < 0) {
+            ssp_printf("res.sfd %d, res.packet_len %d, addr %d, addr size %d\n", res.sfd, res.packet_len, (struct sockaddr*)res.addr, sizeof(struct sockaddr));
+            ssp_error("ERROR in sendto");
+        }
+        break;
+        #else
+        ssp_printf("Posix network not defined, but network is trying to use it\n");
         #endif
+        break;
     }
        
 }
@@ -289,6 +305,7 @@ void ssp_free(void *pointer) {
 
 //what kind of errorno functions do we have in RED_FS?
 void ssp_error(char *error){
+    ssp_printf("ERROR: ");
     perror(error);
 }
 
@@ -355,13 +372,13 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 
     int err = pthread_attr_init(attr);
     if (0 != err) {
-        perror("pthread_init failed");
+        ssp_error("pthread_init failed");
         ssp_free(attr);
         ssp_free(handler);
     }
     err = pthread_attr_setstacksize(attr, stack_size);
     if (0 != err)
-        ssp_error("ERROR pthread_attr_setstacksize %d");
+        ssp_error("pthread_attr_setstacksize %d");
         
     if (EINVAL == err) {
         ssp_printf("the stack size is less that PTHREAD_STACK_MIN %d\n", PTHREAD_STACK_MIN);
@@ -372,7 +389,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 
     err = pthread_create(handler, attr, thread_func, params);
     if (0 != err) {
-        perror("ERROR pthread_create");
+        ssp_error("pthread_create");
         ssp_free(handler);
     }
     ssp_free(attr);

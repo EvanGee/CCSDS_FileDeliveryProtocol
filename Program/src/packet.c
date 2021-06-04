@@ -137,7 +137,7 @@ void ssp_print_header(Pdu_header *pdu_header){
     ssp_printf("pdu_header->reserved_bit_2 %d\n",pdu_header->reserved_bit_2);
     ssp_printf("pdu_header->transaction_seq_num_len %d\n",pdu_header->transaction_seq_num_len);
     ssp_printf("pdu_header->source_id %d\n",pdu_header->source_id);
-    ssp_printf("pdu_header->transaction_sequence_number %d\n",pdu_header->transaction_sequence_number);
+    ssp_printf("pdu_header->transaction_sequence_number %llu\n",pdu_header->transaction_sequence_number);
     ssp_printf("pdu_header->destination_id %d\n",pdu_header->destination_id);
     ssp_printf("---------------------------------------------\n");
 

@@ -120,7 +120,7 @@ static int add_proxy_message() {
     ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
 
     Message_put_proxy *proxy = (Message_put_proxy *) message->value;
-    ASSERT_EQUALS_STR("proxy dest_id should equal 2", proxy->destination_id, &id, len);
+    ASSERT_EQUALS_INT("proxy dest_id should equal 2", proxy->destination_id, id);
     ASSERT_EQUALS_STR("proxy src file", proxy->source_file_name.value, src,  proxy->source_file_name.length);
     ASSERT_EQUALS_STR("proxy dest file", proxy->destination_file_name.value, dest,  proxy->destination_file_name.length);
 
@@ -131,15 +131,19 @@ static int add_proxy_message() {
 
 
 int init_cont_partial_request_test_fail() {
+
+
+    DECLARE_NEW_TEST("Test fail to create init partial");
+
     Message_cont_part_request p_cont;
     uint32_t dest_id = 0;
     uint32_t org_id = 1;
     uint64_t tran_id = 0;
     Request *req = mock_request();
 
-    p_cont.destination_id = &dest_id;
-    p_cont.originator_id = &org_id;
-    p_cont.transaction_id = &tran_id;
+    p_cont.destination_id = dest_id;
+    p_cont.originator_id = org_id;
+    p_cont.transaction_id = tran_id;
     uint32_t buff_len = 1500;
     char buff[buff_len];
 
@@ -149,6 +153,10 @@ int init_cont_partial_request_test_fail() {
 }
 
 int init_cont_partial_request_test() {
+
+
+    DECLARE_NEW_TEST("Test create cont partial");
+
     Message_cont_part_request p_cont;
     uint32_t dest_id = 3;
     uint32_t org_id = 2;
@@ -163,9 +171,9 @@ int init_cont_partial_request_test() {
 
     save_req_to_file(req);
 
-    p_cont.destination_id = &dest_id;
-    p_cont.originator_id = &org_id;
-    p_cont.transaction_id = &tran_id;
+    p_cont.destination_id = dest_id;
+    p_cont.originator_id = org_id;
+    p_cont.transaction_id = tran_id;
     uint32_t buff_len = 1500;
     char buff[buff_len];
 
@@ -173,6 +181,7 @@ int init_cont_partial_request_test() {
 
     Request *req2 = mock_empty_request();
     get_req_from_file(dest_id, tran_id, org_id, req2);
+
     ASSERT_EQUALS_INT("eof received, don't resend. local_entity.eof_recv = 1", 
     req->local_entity.EOF_recv_indication, 
     req2->local_entity.EOF_sent_indication);
@@ -186,6 +195,9 @@ int init_cont_partial_request_test() {
 }
 
 static int add_continue_partial_message_test() {
+
+
+    DECLARE_NEW_TEST("Test add cont partial to request");
     int error = 0;
     Request *req = mock_empty_request();
 
@@ -205,9 +217,9 @@ static int add_continue_partial_message_test() {
     ASSERT_EQUALS_STR("message header should have asci: cfdp", message->header.message_id_cfdp, "cfdp", 5);
 
     Message_cont_part_request *proxy = (Message_cont_part_request *) message->value;
-    ASSERT_EQUALS_STR("proxy dest_id should equal 1", proxy->destination_id, &dest_id, proxy->destination_id);
-    ASSERT_EQUALS_STR("proxy originator id should equal 1", proxy->originator_id, &src_id,  proxy->originator_id);
-    ASSERT_EQUALS_STR("proxy transaction id should equal 4444", proxy->transaction_id, &transaction_id,  proxy->transaction_id);
+    ASSERT_EQUALS_INT("proxy dest_id should equal 1", proxy->destination_id, dest_id);
+    ASSERT_EQUALS_INT("proxy originator id should equal 1", proxy->originator_id, src_id);
+    ASSERT_EQUALS_INT("proxy transaction id should equal 4444", proxy->transaction_id, transaction_id);
     
     ssp_free_message(message);
     ssp_cleanup_req(req);
@@ -217,6 +229,9 @@ static int add_continue_partial_message_test() {
 
 
 int test_lv_functions() {
+
+
+    DECLARE_NEW_TEST("Testing LV functions");
 
     char packet[100];
     
@@ -245,45 +260,68 @@ int test_lv_functions() {
 
 int request_user_input_tests() {
 
+
+    DECLARE_NEW_TEST("Add requests to app");
+
     FTP app;
     void *handler = create_ftp_task(1, &app);
+    if (handler == NULL) {
+        ssp_printf("couldn't create thread\n");
+        return -1;
+    }
     //need to let task initialize first.
     sleep(1);
-    put_request(2, "", "", 0, &app);
-    put_request(2, NULL, NULL, 0, &app);
-    (&app)->close = true;
-    ssp_thread_join(handler);
+    ASSERT_NOT_NULL("app handler should be not null\n", app.server_handle);
+
+    Request *req = put_request(2, "", "", 0, &app);
+    ASSERT_NULL("request should be null\n", req);
+
+    req = put_request(2, NULL, NULL, 0, &app);
+    ASSERT_NOT_NULL("request should not be null\n", req);
+
 }
 int scheduled_requests_test() {
 
+    DECLARE_NEW_TEST("Save scheduled requests");
     FTP app;
     void *handler = create_ftp_task(1, &app);
+
     int error = schedule_put_request(1, "test_files/dest.jpg", "test_files/scheduled_file_sent", ACKNOWLEDGED_MODE, &app);
     ASSERT_EQUALS_INT("couldn't schedule request when should have been able to ", error, 0);
 
-    //error = schedule_put_request(1, "test_files/dest.jp", "test_files/scheduled_file_fail", ACKNOWLEDGED_MODE, app);
-    //ASSERT_EQUALS_INT("couldn't schedule request, file not found", error, -1);
+    error = schedule_put_request(1, "test_files/dest.jp", "test_files/scheduled_file_fail", ACKNOWLEDGED_MODE, &app);
+    ASSERT_EQUALS_INT("scheduled request failed", error, -1);
 
-    //error = schedule_put_request(1, NULL, NULL, ACKNOWLEDGED_MODE, app);
+    //error = schedule_put_request(1, NULL, NULL, ACKNOWLEDGED_MODE, &app);
     //ASSERT_EQUALS_INT("scheduling just messages", error, 0);
     
-    sleep(1);
-    app.close = true;
-    ssp_thread_join(handler);
-    return 0;
+    return error;
 }
 
 int schedule_requests_start_test(){
-    sleep(1);
+  
+    DECLARE_NEW_TEST("Start scheduled requests");
     
     FTP app;
     void *handler = create_ftp_task(1, &app);
 
-    int error = start_scheduled_requests(1, &app);
+    int error = 0;
+    sleep(1);
+
+    error = schedule_put_request(5, "test_files/dest.jpg", "test_files/success_sent_scheduled", ACKNOWLEDGED_MODE, &app);
+    ASSERT_EQUALS_INT("scheduling requests", error, 0);
+
+    error = schedule_put_request(5, "test_files/nak_test.jpg", "test_files/success_sent_scheduled", ACKNOWLEDGED_MODE, &app);
+    ASSERT_EQUALS_INT("scheduling requests", error, 0);
+
+    error = start_scheduled_requests(4, &app);
     ASSERT_EQUALS_INT("start request batch successfully", error, 0);
 
-    //app->close = true;
-    ssp_thread_join(handler);
+    ssp_printf("count %d\n", app.active_clients->count);
+    ASSERT_EQUALS_INT("app has filled request list", app.active_clients->count, 3);
+    
+
+    return error;
 }
 
 int test_process_messages() {
@@ -296,19 +334,15 @@ int request_tests() {
 
     int error = 0;
     
-    
     error = request_finding_test(); 
-    
     error = request_user_input_tests();
-    /*
     error = add_proxy_message();
     error = test_lv_functions();
     error = add_continue_partial_message_test();
     error = init_cont_partial_request_test_fail();
     error = init_cont_partial_request_test();
-
-    scheduled_requests_test();
-    schedule_requests_start_test();
-    */
+    error = scheduled_requests_test();
+    error = schedule_requests_start_test();
+    
     return error;
 }

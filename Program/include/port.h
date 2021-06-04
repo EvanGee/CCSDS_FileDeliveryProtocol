@@ -8,12 +8,13 @@ Author: Evan Giese
 #define PORT_H
 
 
-//#define FREE_RTOS_PORT
-//#define RED_FS
+//#define TEST 1
+#define FREE_RTOS_PORT
+#define RED_FS
 #define CSP_NETWORK
 
-#define POSIX_FILESYSTEM
-#define POSIX_PORT
+//#define POSIX_FILESYSTEM
+//#define POSIX_PORT
 
 
 

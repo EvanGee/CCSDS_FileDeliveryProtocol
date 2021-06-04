@@ -31,7 +31,7 @@ uint32_t check_sum_file(File *file, uint16_t stack_buffer);
 int receive_offset(File *file, uint32_t offset_start, uint32_t offset_end);
 File *create_temp_file(char *file_name, uint32_t size);
 int change_tempfile_to_actual(char *temp, char *destination_file_name, uint32_t file_size, File *file);
-int read_json(char *file_name, void (*callback)(char *key, char *value, void *params), void *params);
+int read_json(char *file_name, int (*callback)(char *key, char *value, void *params), void *params);
 
 int write_lv(int fd, LV lv);
 int read_lv(int fd, LV *lv);
@@ -45,4 +45,10 @@ int get_file_from_file(int fd, File *file);
 int get_req_from_file(uint32_t dest_cfdp_id, uint64_t transaction_seq_num, uint32_t my_cfdp_id, Request *req);
 int delete_saved_request(Request *req);
 int read_request_from_file(int fd, Request *req);
+
+
+//new json stuff:
+int write_request_json (Request *req, char *file_name);
+int get_request_from_json (Request *req, char *file_name);
+
 #endif 

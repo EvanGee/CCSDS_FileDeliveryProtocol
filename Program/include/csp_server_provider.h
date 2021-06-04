@@ -29,11 +29,11 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_o
     void (*onExit)(void *other),
     void *other);
 
-void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uint32_t packet_len,
+void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uint32_t packet_len, uint32_t time_out,
     int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
     void (*onExit)(void *params),
     void *params);
-int csp_custom_ftp_ping(uint32_t dest_id);
+int csp_custom_ftp_ping(uint32_t dest_id, uint32_t port);
 #endif
