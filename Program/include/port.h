@@ -7,19 +7,12 @@ Author: Evan Giese
 #ifndef PORT_H
 #define PORT_H
 
-
-//#define TEST 1
 //#define FREE_RTOS_PORT
 //#define RED_FS
 #define CSP_NETWORK
 
 #define POSIX_FILESYSTEM
 #define POSIX_PORT
-
-
-
-//comment this out if you want to sendto function to actually work
-//#define TEST
 
 #include "types.h"
 #define STACK_ALLOCATION 20000
