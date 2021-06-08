@@ -39,9 +39,9 @@ File *create_file(char *source_file_name, int clear_file_contents) {
 
     int fd = 0;
     if (clear_file_contents){
-        fd = ssp_open(source_file_name, SSP_O_RDWR | SSP_O_CREAT | SSP_O_TRUNC, 0777);
+        fd = ssp_open(source_file_name, SSP_O_RDWR | SSP_O_CREAT | SSP_O_TRUNC);
     }else {
-        fd = ssp_open(source_file_name, SSP_O_RDWR | SSP_O_CREAT, 0777);
+        fd = ssp_open(source_file_name, SSP_O_RDWR | SSP_O_CREAT);
     }   
     if (fd == -1){
         ssp_error("couldn't create file\n");
@@ -891,7 +891,7 @@ int write_request_json (Request *req, char *file_name) {
         return -1;
     }
     
-    int fd = ssp_open(file_name, SSP_O_RDWR | SSP_O_CREAT | SSP_O_TRUNC, 0777);
+    int fd = ssp_open(file_name, SSP_O_RDWR | SSP_O_CREAT | SSP_O_TRUNC);
     if (fd == -1) {
         ssp_error("count not open file\n");
         return fd;

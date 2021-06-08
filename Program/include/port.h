@@ -7,12 +7,12 @@ Author: Evan Giese
 #ifndef PORT_H
 #define PORT_H
 
-//#define FREE_RTOS_PORT
-//#define RED_FS
+#define FREE_RTOS_PORT
+#define RED_FS
 #define CSP_NETWORK
 
-#define POSIX_FILESYSTEM
-#define POSIX_PORT
+//#define POSIX_FILESYSTEM
+//#define POSIX_PORT
 
 #include "types.h"
 #define STACK_ALLOCATION 20000
