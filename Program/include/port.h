@@ -9,12 +9,12 @@ Author: Evan Giese
 
 
 //#define TEST 1
-#define FREE_RTOS_PORT
-#define RED_FS
+//#define FREE_RTOS_PORT
+//#define RED_FS
 #define CSP_NETWORK
 
-//#define POSIX_FILESYSTEM
-//#define POSIX_PORT
+#define POSIX_FILESYSTEM
+#define POSIX_PORT
 
 
 
@@ -56,6 +56,7 @@ Author: Evan Giese
     #define SSP_O_CREAT O_CREAT
     #define SSP_O_TRUNC O_TRUNC
     #define SSP_SEEK_SET SEEK_SET
+    #define SSP_SEEK_END SEEK_END
     #define SSP_EEXIST EEXIST
     #define ssp_open open
     #define ssp_rename rename
@@ -82,6 +83,7 @@ Author: Evan Giese
     #define SSP_O_TRUNC RED_O_TRUNC
     #define SSP_EEXIST RED_EEXIST
     #define SSP_SEEK_SET RED_SEEK_SET
+    #define SSP_SEEK_END SEEK_END
     #define ssp_open red_open
     #define ssp_rename red_rename
     #define ssp_close red_close
@@ -116,6 +118,7 @@ Author: Evan Giese
     
     #include "stdlib.h"
     #define ssp_atol atol
+    #define ssp_atoll atoll
 #endif
 
 #ifdef FREE_RTOS_PORT
@@ -128,6 +131,7 @@ Author: Evan Giese
     
     #include "stdlib.h"
     #define ssp_atol atol
+    #define ssp_atoll atoll
 #endif
 
 
