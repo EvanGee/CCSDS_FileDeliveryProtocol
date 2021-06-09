@@ -5,13 +5,13 @@ INCLUDE += -I$(PROJDIR)/include
 
 #---------------------------FOR FREE RTOS INTEGRATION---------------------------
 #path to source includes
-INCLUDE += -I$(PROJDIR)/Source/include
+#INCLUDE += -I$(PROJDIR)/Source/include
 
 #path to compiler includes (portmacro.h)
-INCLUDE += -I$(PROJDIR)/Source/portable/GCC/POSIX/
+#INCLUDE += -I$(PROJDIR)/Source/portable/GCC/POSIX/
 
 #path to FreeRTOSconfig
-INCLUDE += -I$(PROJDIR)/Project/
+#INCLUDE += -I$(PROJDIR)/Project/
 
 #-------------------------------------------------------------------------------
 #---------------------------FOR CSP INTEGRATION---------------------------------

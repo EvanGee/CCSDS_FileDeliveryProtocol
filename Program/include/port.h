@@ -27,15 +27,16 @@ Author: Evan Giese
         csp_packet_t *packet;
     } csp_packet_wrapper;
 
-    #include <csp/csp_endian.h>
-    #define SSP_INET_ADDRSTRLEN 16
-    #define SSP_AF_INET 2
-    #define ssp_htonl csp_hton32
-    #define ssp_ntohl csp_ntoh32
-    #define ssp_ntohs csp_ntoh16
-    #define ssp_htons csp_hton16
-    #define ssp_inet_ntop inet_ntop
-
+    #ifndef POSIX_PORT
+        #include <csp/csp_endian.h>
+        #define SSP_INET_ADDRSTRLEN 16
+        #define SSP_AF_INET 2
+        #define ssp_htonl csp_hton32
+        #define ssp_ntohl csp_ntoh32
+        #define ssp_ntohs csp_ntoh16
+        #define ssp_htons csp_hton16
+        #define ssp_inet_ntop inet_ntop
+    #endif
 #endif
 
 #ifdef POSIX_FILESYSTEM

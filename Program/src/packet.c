@@ -529,13 +529,6 @@ int get_nak_packet(char *packet, Pdu_nak *nak) {
     return packet_index;
 }
 
-static int print_nak(void *element, void* args) {
-
-    Offset *offset_in_list = (Offset *) element;
-    ssp_printf("start: %d, end: %d\n", offset_in_list->start, offset_in_list->end);
-    return 0;
-}
-
 //this function is weird because it uses a callback into an iterator. We fill the array
 //with as many 'offsets' as we can.
 uint32_t build_nak_packet(char *packet, uint32_t start, Request *req) {
