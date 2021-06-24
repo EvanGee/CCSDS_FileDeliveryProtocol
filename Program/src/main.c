@@ -131,13 +131,15 @@ static Config *configuration(int argc, char **argv)
 static int init_csp_stuff(Config conf){
 
     #ifdef CSP_NETWORK
-
+        /*
         csp_debug_level_t debug_level = CSP_INFO;
         // enable/disable debug levels
+        
         for (csp_debug_level_t i = 0; i <= CSP_LOCK; ++i) {
             csp_debug_set_level(i, (i <= debug_level) ? true : false);
         }
-
+        */
+       
         Remote_entity remote_entity;
         int error = get_remote_entity_from_json(&remote_entity, conf.my_cfdp_id);
         if (error < 0) {
@@ -149,13 +151,18 @@ static int init_csp_stuff(Config conf){
         csp_conf_get_defaults(&csp_conf);       
         csp_conf.buffers = 4096; 
         csp_conf.address = remote_entity.UT_address;
-        csp_conf.buffer_data_size = 1500;
+        csp_conf.buffer_data_size = 250;
     
         error = csp_init(&csp_conf);
         if (error != CSP_ERR_NONE) {
             csp_log_error("csp_init() failed, error: %d", error);
             exit(1);
         }
+
+        for (int i = 0; i <= CSP_LOCK; ++i) {
+            csp_debug_set_level(i, true);
+        }
+
 
         // Start router task with 10000 bytes of stack (priority is only supported on FreeRTOS) 
         csp_route_start_task(500, 0);
@@ -218,7 +225,8 @@ static int confirm(){
     }
 }
 
-void input_daemon(uint32_t client_id, FTP *app){
+/*
+static void input_daemon(uint32_t client_id, FTP *app){
 
     int buff_len = 25000;
     char input[buff_len];
@@ -286,6 +294,7 @@ void input_daemon(uint32_t client_id, FTP *app){
         }
     }
 }
+*/
 int main(int argc, char** argv) {
 
 
@@ -312,16 +321,17 @@ int main(int argc, char** argv) {
     uint32_t client_id = conf->client_cfdp_id;
 
     //input_daemon(client_id, &app);
-    
+    //csp_custom_ftp_ping(client_id, 1);
+
     if (client_id != -1) {
 
         sleep(5);
-        Request *req = put_request(client_id, "pictures/udp.jpg", "test-received.jpg", conf->unackowledged_mode, &app);
-        start_request(req);
+        start_request(put_request(client_id, "pictures/udp.jpg", "test-received.jpg", ACKNOWLEDGED_MODE, &app));
+        
         
         //put_request(client_id, "udp.jpeg", "udp.jpeg", conf->unackowledged_mode, &app);
         //put_request(client_id, "mib/peer_1.json", "mib/peer_test.json", ACKNOWLEDGED_MODE, &app);
-        //get_request(client_id, "mib/peer_0.json", "GET_REQUEST.json", ACKNOWLEDGED_MODE, &app);
+        //start_request(get_request(client_id, "mib/peer_1.json", "GET_REQUEST.json", ACKNOWLEDGED_MODE, &app));
     }
     
 

@@ -478,7 +478,7 @@ int schedule_put_request(
     }
     return 0;
 }
-
+/*
 static void clean_up_start_scheduled_requests(int fd, Request *req){
 
     if (req != NULL)
@@ -488,8 +488,8 @@ static void clean_up_start_scheduled_requests(int fd, Request *req){
     if (error < 0) {
         ssp_error("there was an error closing the file descriptor");
     }
-
 }
+*/
 
 int start_scheduled_requests(uint32_t dest_id, FTP *app){
 
@@ -505,7 +505,7 @@ int start_scheduled_requests(uint32_t dest_id, FTP *app){
         ssp_error("Unable to open directory");
         return -1;
     }
-    int error, fd = 0;
+    int error = 0;
     Request *req = NULL;
     Client *client = NULL;
     

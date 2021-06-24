@@ -206,7 +206,7 @@ void ssp_sendto(Response res) {
             ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
             packet_sending->length = res.packet_len;
 
-            int err = csp_sendto(packet->id.pri, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
+            err = csp_sendto(packet->id.pri, packet->id.dst, packet->id.dport, packet->id.sport, 0, packet_sending, 100);
             
             if (err < 0) {
                 ssp_error("ERROR in ssp_sento");
@@ -319,7 +319,10 @@ void ssp_printf(char *stuff, ...) {
     fflush(stdout);
 }
 
-static int shit_time = 1;
+#ifdef FREE_RTOS_PORT
+    //replace with real time clock
+    static int shit_time = 1;
+#endif
 //returns seconds elapsed, need FREE RTOS realtime clock lib to properly port
 int ssp_time_count() {
 

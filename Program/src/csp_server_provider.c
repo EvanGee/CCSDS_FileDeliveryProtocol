@@ -287,7 +287,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         return;
     }
 
-    Client *client = (Client*) params;
+    //Client *client = (Client*) params;
 
 	while (1) {
 

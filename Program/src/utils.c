@@ -44,9 +44,11 @@ void ssp_print_bits(char *stuff, int size){
     ssp_printf("\n");
 }
 
-
-char *safe_strncpy(char *to, char*from, int len){
+//replace strings with this 
+/*
+static char *safe_strncpy(char *to, char*from, int len){
     void *ret = strncpy(to, from, len);
     to[len] = '\0';
     return ret;
 }
+*/

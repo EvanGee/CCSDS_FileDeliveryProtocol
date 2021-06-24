@@ -8,6 +8,7 @@ Author: Evan Giese
 #include "port.h"
 #include "file_delivery_app.h"
 #include "app_control.h"
+#include "stdlib.h"
 
 
 int create_ssp_server_drivers(FTP *app) {
@@ -178,7 +179,7 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
 
     app->packet_len = remote_entity.mtu;
     app->buff = ssp_alloc(1, app->packet_len);
-    app->transaction_sequence_number = 0;
+    app->transaction_sequence_number = rand() % 255;
     
     if (app->buff == NULL) {
         ssp_free(app);
