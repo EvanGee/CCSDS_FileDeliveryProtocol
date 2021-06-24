@@ -128,7 +128,7 @@ static void make_default_data(){
     \"one_way_light_time\" : 123\n\
 }";
 
-    int fd = ssp_open("mib/peer_1.json", SSP_O_CREAT | SSP_O_RDWR);
+    int fd = ssp_open("mib/peer_1.json", SSP_O_CREAT | SSP_O_RDWR | SSP_O_TRUNC);
     if (fd < 0) {
         if (fd == SSP_EEXIST) {
             ssp_error("file exists\n");
@@ -142,7 +142,7 @@ static void make_default_data(){
         }
     }
 
-    fd = ssp_open("mib/peer_10.json", SSP_O_CREAT | SSP_O_RDWR);
+    fd = ssp_open("mib/peer_10.json", SSP_O_CREAT | SSP_O_RDWR | SSP_O_TRUNC);
     if (fd < 0) {
         if (fd == SSP_EEXIST) {
             ssp_error("file exists\n");

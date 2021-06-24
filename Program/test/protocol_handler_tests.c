@@ -223,18 +223,52 @@ int test_process_nak() {
     
 }
 
-void test_send_data_from_nak_array(){
+int test_user_request_handler_send_nak_data(){
 
+    DECLARE_NEW_TEST("user request (client side) initiation starts");
 
+    Client client;
+    mock_client(&client);
+    char buff[2000];
+
+    Response *res = mock_response();
+    Request *req = mock_request();
+
+    ssp_printf("file size %d\n", req->file_size);
+    
+    int error =  add_first_offset(req->file, 100000);
+    if (error < 0) {
+        ssp_free_file(req->file);
+        return NULL;
+    }
+    
+    receive_offset(req->file, 3000, 5000);
+    receive_offset(req->file, 10000, 40000);
+
+    ssp_printf("offset count %d\n", req->file->missing_offsets->count);
+
+    req->paused = false;
+    req->procedure = sending_nak_data;
+    res->type_of_network = test;
+    res->msg = req->buff;
+
+    user_request_handler(*res, req, &client);
+
+    ssp_cleanup_req(req);
+    return 0;
 }
+
+
 
 int protocol_handler_test() {
     int error = 0;
+
     //error = test_process_pdu_header();
     //error = test_process_pdu_eof();
     //error = test_on_server_time_out();
     //error = test_process_data_packet();
-    error = test_process_nak();
+    //error = test_process_nak();
+    error = test_user_request_handler_send_nak_data();
 
     return error;
 }
