@@ -323,9 +323,9 @@ void process_messages(Request *req, FTP *app) {
                 (char *)p_put->destination_file_name.value,
                 p_put->destination_id);
 
-                put_request(p_put->destination_id,
+                start_request(put_request(p_put->destination_id,
                 (char *)p_put->source_file_name.value, 
-                (char *)p_put->destination_file_name.value, req->remote_entity.default_transmission_mode, app);
+                (char *)p_put->destination_file_name.value, req->remote_entity.default_transmission_mode, app));
 
                 break;
 
@@ -782,7 +782,7 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
     if (req->file_size != 0) 
         process_file_request_metadata(req);
     else {
-        printf("just receiving messages, closing request\n");
+        ssp_printf("just receiving messages, closing request\n");
         req->local_entity.EOF_recv_indication = true;
         req->procedure = none;
         req->paused = true;
