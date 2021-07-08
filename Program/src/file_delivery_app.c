@@ -92,8 +92,8 @@ static void make_default_data(){
     \"default_transmission_mode\" : 1,\n\
     \"MTU\" : 200,\n\
     \"total_round_trip_allowance\" : 100000,\n\
-    \"async_NAK_interval\" : 30000,\n\
-    \"transaction_inactivity_limit\" : 15000,\n\
+    \"async_NAK_interval\" : 1000,\n\
+    \"transaction_inactivity_limit\" : 1500,\n\
     \"async_report_interval\" : 123,\n\
     \"immediate_nak_mode_enabled\" : 123,\n\
     \"prompt_transmission_interval\" : 123,\n\
@@ -114,8 +114,8 @@ static void make_default_data(){
     \"default_transmission_mode\" : 1,\n\
     \"MTU\" : 200,\n\
     \"total_round_trip_allowance\" : 100000,\n\
-    \"async_NAK_interval\" : 30000,\n\
-    \"transaction_inactivity_limit\" : 15000,\n\
+    \"async_NAK_interval\" : 1000,\n\
+    \"transaction_inactivity_limit\" : 1500,\n\
     \"async_keep_alive_interval\" : 123,\n\
     \"async_report_interval\" : 123,\n\
     \"immediate_nak_mode_enabled\" : 123,\n\
