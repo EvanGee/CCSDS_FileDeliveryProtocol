@@ -91,7 +91,7 @@ static void make_default_data(){
     \"type_of_network\" : 3,\n\
     \"default_transmission_mode\" : 1,\n\
     \"MTU\" : 200,\n\
-    \"total_round_trip_allowance\" : 100000,\n\
+    \"total_round_trip_allowance\" : 3000,\n\
     \"async_NAK_interval\" : 1000,\n\
     \"transaction_inactivity_limit\" : 1500,\n\
     \"async_report_interval\" : 123,\n\
@@ -113,7 +113,7 @@ static void make_default_data(){
     \"type_of_network\" : 3,\n\
     \"default_transmission_mode\" : 1,\n\
     \"MTU\" : 200,\n\
-    \"total_round_trip_allowance\" : 100000,\n\
+    \"total_round_trip_allowance\" : 3000,\n\
     \"async_NAK_interval\" : 1000,\n\
     \"transaction_inactivity_limit\" : 1500,\n\
     \"async_keep_alive_interval\" : 123,\n\
