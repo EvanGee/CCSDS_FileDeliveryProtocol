@@ -11,5 +11,6 @@ Author: Evan Giese
 
 void ssp_print_hex(char *stuff, int size);
 void ssp_print_bits(char *stuff, int size);
+char *safe_strncpy(char *to, char*from, int len);
 
 #endif //UTILS_H
