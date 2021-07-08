@@ -201,7 +201,7 @@ void ssp_sendto(Response res) {
                 ssp_printf("couldn't get packet, is NULL");
             }  
                             
-            ssp_printf("sending packet to dest %d port %d srcaddr %d srcport %d \n", packet->id.dst, packet->id.dport, packet->id.src, packet->id.sport);
+            //ssp_printf("sending packet to dest %d port %d srcaddr %d srcport %d \n", packet->id.dst, packet->id.dport, packet->id.src, packet->id.sport);
         
             ssp_memcpy(packet_sending->data, res.msg, res.packet_len);
             packet_sending->length = res.packet_len;
@@ -409,5 +409,8 @@ void ssp_thread_join(void *thread_handle) {
         pthread_t * handle = (pthread_t*) thread_handle;
         pthread_join(*handle, NULL);
         ssp_free(thread_handle);
+    #endif
+    #ifdef FREE_RTOS_PORT
+        vTaskDelete(thread_handle);
     #endif
 }
