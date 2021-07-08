@@ -88,6 +88,7 @@ void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_p
         
     }
     csp_buffer_free(packet_sending);
+    onExit(params);
 }
 
 
@@ -233,11 +234,11 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_o
         if (get_exit() || checkExit(other))
             break;
     
-
-        conn = csp_accept(sock, 10);
+        conn = csp_accept(sock, 1000);
         if (conn == NULL) {
             continue;
         }
+        ssp_printf("accepted\n");
 
         while(1) {
 
@@ -264,8 +265,8 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_o
         csp_close(conn);
 
     }
-    onExit(other);
     ssp_free(buff);
+    onExit(other);
 }
 
 
@@ -320,8 +321,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
     /* Close connection */
     if (conn != NULL)
         csp_close(conn);
-
-    onExit(params);
     
     ssp_free(buff);
+    onExit(params);
 }
