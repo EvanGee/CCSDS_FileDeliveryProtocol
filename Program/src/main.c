@@ -27,7 +27,7 @@ Author: Evan Giese
 //for signal handler, because its nice
 #include "posix_server_provider.h"
 //for ssp_thread_join, can use p_thread join on linux
-
+#include "utils.h"
 #include "app_control.h"
 #include "mib.h"
 
@@ -49,8 +49,24 @@ typedef struct config
     uint32_t baudrate;
     char *uart_device;
     bool unackowledged_mode;
+    uint8_t get_request;
+    char file_name[255];
+
 } Config;
 
+//sets file_name and returns the length of the file_name
+static int get_file_name(char *buff, int len, char *file_name) {
+    int i = 0;
+    for (i = 0; i < len; i++) {
+        if (buff[i] == ' ' || buff[i] == '\0') {
+            file_name[i] = '\0';
+            break;
+        }
+        file_name[i] = buff[i];
+    }
+
+    return i;
+}
 
 static Config *configuration(int argc, char **argv)
 {
@@ -59,17 +75,20 @@ static Config *configuration(int argc, char **argv)
     if (conf == NULL)
         return NULL;
         
-
     conf->timer = 15;
     conf->verbose_level = 0;
     conf->client_cfdp_id = -1;
     conf->my_cfdp_id = 0;
     conf->baudrate = 9600;
     conf->uart_device = NULL;
-    conf->unackowledged_mode = 0;
+    conf->unackowledged_mode = ACKNOWLEDGED_MODE;
+    conf->get_request = 0;
+    
 
     uint32_t tmp;
-    while ((ch = getopt(argc, argv, "t: i: c: v: k: hu ")) != -1)
+    char file_name[255];
+
+    while ((ch = getopt(argc, argv, "t: f: i: c: v: k: gphu")) != -1)
     {
         switch (ch)
         {
@@ -82,14 +101,30 @@ static Config *configuration(int argc, char **argv)
             tmp = strtol(optarg, NULL, 10);
             conf->my_cfdp_id = tmp;
             break;
-        
+
+        case 'f':
+            get_file_name(optarg, 254, conf->file_name);
+            break;
+
+        case 'g':
+            conf->get_request = 1;
+            ssp_printf("get request\n");
+            break;
+
+        case 'p':
+            conf->get_request = 2;
+            ssp_printf("put request\n");
+            break;
+
         case 'v':
             tmp = strtol(optarg, NULL, 10);
             conf->verbose_level = (uint8_t) tmp;
             break;
+
         case 'u':
-            conf->unackowledged_mode = true;
+            conf->unackowledged_mode = UN_ACKNOWLEDGED_MODE;
             break;
+
         case 'c': 
             tmp = strtol(optarg, NULL, 10);
             conf->client_cfdp_id = tmp;
@@ -107,11 +142,14 @@ static Config *configuration(int argc, char **argv)
         case 'h':
             ssp_printf("\n-----------HELP MESSAGE------------\n");
             ssp_printf("\nusage: %s [options] \n\n", basename(argv[0]));
-            ssp_printf("Options: %s%s%s%s\n",
+            ssp_printf("Options: %s%s%s%s%s%s%s\n",
                     "-u un_ackowledged mode\n"
                     "-t <timeout>\n",
                     "-i <my cfdp id for server>\n",
                     "-c <client id>\n",
+                    "-g get request\n",
+                    "-p pot request\n",
+                    "-f file name\n",
                     "-v <verbose level> eg (1-3)"
                     "-k <uart-device> eg /dev/ttyUSB0\n"
                     "-b <baudrate> default is 9600"
@@ -120,6 +158,11 @@ static Config *configuration(int argc, char **argv)
             ssp_printf("Default port number is 1111\n");
             ssp_printf("\n---------------END----------------\n");
             break;
+
+        case ':':
+            ssp_printf("missing argument\n");
+            break;
+
         default:
             ssp_printf("\ngot something not found using default\n");
             break;
@@ -128,17 +171,19 @@ static Config *configuration(int argc, char **argv)
     return conf;
 }
 
+
 static int init_csp_stuff(Config conf){
 
     #ifdef CSP_NETWORK
-        /*
-        csp_debug_level_t debug_level = CSP_INFO;
-        // enable/disable debug levels
         
+        csp_debug_level_t debug_level = 0;
+        // enable/disable debug levels
+        /*
         for (csp_debug_level_t i = 0; i <= CSP_LOCK; ++i) {
             csp_debug_set_level(i, (i <= debug_level) ? true : false);
         }
         */
+        
        
         Remote_entity remote_entity;
         int error = get_remote_entity_from_json(&remote_entity, conf.my_cfdp_id);
@@ -158,11 +203,11 @@ static int init_csp_stuff(Config conf){
             csp_log_error("csp_init() failed, error: %d", error);
             exit(1);
         }
-
+        /*
         for (int i = 0; i <= CSP_LOCK; ++i) {
             csp_debug_set_level(i, true);
         }
-
+        */
 
         // Start router task with 10000 bytes of stack (priority is only supported on FreeRTOS) 
         csp_route_start_task(500, 0);
@@ -195,19 +240,6 @@ static int init_csp_stuff(Config conf){
     #endif
     return 0;
 }
-//sets file_name and returns the length of the file_name
-static int get_file_name(char *buff, int len, char *file_name) {
-    int i = 0;
-    for (i = 0; i < len; i++) {
-        if (buff[i] == ' ' || buff[i] == '\0') {
-            file_name[i] = '\0';
-            break;
-        }
-        file_name[i] = buff[i];
-    }
-
-    return i;
-}
 
 
 static int confirm(){
@@ -225,7 +257,7 @@ static int confirm(){
     }
 }
 
-/*
+
 static void input_daemon(uint32_t client_id, FTP *app){
 
     int buff_len = 25000;
@@ -260,10 +292,10 @@ static void input_daemon(uint32_t client_id, FTP *app){
             len = get_file_name(&input[len + 5], buff_len, dest_file);
                         
             while(1) {
-                printf("put source_file:%s destination_file:%s?(y/n)\n", src_file, dest_file);
+                printf("put source_file:%s destination_file:%s? (y/n): ", src_file, dest_file);
                 int confirming = confirm();
                 if (confirming) {
-                    put_request(client_id, src_file, dest_file, ACKNOWLEDGED_MODE, app);
+                    start_request(put_request(client_id, src_file, dest_file, ACKNOWLEDGED_MODE, app));
                     break;
                 } else if (confirming == 0) {
                     break;
@@ -282,7 +314,7 @@ static void input_daemon(uint32_t client_id, FTP *app){
                 printf("get destination_file:%s source_file:%s?(y/n)\n", src_file, dest_file);
                 int confirming = confirm();
                 if (confirming) {
-                    get_request(client_id, src_file, dest_file, ACKNOWLEDGED_MODE, app);
+                    start_request(get_request(client_id, src_file, dest_file, ACKNOWLEDGED_MODE, app));
                     break;
                 } else if (confirming == 0) {
                     break;
@@ -294,7 +326,7 @@ static void input_daemon(uint32_t client_id, FTP *app){
         }
     }
 }
-*/
+
 int main(int argc, char** argv) {
 
 
@@ -303,8 +335,14 @@ int main(int argc, char** argv) {
 
     //get-opt configuration
     Config *conf = configuration(argc, argv);
+
     if (conf->my_cfdp_id == 0){
         printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
+        return 1;
+    }
+
+    if (conf->get_request == false) {
+        ssp_printf("get request or put request not specified\n");
         return 1;
     }
     
@@ -320,21 +358,18 @@ int main(int argc, char** argv) {
 
     uint32_t client_id = conf->client_cfdp_id;
 
-    //input_daemon(client_id, &app);
-    //csp_custom_ftp_ping(client_id, 1);
-
     if (client_id != -1) {
 
         sleep(5);
-        start_request(put_request(client_id, "pictures/udp.jpg", "test-received.jpg", ACKNOWLEDGED_MODE, &app));
-        
-        
-        //put_request(client_id, "udp.jpeg", "udp.jpeg", conf->unackowledged_mode, &app);
-        //put_request(client_id, "mib/peer_1.json", "mib/peer_test.json", ACKNOWLEDGED_MODE, &app);
-        //start_request(get_request(client_id, "mib/peer_1.json", "GET_REQUEST.json", ACKNOWLEDGED_MODE, &app));
+
+        if (conf->get_request == 1) {
+            start_request(get_request(client_id, conf->file_name, conf->file_name, conf->unackowledged_mode, &app));
+        }
+        else if (conf->get_request == 2) {
+            start_request(put_request(client_id, conf->file_name, conf->file_name, conf->unackowledged_mode, &app));
+        }
     }
     
-
     free(conf); 
     ssp_thread_join(handler);
   
