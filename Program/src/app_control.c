@@ -303,6 +303,10 @@ static void on_exit_client_callback (void *params) {
         return;
 
     client->close = true;
+    #ifdef FREE_RTOS_PORT
+        //free rtos has to spin, unlike pthreads
+        for(;;);
+    #endif
 }
 
 static void on_exit_server_callback (void *params) {

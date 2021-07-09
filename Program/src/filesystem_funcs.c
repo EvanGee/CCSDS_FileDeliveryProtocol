@@ -437,7 +437,7 @@ static int get_file_name(char *filename, uint32_t dest_cfdp_id, uint32_t cfdp_id
     if (error < 0)
         return -1;
 
-    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s%lu%s", "incomplete_requests/CFID:", dest_cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".json");
+    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s%llu%s", "incomplete_requests/CFID:", dest_cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".json");
 
     return 1;
 }
