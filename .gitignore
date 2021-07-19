@@ -4,6 +4,8 @@ settings.json
 SpaceProjects.odt
 Program/src/incomplete_requests
 Program/src/obj
+Program/test/incomplete_requests
+Program/test/temp
 
 *.o
 *.a
