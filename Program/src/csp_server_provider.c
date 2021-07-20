@@ -314,6 +314,8 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
             csp_buffer_free(packet);
 
         }       
+        
+        ssp_printf("closing connection\n");
         csp_close(conn);
         break;
     
