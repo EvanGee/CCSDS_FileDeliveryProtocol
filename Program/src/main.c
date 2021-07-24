@@ -88,7 +88,7 @@ static int get_file_name(char *buff, int len, char *file_name) {
 int parse_file_path(char *buff, int len, char *file_name) {
     int i = 0;
     for (i = 0; i < len; i++) {
-        if (buff[i] == ':') {
+        if (buff[i] == '|') {
             file_name[i] = '\0';
             break;
         }
@@ -208,7 +208,7 @@ static Config *configuration(int argc, char **argv)
             ssp_printf("Options: %s%s%s%s\n",
                     "-i <my cfdp id for server>\n",
                     "-c <client id>\n",
-                    "-f list of file names eg, \"PUT local/path:/path/on/sat GET /path/on/sat:local/path ...\"\n",
+                    "-f list of file names eg, \"PUT local/path|/path/on/sat GET /path/on/sat|local/path ...\"\n",
                     "-v <verbose level> eg (1-3)\n"
                     "-k <uart-device> eg /dev/ttyUSB0\n"
                     "-b <baudrate> default is 9600"
@@ -395,7 +395,7 @@ int main(int argc, char** argv) {
     //get-opt configuration
     Config *conf = configuration(argc, argv);
 
-
+    
     if (conf->my_cfdp_id == 0){
         printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
         return 1;
@@ -439,9 +439,9 @@ int main(int argc, char** argv) {
     }
     if (conf->file_list != NULL)
         conf->file_list->freeOnlyList(conf->file_list);
-        
+
     free(conf); 
     ssp_thread_join(handler);
-
+    
     return 0;
 }
