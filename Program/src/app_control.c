@@ -96,8 +96,11 @@ void remove_request_check(Node *node, void *request, void *args) {
 
         if (req->local_entity.transaction_finished_indication || req->transmission_mode == UN_ACKNOWLEDGED_MODE) {
             int error = delete_saved_request(req);
-            if (error < 0)
-                ssp_error("couldn't delete finished request, the request may have finished before journaling it\n");
+            if (error < 0) {
+                //TODO check if file exists, errno should be present
+                //ssp_error("couldn't delete finished request, the request may have finished before journaling it\n");
+            } 
+                
         }
 
         ssp_cleanup_req(remove_this);

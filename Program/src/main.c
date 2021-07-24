@@ -30,6 +30,7 @@ Author: Evan Giese
 #include "utils.h"
 #include "app_control.h"
 #include "mib.h"
+#include "list.h"
 
 #ifdef CSP_NETWORK
     #include <csp/csp.h>
@@ -49,10 +50,25 @@ typedef struct config
     uint32_t baudrate;
     char *uart_device;
     bool unackowledged_mode;
-    uint8_t get_request;
-    char file_name[255];
+    List *file_list;
 
 } Config;
+
+typedef enum request_type {
+    REQUEST_GET,
+    REQUEST_PUT
+} Request_type;
+
+
+typedef struct file_path_pair
+{
+   char dest_name[255];
+   char src_name[255]; 
+   Request_type type;
+
+} File_path_pair;
+
+
 
 //sets file_name and returns the length of the file_name
 static int get_file_name(char *buff, int len, char *file_name) {
@@ -68,6 +84,73 @@ static int get_file_name(char *buff, int len, char *file_name) {
     return i;
 }
 
+//parses the file name paths between source and destination filenames
+int parse_file_path(char *buff, int len, char *file_name) {
+    int i = 0;
+    for (i = 0; i < len; i++) {
+        if (buff[i] == '|') {
+            file_name[i] = '\0';
+            break;
+        }
+        file_name[i] = buff[i];
+    }
+    return i;
+}
+
+
+
+List *parse_file_list(char *target){
+
+    int buff_size = 5000;
+    int len = strnlen(target, buff_size);
+    char string_name[buff_size];
+    char source_name[255];
+    char dest_name[255];
+
+    List *list = linked_list();
+
+    int i = 0;
+    int j = 0;
+    int path_len = 0;
+    File_path_pair pair;
+    memset(&pair, 0, sizeof(File_path_pair));
+
+    while (i < len) {
+        i += get_file_name(&target[i], len, string_name) + 1;
+        if (strncmp(string_name, "PUT", 4) == 0) {
+            
+            pair.type = REQUEST_PUT;
+            //ssp_printf("PUT REQUEST!!!!\n");
+        } else if (strncmp(string_name, "GET", 4) == 0) {
+
+            pair.type = REQUEST_GET;
+            //ssp_printf("GET REQUEST!!!!\n");
+        } else {
+            
+            //ssp_printf("file name: %s\n", string_name);
+            j = 0;
+            path_len = strnlen(string_name, 255);
+            
+            j += parse_file_path(&string_name[j], path_len, source_name) + 1;
+            //printf("source_name %s %d\n",source_name, j);
+            strncpy(pair.src_name, source_name, 255);
+
+            j += parse_file_path(&string_name[j], path_len, dest_name);
+            //printf("dest_name %s %d\n",dest_name, j);
+            strncpy(pair.dest_name, dest_name, 255);
+            
+            File_path_pair *add = ssp_alloc(1, sizeof(File_path_pair));
+            memcpy(add, &pair, sizeof(File_path_pair));
+
+            list->push(list, add, -1);
+            
+        }
+    }
+
+    return list;
+}
+
+
 static Config *configuration(int argc, char **argv)
 {
     int ch;
@@ -82,47 +165,27 @@ static Config *configuration(int argc, char **argv)
     conf->baudrate = 9600;
     conf->uart_device = NULL;
     conf->unackowledged_mode = ACKNOWLEDGED_MODE;
-    conf->get_request = 0;
     
 
     uint32_t tmp;
     char file_name[255];
 
-    while ((ch = getopt(argc, argv, "t: f: i: c: v: k: gphu")) != -1)
+    while ((ch = getopt(argc, argv, "f: i: c: v: k: hu")) != -1)
     {
         switch (ch)
         {
-        case 't':
-            tmp = strtol(optarg, NULL, 10);
-            conf->timer = tmp;
-            break;
-
         case 'i':
             tmp = strtol(optarg, NULL, 10);
             conf->my_cfdp_id = tmp;
             break;
 
         case 'f':
-            get_file_name(optarg, 254, conf->file_name);
+            conf->file_list = parse_file_list(optarg);
             break;
-
-        case 'g':
-            conf->get_request = 1;
-            ssp_printf("get request\n");
-            break;
-
-        case 'p':
-            conf->get_request = 2;
-            ssp_printf("put request\n");
-            break;
-
+    
         case 'v':
             tmp = strtol(optarg, NULL, 10);
             conf->verbose_level = (uint8_t) tmp;
-            break;
-
-        case 'u':
-            conf->unackowledged_mode = UN_ACKNOWLEDGED_MODE;
             break;
 
         case 'c': 
@@ -142,15 +205,11 @@ static Config *configuration(int argc, char **argv)
         case 'h':
             ssp_printf("\n-----------HELP MESSAGE------------\n");
             ssp_printf("\nusage: %s [options] \n\n", basename(argv[0]));
-            ssp_printf("Options: %s%s%s%s%s%s%s\n",
-                    "-u un_ackowledged mode\n"
-                    "-t <timeout>\n",
+            ssp_printf("Options: %s%s%s%s\n",
                     "-i <my cfdp id for server>\n",
                     "-c <client id>\n",
-                    "-g get request\n",
-                    "-p pot request\n",
-                    "-f file name\n",
-                    "-v <verbose level> eg (1-3)"
+                    "-f list of file names eg, \"PUT local/path|/path/on/sat GET /path/on/sat|local/path ...\"\n",
+                    "-v <verbose level> eg (1-3)\n"
                     "-k <uart-device> eg /dev/ttyUSB0\n"
                     "-b <baudrate> default is 9600"
                     "-h HelpMessage");
@@ -336,19 +395,16 @@ int main(int argc, char** argv) {
     //get-opt configuration
     Config *conf = configuration(argc, argv);
 
+    
     if (conf->my_cfdp_id == 0){
         printf("can't start server, please select an ID (-i #) and client ID (-c #) \n");
-        return 1;
-    }
-
-    if (conf->get_request == false) {
-        ssp_printf("get request or put request not specified\n");
         return 1;
     }
     
     init_csp_stuff(*conf);
 
     FTP app;
+    memset(&app, 0, sizeof(FTP));
 
     uint32_t id = conf->my_cfdp_id;
     void *handler = create_ftp_task(id, &app);
@@ -360,18 +416,32 @@ int main(int argc, char** argv) {
 
     if (client_id != -1) {
 
-        sleep(5);
+        while(conf->file_list->count > 0) {
+            File_path_pair *file_names = conf->file_list->pop(conf->file_list);
 
-        if (conf->get_request == 1) {
-            start_request(get_request(client_id, conf->file_name, conf->file_name, conf->unackowledged_mode, &app));
+            if (file_names->type == REQUEST_PUT) {
+                ssp_printf("putting file %s path %s\n", file_names->src_name, file_names->dest_name);
+                start_request(put_request(client_id, file_names->src_name, file_names->dest_name, conf->unackowledged_mode, &app));
+            }
+            else if (file_names->type == REQUEST_GET) {
+                ssp_printf("getting file %s to path %s\n", file_names->src_name, file_names->dest_name);
+                start_request(get_request(client_id, file_names->src_name, file_names->dest_name, conf->unackowledged_mode, &app));
+            }
+            free(file_names);
         }
-        else if (conf->get_request == 2) {
-            start_request(put_request(client_id, conf->file_name, conf->file_name, conf->unackowledged_mode, &app));
+
+        while (app.active_clients->count != 0) {
+            sleep(1);
         }
+
+        ssp_printf("closing app\n");
+        app.close = 1;
     }
-    
+    if (conf->file_list != NULL)
+        conf->file_list->freeOnlyList(conf->file_list);
+
     free(conf); 
     ssp_thread_join(handler);
-  
+    
     return 0;
 }

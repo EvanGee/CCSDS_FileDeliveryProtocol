@@ -302,6 +302,9 @@ Request *init_request(char *buff, uint32_t buff_len) {
 
 
 Client *start_client(FTP *app, uint8_t dest_id) {
+
+
+    while (!app->initialized);
      //spin up a new client thread
     Client *client = (Client *) app->active_clients->find(app->active_clients, dest_id, NULL, NULL);
 

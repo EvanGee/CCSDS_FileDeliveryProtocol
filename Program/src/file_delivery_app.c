@@ -208,6 +208,7 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
     app->current_request = NULL;
     
     ssp_printf("initializing ftp server task: ");
+    app->initialized = true;
     return create_ssp_server_drivers(app);
 }
 
@@ -268,6 +269,7 @@ Client *init_client(uint32_t dest_cfdp_id, uint32_t my_cfdp_id){
 
 Client *ssp_client(uint32_t cfdp_id, FTP *app) {
 
+    
     Client *client = init_client(cfdp_id, app->my_cfdp_id);
     if (client == NULL) {
         return NULL;

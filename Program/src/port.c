@@ -411,7 +411,7 @@ void ssp_thread_join(void *thread_handle) {
         ssp_free(thread_handle);
     #endif
     #ifdef FREE_RTOS_PORT
-        ssp_printf("joining client thread %d\n", thread_handle);
+        ssp_printf("deleting client task\n");
         vTaskDelete(NULL);
     #endif
 }
