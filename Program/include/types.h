@@ -672,6 +672,9 @@ typedef struct ftp {
     uint32_t transaction_sequence_number;
     
     uint8_t verbose_level;
+    
+    //is ok now to start client threads... probably. There is a chance that the server will not be ready yet to receive 'get requests' but that is a rare timing/scheduling.
+    bool initialized;
 
     //bool for exiting the server thread
     uint8_t close;

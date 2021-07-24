@@ -234,10 +234,12 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_o
         if (get_exit() || checkExit(other))
             break;
     
-        conn = csp_accept(sock, 1000);
+        conn = csp_accept(sock, time_out);
         if (conn == NULL) {
+            onTimeOut(other);
             continue;
         }
+        
         ssp_printf("accepted\n");
 
         while(1) {
