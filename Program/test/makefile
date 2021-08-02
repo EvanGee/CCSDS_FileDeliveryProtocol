@@ -38,7 +38,7 @@ CFILES += $(PROJDIR)/test/list_tests.c
 CFILES += $(PROJDIR)/test/filesystem_tests.c
 CFILES += $(PROJDIR)/test/protocol_handler_tests.c
 CFILES += $(PROJDIR)/test/list_tests.c
-#CFILES += $(PROJDIR)/test/server_tests.c
+CFILES += $(PROJDIR)/test/server_tests.c
 
 
 #entrypoint

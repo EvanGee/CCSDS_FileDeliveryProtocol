@@ -12,6 +12,7 @@ int list_tests();
 int file_system_tests();
 int request_tests();
 int protocol_handler_test();
+int server_tests();
 
 int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id);
 Response *mock_response();
@@ -21,8 +22,7 @@ Request *mock_empty_request();
 List *populate_request_list();
 Client *mock_client();
 
-#define TEMP_FILESIZE 1000
 
-//int server_tests(int client   );
+#define TEMP_FILESIZE 1000
 
 #endif
