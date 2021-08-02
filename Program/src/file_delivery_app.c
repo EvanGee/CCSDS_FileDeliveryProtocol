@@ -261,6 +261,8 @@ Client *init_client(uint32_t dest_cfdp_id, uint32_t my_cfdp_id){
 
     client->close = 0;
     client->remote_entity = remote_entity;
+    client->lock = NULL;
+
     get_header_from_mib(&client->pdu_header, remote_entity, my_cfdp_id);
     
     client->current_request = NULL;

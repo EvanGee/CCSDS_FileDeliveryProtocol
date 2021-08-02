@@ -430,11 +430,16 @@ void *ssp_lock_create() {
 }
 
 int ssp_lock_destory(void *lock) {
+    if (lock == NULL) {
+        return 0;
+    }
+
     #ifdef FREE_RTOS_PORT
     #else
     int error = pthread_mutex_destroy(lock);
 
     if (!error) {
+        ssp_free(lock);
         return 1;
 
     } else if (error == EBUSY){
@@ -445,19 +450,17 @@ int ssp_lock_destory(void *lock) {
 }
 
 int ssp_lock_give(void *lock) {
-    #ifdef FREE_RTOS_PORT3
-    if( lock != NULL ) {
-        SemaphoreHandle_t xSemaphore = (SemaphoreHandle_t) lock;
-        return xSemaphoreGive( xSemaphore );
-    }
-    #else
-    
-    pthread_mutex_t *mutex = (pthread_mutex_t *) lock; 
-    if (pthread_mutex_trylock(mutex) != 0) {
-        //lock is currently not locked
-        return 1;
+    if (lock == NULL) {
+        return 0;
     }
 
+    #ifdef FREE_RTOS_PORT
+    SemaphoreHandle_t xSemaphore = (SemaphoreHandle_t) lock;
+    return xSemaphoreGive( xSemaphore );
+    
+    #else
+    pthread_mutex_t *mutex = (pthread_mutex_t *) lock; 
+    
     int error = pthread_mutex_unlock(mutex);
     if (!error) {
         return 1;
@@ -471,6 +474,10 @@ int ssp_lock_give(void *lock) {
 }
 
 int ssp_lock_take(void *lock) {
+    if (lock == NULL) {
+        return 0;
+    }
+
     #ifdef FREE_RTOS_PORT
     SemaphoreHandle_t xSemaphore = (SemaphoreHandle_t) lock;
     if( xSemaphore != NULL ) {
@@ -479,9 +486,6 @@ int ssp_lock_take(void *lock) {
     #else
 
     pthread_mutex_t *mutex = (pthread_mutex_t *) lock; 
-    if (pthread_mutex_trylock(mutex) != 0) {
-        return 0;
-    }
     
     int error = pthread_mutex_lock(mutex);
     if (!error) {

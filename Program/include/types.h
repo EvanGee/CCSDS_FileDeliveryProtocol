@@ -707,6 +707,9 @@ typedef struct client {
 
     //bool for exiting the client thread
     bool close;
+    
+    //for contiuously running clients
+    void *lock;
 
 } Client;
 

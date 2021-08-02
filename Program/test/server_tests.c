@@ -269,7 +269,7 @@ static int onRecvServer(int sfd, char *packet, uint32_t packet_len,  uint32_t *b
     res.packet_len = 10;
     res.size_of_addr = size_of_addr;
     res.sfd = sfd;
-    res.type_of_network = csp_connection;
+    res.type_of_network = test;
     res.transmission_mode = ACKNOWLEDGED_MODE;
     
     ssp_sendto(res);
@@ -298,7 +298,7 @@ static int onSend(int sfd, void *addr, size_t size_of_addr, void *onSendParams) 
     res.msg = "hello server!!\n";
     res.packet_len = 12;
     res.sfd = sfd;
-    res.type_of_network = csp_connection;
+    res.type_of_network = test;
     res.transmission_mode = ACKNOWLEDGED_MODE;
     printf("sending!!!\n");
     
@@ -359,19 +359,26 @@ void *ssp_csp_connection_server_task_test(void *params) {
         onExit,
         params);
         */
+        
 }
 
 
 void *ssp_csp_connection_client_task_test(void *params) {
 
-    /*
-    csp_connection_client(1, 1,
-        onSend,
-        onRecvClient,
-        checkExitClient,
-        onExitClient,
-        params);
-    */
+    ssp_printf("starting csp connection client\n");
+    Client *client = (Client *) params;
+
+        csp_connection_client(1, 
+            1,
+            CSP_ANY,
+            200,
+            1000,
+            client->lock,
+            onSend,
+            onRecvClient,
+            checkExitClient,
+            onExitClient,
+            params);   
 }
 /*
 void *ssp_csp_connectionless_client_task_test(void *params) {
@@ -395,7 +402,6 @@ int test_lock_create(){
     int success = ssp_lock_destory(lock);
     ASSERT_EQUALS_INT("lock destroy success", success, 1);
     
-    ssp_free(lock);
     return 0;
 
 }
@@ -409,10 +415,12 @@ int test_lock_get(){
     int success = ssp_lock_take(lock);
     ASSERT_EQUALS_INT("successfully got lock", success, 1);
 
+    success = ssp_lock_give(lock);
+    ASSERT_EQUALS_INT("successfully gave lock", success, 1);
+
     success = ssp_lock_destory(lock);
     ASSERT_EQUALS_INT("lock destroy success", success, 1);
 
-    ssp_free(lock);
     return success;
 }
 
@@ -428,13 +436,13 @@ int test_lock_give(){
     success = ssp_lock_destory(lock);
     ASSERT_EQUALS_INT("lock destroy success", success, 1);
 
-    ssp_free(lock);
     return success;
 
 }
 
 
-int server_tests(int client) {
+
+int server_tests() {
 
     int buffsize = 10000;
     char buff[buffsize];
@@ -460,14 +468,25 @@ int server_tests(int client) {
     error = test_lock_get();
 
     
+    
+    Client client;
+    memset(&client, 0, sizeof(Client));
+
+    void *lock = ssp_lock_create();
+    client.lock = lock;
+
+
     //void *handle = ssp_thread_create(20000, ssp_csp_connectionless_server_task_test, NULL);
     //void *handle2 = ssp_thread_create(20000, ssp_csp_connectionless_client_task_test, NULL);
     //void *handle = ssp_thread_create(20000, ssp_csp_connection_server_task_test, NULL);    
-    //void *handle2 = ssp_thread_create(20000, ssp_csp_connection_client_task_test, NULL);    
+    void *handle2 = ssp_thread_create(20000, ssp_csp_connection_client_task_test, &client);    
     //test_csp_connectionless_server();
-    
+
+    sleep(5);
+    ssp_lock_give(client.lock);
+
     //ssp_thread_join(handle);
-    //ssp_thread_join(handle2);
+    ssp_thread_join(handle2);
 
 
     /*

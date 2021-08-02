@@ -175,7 +175,7 @@ static int on_send_client_callback(int sfd, void *addr, size_t size_of_addr, voi
     Response res;    
     Client *client = (Client *) other;
 
-    if (client->request_list->count == 0){
+    if (client->request_list->count == 0 && client->lock == NULL){
         client->close = true;
         return 0;
     }
@@ -289,7 +289,7 @@ static int check_exit_server_callback(void *params) {
 
 static int check_exit_client_callback(void *params) {
     Client *client = (Client*) params;
-    if (client->close)
+    if (client->close) 
         return 1;
     return 0;
 }
@@ -306,10 +306,6 @@ static void on_exit_client_callback (void *params) {
         return;
 
     client->close = true;
-    #ifdef FREE_RTOS_PORT
-        //free rtos has to spin, unlike pthreads
-        for(;;);
-    #endif
 }
 
 static void on_exit_server_callback (void *params) {
@@ -532,17 +528,29 @@ void *ssp_csp_connection_server_task(void *params) {
 void *ssp_csp_connection_client_task(void *params) {
     #ifdef CSP_NETWORK
     ssp_printf("starting csp connection client\n");
+
     Client *client = (Client *) params;
-        csp_connection_client(client->remote_entity.UT_address, 
-            client->remote_entity.UT_port,
-            CSP_ANY,
-            client->remote_entity.mtu,
-            client->remote_entity.total_round_trip_allowance,
-            on_send_client_callback,
-            on_recv_client_callback,
-            check_exit_client_callback,
-            on_exit_client_callback,
-            params);
+
+    #ifdef FREE_RTOS_PORT
+
+    void *lock = ssp_lock_create();
+    if (lock == NULL)
+        return NULL;
+
+    client->lock = lock;
+    #endif
+    
+    csp_connection_client(client->remote_entity.UT_address, 
+        client->remote_entity.UT_port,
+        CSP_ANY,
+        client->remote_entity.mtu,
+        client->remote_entity.total_round_trip_allowance,
+        client->lock,
+        on_send_client_callback,
+        on_recv_client_callback,
+        check_exit_client_callback,
+        on_exit_client_callback,
+        params);
 
     #endif
     #ifndef CSP_NETWORK
@@ -572,11 +580,14 @@ void ssp_cleanup_client(Client *client) {
         return;
 
     client->request_list->free(client->request_list, ssp_cleanup_req);
+    ssp_lock_give(client->lock);
+    ssp_lock_destory(client->lock);
     ssp_free(client->buff);
     ssp_free(client);
 }
-void ssp_client_join(Client *client) {
 
+void ssp_client_join(Client *client) {
+    
     ssp_thread_join(client->client_handle);
     ssp_cleanup_client(client);
 }
@@ -587,6 +598,8 @@ static void exit_client(Node *node, void *element, void *args) {
 
     Client *client = (Client *) element;
     client->close = true;
+    //in case we are currently blocking in the client thread
+    ssp_lock_give(client->lock);
 }
 
 void ssp_cleanup_ftp(FTP *app) {
@@ -595,5 +608,4 @@ void ssp_cleanup_ftp(FTP *app) {
     app->active_clients->iterate(app->active_clients, client_check_callback, app->active_clients);
     app->active_clients->freeOnlyList(app->active_clients);   
     ssp_free(app->buff);
-    
 }
