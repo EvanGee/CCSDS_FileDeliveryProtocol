@@ -149,6 +149,10 @@ void *ssp_opendir(char *dir_name);
 int ssp_readdir(void *dir, char *file);
 int get_exit();
 void set_exit();
+int ssp_lock_give(void *lock);
+int ssp_lock_take(void *lock);
+void *ssp_lock_create();
+int ssp_lock_destory(void *lock);
 
 void reset_request(Request *req);
 

@@ -331,6 +331,9 @@ void add_request_to_client(Request *req, Client *client) {
     req->buff_len = client->packet_len;
     client->request_list->insert(client->request_list, req, -1);
 
+    //unlock if lock is present
+    ssp_lock_give(client->lock);
+
 }
 
 int put_request_no_client(

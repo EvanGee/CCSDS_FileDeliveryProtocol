@@ -272,7 +272,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_o
 }
 
 
-void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uint32_t packet_len, uint32_t time_out,
+void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uint32_t packet_len, uint32_t time_out, void*lock,
     int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
@@ -283,21 +283,24 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
 	csp_packet_t * packet = NULL;
 	csp_conn_t * conn = NULL;
 
-
     char *buff = ssp_alloc(packet_len, sizeof(char));
     if (buff == NULL) {
         ssp_printf("exiting client thread\n");
         return;
     }
 
-    //Client *client = (Client*) params;
+    Client *client = (Client*) params;
 
 	while (1) {
+        
+        //lock will block, need to unlock when new request/s are started
+        ssp_lock_take(lock);
 
         if (get_exit() || checkExit(params)){
             ssp_printf("exiting client thread\n");
             break;
         }
+        
         /* Connect to host HOST, port PORT with regular UDP-like protocol and 1000 ms timeout */
         conn = csp_connect(CSP_PRIO_NORM, dest_id, dest_port, 100, CSP_SO_NONE);
         if (conn == NULL) {        
@@ -319,9 +322,11 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         
         ssp_printf("closing connection\n");
         csp_close(conn);
-        break;
-    
-        }
+        
+        if (lock == NULL)
+            break;
+
+    }
     /* Close connection */
     if (conn != NULL)
         csp_close(conn);

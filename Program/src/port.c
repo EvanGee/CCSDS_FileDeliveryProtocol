@@ -42,6 +42,7 @@ static int exit_now = 0;
     #include <stdlib.h>
     #include <stdio.h>
     #include <stdarg.h>
+    #include <semphr.h>
 
 #endif
 
@@ -402,6 +403,103 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
 }
 
 
+void *ssp_lock_create() {
+    #ifdef FREE_RTOS_PORT
+
+    /* Create a mutex type semaphore. */
+    void *lock =  xSemaphoreCreateMutex();
+    if (lock == NULL) {
+        ssp_printf("mutex init failed\n");
+        return NULL;
+    }
+
+    #else
+    pthread_mutex_t *lock = ssp_alloc(1, sizeof(pthread_mutex_t));
+    if (lock == NULL) {
+        return NULL;
+    }
+
+    if (pthread_mutex_init(lock, NULL) != 0) {
+        ssp_printf("mutex init failed\n");
+        ssp_free(lock);
+        return NULL;
+    }
+
+    #endif
+    return lock;
+}
+
+int ssp_lock_destory(void *lock) {
+    if (lock == NULL) {
+        return 0;
+    }
+
+    #ifdef FREE_RTOS_PORT
+    #else
+    int error = pthread_mutex_destroy(lock);
+
+    if (!error) {
+        ssp_free(lock);
+        return 1;
+
+    } else if (error == EBUSY){
+        ssp_printf("mutex is currently locked\n");
+    }
+    #endif
+    return 0;
+}
+
+int ssp_lock_give(void *lock) {
+    if (lock == NULL) {
+        return 0;
+    }
+
+    #ifdef FREE_RTOS_PORT
+    SemaphoreHandle_t xSemaphore = (SemaphoreHandle_t) lock;
+    return xSemaphoreGive( xSemaphore );
+    
+    #else
+    pthread_mutex_t *mutex = (pthread_mutex_t *) lock; 
+    
+    int error = pthread_mutex_unlock(mutex);
+    if (!error) {
+        return 1;
+
+    } else if (error == EBUSY){
+        ssp_printf("mutex is currently locked\n");
+    }
+
+    #endif
+    return 0;
+}
+
+int ssp_lock_take(void *lock) {
+    if (lock == NULL) {
+        return 0;
+    }
+
+    #ifdef FREE_RTOS_PORT
+    SemaphoreHandle_t xSemaphore = (SemaphoreHandle_t) lock;
+    if( xSemaphore != NULL ) {
+        return xSemaphoreTake( xSemaphore, ( TickType_t ) 10 );
+    }
+    #else
+
+    pthread_mutex_t *mutex = (pthread_mutex_t *) lock; 
+    
+    int error = pthread_mutex_lock(mutex);
+    if (!error) {
+        return 1;
+
+    } else {
+        ssp_printf("mutex lock take error %d\n", error);
+    }
+
+    return 0;
+    #endif
+}
+
+
 
 //not required for Free_rtos
 void ssp_thread_join(void *thread_handle) {
@@ -412,6 +510,6 @@ void ssp_thread_join(void *thread_handle) {
     #endif
     #ifdef FREE_RTOS_PORT
         ssp_printf("deleting client task\n");
-        vTaskDelete(NULL);
+        // Doesn't work vTaskDelete(NULL);
     #endif
 }

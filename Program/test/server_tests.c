@@ -5,6 +5,7 @@
 #include "port.h"
 #include "app_control.h"
 
+#include "csp_server_provider.h"
 
 //--------------------------------
 #include <sys/types.h>
@@ -268,7 +269,7 @@ static int onRecvServer(int sfd, char *packet, uint32_t packet_len,  uint32_t *b
     res.packet_len = 10;
     res.size_of_addr = size_of_addr;
     res.sfd = sfd;
-    res.type_of_network = csp;
+    res.type_of_network = test;
     res.transmission_mode = ACKNOWLEDGED_MODE;
     
     ssp_sendto(res);
@@ -297,7 +298,7 @@ static int onSend(int sfd, void *addr, size_t size_of_addr, void *onSendParams) 
     res.msg = "hello server!!\n";
     res.packet_len = 12;
     res.sfd = sfd;
-    res.type_of_network = csp;
+    res.type_of_network = test;
     res.transmission_mode = ACKNOWLEDGED_MODE;
     printf("sending!!!\n");
     
@@ -319,6 +320,7 @@ static void onExitClient(void *params) {
 }
 
 void *ssp_csp_connectionless_server_task_test(void *params) {
+    /*
     printf("starting csp connectionless server\n");
 
     csp_connectionless_server(
@@ -329,22 +331,26 @@ void *ssp_csp_connectionless_server_task_test(void *params) {
     checkExit, 
     onExit, 
     params);
-
+    */
     return NULL;
 }
 
 
 void *ssp_csp_connectionless_client_task_test(void *params) {
+
     printf("starting csp connectionless client\n");
+    /*
     csp_connectionless_client(1, 
     1, 
     2, 
     onSend, onRecvClient, checkExitClient, onExitClient, params);
     return NULL;
+    */
 }
 
 
 void *ssp_csp_connection_server_task_test(void *params) {
+    /*
     csp_connection_server(1,
         onRecvServer,
         onTimeOut,
@@ -352,17 +358,27 @@ void *ssp_csp_connection_server_task_test(void *params) {
         checkExit,
         onExit,
         params);
+        */
+        
 }
 
 
 void *ssp_csp_connection_client_task_test(void *params) {
 
-    csp_connection_client(1, 1,
-        onSend,
-        onRecvClient,
-        checkExitClient,
-        onExitClient,
-        params);
+    ssp_printf("starting csp connection client\n");
+    Client *client = (Client *) params;
+
+        csp_connection_client(1, 
+            1,
+            CSP_ANY,
+            200,
+            1000,
+            client->lock,
+            onSend,
+            onRecvClient,
+            checkExitClient,
+            onExitClient,
+            params);   
 }
 /*
 void *ssp_csp_connectionless_client_task_test(void *params) {
@@ -375,32 +391,105 @@ void *ssp_csp_connectionless_client_task_test(void *params) {
 }
 */
 
-int server_tests(int client){
+
+int test_lock_create(){
+    void *lock = ssp_lock_create();
+    ASSERT_NOT_NULL("lock initialized", lock);
+    
+    if (lock == NULL)
+        return 1;
+    
+    int success = ssp_lock_destory(lock);
+    ASSERT_EQUALS_INT("lock destroy success", success, 1);
+    
+    return 0;
+
+}
+
+int test_lock_get(){
+
+    void *lock = ssp_lock_create();
+    if (lock == NULL)
+        return 1;
+
+    int success = ssp_lock_take(lock);
+    ASSERT_EQUALS_INT("successfully got lock", success, 1);
+
+    success = ssp_lock_give(lock);
+    ASSERT_EQUALS_INT("successfully gave lock", success, 1);
+
+    success = ssp_lock_destory(lock);
+    ASSERT_EQUALS_INT("lock destroy success", success, 1);
+
+    return success;
+}
+
+
+int test_lock_give(){
+    void *lock = ssp_lock_create();
+    if (lock == NULL)
+        return 1;
+
+    int success = ssp_lock_give(lock);
+    ASSERT_EQUALS_INT("successfully gave lock", success, 1);
+
+    success = ssp_lock_destory(lock);
+    ASSERT_EQUALS_INT("lock destroy success", success, 1);
+
+    return success;
+
+}
+
+
+
+int server_tests() {
 
     int buffsize = 10000;
     char buff[buffsize];
     
     /* Init buffer system with 10 packets of maximum 300 bytes each */
     printf("Initialising CSP\r\n");
-    csp_buffer_init(100, 300);
 
-	/* Init CSP with address MY_ADDRESS */
-	csp_init(1);
+    csp_conf_t csp_conf;
+    csp_conf_get_defaults(&csp_conf);       
+    csp_conf.buffers = 4096; 
+    csp_conf.address = 1;
+    csp_conf.buffer_data_size = 250;
 
-	/* Start router task with 500 word stack, OS task priority 1 */
-	csp_route_start_task(500, 1);
+    int error = csp_init(&csp_conf);
+    if (error != CSP_ERR_NONE) {
+        csp_log_error("csp_init() failed, error: %d", error);
+        exit(1);
+    }
 
 
-//    void *handle = ssp_thread_create(20000, ssp_csp_connectionless_server_task_test, NULL);
-//    void *handle2 = ssp_thread_create(20000, ssp_csp_connectionless_client_task_test, NULL);
-    void *handle = ssp_thread_create(20000, ssp_csp_connection_server_task_test, NULL);    
-    void *handle2 = ssp_thread_create(20000, ssp_csp_connection_client_task_test, NULL);    
-    //test_csp_connectionless_server();
+    error = test_lock_create();
+    error = test_lock_give();
+    error = test_lock_get();
+
     
-    ssp_thread_join(handle);
+    
+    Client client;
+    memset(&client, 0, sizeof(Client));
+
+    void *lock = ssp_lock_create();
+    client.lock = lock;
+
+
+    //void *handle = ssp_thread_create(20000, ssp_csp_connectionless_server_task_test, NULL);
+    //void *handle2 = ssp_thread_create(20000, ssp_csp_connectionless_client_task_test, NULL);
+    //void *handle = ssp_thread_create(20000, ssp_csp_connection_server_task_test, NULL);    
+    void *handle2 = ssp_thread_create(20000, ssp_csp_connection_client_task_test, &client);    
+    //test_csp_connectionless_server();
+
+    sleep(5);
+    ssp_lock_give(client.lock);
+
+    //ssp_thread_join(handle);
     ssp_thread_join(handle2);
 
 
+    /*
     if (client) {
         printf("I'm a client!\n");
         //connection_client("127.0.0.1", "1111", buffsize, NULL, NULL, NULL, NULL, onSend, onRecvClient, checkExitClient, onExitClient);
@@ -417,6 +506,6 @@ int server_tests(int client){
         //csp_connectionless_server(1, 1, onRecvServer, onTimeOut, onStdIn, checkExit, onExit, NULL);
         //csp_connection_server();
     }
-        
+    */
     return 0;
 }
