@@ -784,7 +784,9 @@ static void process_metadata(char *packet, uint32_t packet_index, Response res, 
     else {
         ssp_printf("just receiving messages, closing request\n");
         req->local_entity.EOF_recv_indication = true;
-        req->procedure = none;
+        //TODO this was set to clean_up on FreeRTOS because we didn't have a correct clock yet to, set to NONE when clock is right
+        //it kind of creates a weird timing issue when the request closes before the finacks are sent and received
+        req->procedure = clean_up;
         req->paused = true;
     }
 }

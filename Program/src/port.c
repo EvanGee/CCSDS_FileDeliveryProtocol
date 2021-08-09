@@ -407,7 +407,7 @@ void *ssp_lock_create() {
     #ifdef FREE_RTOS_PORT
 
     /* Create a mutex type semaphore. */
-    void *lock =  xSemaphoreCreateMutex();
+    void *lock =  xSemaphoreCreateBinary();
     if (lock == NULL) {
         ssp_printf("mutex init failed\n");
         return NULL;
@@ -456,8 +456,14 @@ int ssp_lock_give(void *lock) {
 
     #ifdef FREE_RTOS_PORT
     SemaphoreHandle_t xSemaphore = (SemaphoreHandle_t) lock;
-    return xSemaphoreGive( xSemaphore );
-    
+    ssp_printf("waiting to give client lock\n");
+    if (xSemaphoreGive( xSemaphore ) == pdTRUE) {
+        ssp_printf("gave the lock\n");
+        return 1;
+    }
+    ssp_printf("couldn't give the lock\n");
+    return 0;
+
     #else
     pthread_mutex_t *mutex = (pthread_mutex_t *) lock; 
     
@@ -468,6 +474,8 @@ int ssp_lock_give(void *lock) {
     } else if (error == EBUSY){
         ssp_printf("mutex is currently locked\n");
     }
+
+
 
     #endif
     return 0;
@@ -480,8 +488,17 @@ int ssp_lock_take(void *lock) {
 
     #ifdef FREE_RTOS_PORT
     SemaphoreHandle_t xSemaphore = (SemaphoreHandle_t) lock;
-    if( xSemaphore != NULL ) {
-        return xSemaphoreTake( xSemaphore, ( TickType_t ) 10 );
+    if( xSemaphore == NULL ) {
+        return 0;
+    }
+
+    ssp_printf("waiting for client lock\n");
+    if (xSemaphoreTake( xSemaphore, portMAX_DELAY) == pdTRUE) {
+        ssp_printf("took the lock\n");
+        return 1;
+    } else {
+        ssp_printf("couldn't take the lock\n");
+        return 0;
     }
     #else
 
