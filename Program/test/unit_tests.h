@@ -13,6 +13,7 @@ int file_system_tests();
 int request_tests();
 int protocol_handler_test();
 int server_tests();
+int utils_tests();
 
 int mock_packet(char *packet, uint32_t dest_id, uint32_t src_id);
 Response *mock_response();

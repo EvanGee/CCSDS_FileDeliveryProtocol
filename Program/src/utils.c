@@ -6,6 +6,10 @@ Author: Evan Giese
 ------------------------------------------------------------------------------*/
 #include "port.h"
 #include "utils.h"
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 //size is the number of bytes we want to print
 void ssp_print_hex(char *stuff, int size){
     
@@ -19,6 +23,58 @@ void ssp_print_hex(char *stuff, int size){
         }
         ssp_printf("\n");
 }   
+
+
+static int log_fd = 0;
+void log_ftp( char *info, char *stuff){
+
+    time_t current_time;
+    char c_time_string[1000];
+    current_time = time(NULL);
+
+    if (current_time == -1) {
+        ssp_printf("Failure to obtain the current time.\n");
+    }
+    /* Convert to local time format. */
+    struct tm *time = localtime(&current_time);
+
+    ssp_snprintf(c_time_string, sizeof(c_time_string), "%d-%d-%dT%d:%d:%dZ|%s|%s\n", 
+    time->tm_year, 
+    time->tm_mon, 
+    time->tm_mday, 
+    time->tm_hour, 
+    time->tm_min, 
+    time->tm_sec,
+    info,
+    stuff
+    );
+
+    if (c_time_string == NULL) {
+        printf("Failure to obtain the current time string.\n");
+        return;
+    }
+
+    if (log_fd == 0) {
+        if (does_file_exist("log.txt") == -1) {
+            ssp_printf("creating log\n");
+            log_fd = ssp_open("log.txt", SSP_O_CREAT | SSP_O_RDWR | SSP_O_TRUNC, 0655);
+        }
+        else 
+            log_fd = open("log.txt", SSP_O_RDWR | O_APPEND, 0655);
+    }
+
+    int size = strnlen(c_time_string, sizeof(c_time_string));
+    if (size < 0) {
+        printf("Failure to obtain the current time string.\n");
+        return;
+    }
+    int bytes = write(log_fd, c_time_string, size);
+    if (bytes < 0) {
+        printf("Failure to write log string.\n");
+        return;
+    }
+    
+}
 
 void ssp_print_bits(char *stuff, int size){
     
@@ -43,6 +99,7 @@ void ssp_print_bits(char *stuff, int size){
     }
     ssp_printf("\n");
 }
+
 
 //replace strings with this 
 

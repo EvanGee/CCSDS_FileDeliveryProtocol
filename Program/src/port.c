@@ -23,6 +23,7 @@ static int exit_now = 0;
     #include <unistd.h>
     #include <fcntl.h>
     #include <dirent.h>
+    #include "utils.h"
 #endif
 
 #ifdef RED_FS
@@ -315,9 +316,19 @@ void ssp_error(char *error){
 void ssp_printf(char *stuff, ...) {
     va_list args;
     va_start(args, stuff);
-    vfprintf(stdout, stuff, args);
-    va_end (args);
-    fflush(stdout);
+    #ifdef FREE_RTOS_PORT
+        vfprintf(stdout, stuff, args);
+        va_end (args);
+        fflush(stdout);
+    #else
+    
+        char log_string[1000];
+        int error = vsnprintf(log_string, sizeof(log_string), stuff, args);
+        log_ftp("INFO", log_string);
+        va_end (args);
+
+    #endif
+    
 }
 
 #ifdef FREE_RTOS_PORT
