@@ -207,7 +207,7 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
 
     app->current_request = NULL;
     
-    ssp_printf("initializing ftp server task: ");
+    ssp_printf("initializing ftp server task \n");
     app->initialized = true;
     return create_ssp_server_drivers(app);
 }

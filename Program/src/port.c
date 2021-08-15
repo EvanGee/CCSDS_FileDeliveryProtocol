@@ -322,8 +322,8 @@ void ssp_printf(char *stuff, ...) {
         fflush(stdout);
     #else
     
-        char log_string[1000];
-        int error = vsnprintf(log_string, sizeof(log_string), stuff, args);
+        char log_string[2000];
+        vsnprintf(log_string, sizeof(log_string), stuff, args);
         log_ftp("INFO", log_string);
         va_end (args);
 

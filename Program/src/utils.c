@@ -26,7 +26,7 @@ void ssp_print_hex(char *stuff, int size){
 
 
 static int log_fd = 0;
-void log_ftp( char *info, char *stuff){
+void log_ftp(char *info, char *stuff){
 
     time_t current_time;
     char c_time_string[1000];
@@ -35,10 +35,10 @@ void log_ftp( char *info, char *stuff){
     if (current_time == -1) {
         ssp_printf("Failure to obtain the current time.\n");
     }
-    /* Convert to local time format. */
+    
     struct tm *time = localtime(&current_time);
 
-    ssp_snprintf(c_time_string, sizeof(c_time_string), "%d-%d-%dT%d:%d:%dZ|%s|%s\n", 
+    ssp_snprintf(c_time_string, sizeof(c_time_string), "%d-%d-%dT%d:%d:%dZ|%s|%s", 
     time->tm_year, 
     time->tm_mon, 
     time->tm_mday, 
@@ -53,14 +53,16 @@ void log_ftp( char *info, char *stuff){
         printf("Failure to obtain the current time string.\n");
         return;
     }
-
+    
     if (log_fd == 0) {
-        if (does_file_exist("log.txt") == -1) {
-            ssp_printf("creating log\n");
-            log_fd = ssp_open("log.txt", SSP_O_CREAT | SSP_O_RDWR | SSP_O_TRUNC, 0655);
+
+        int log_fd = ssp_open("log.txt", SSP_O_RDWR);
+        if (log_fd == -1){
+            log_fd = ssp_open("log.txt", SSP_O_CREAT | SSP_O_RDWR, 0655);
+            return -1;
         }
         else 
-            log_fd = open("log.txt", SSP_O_RDWR | O_APPEND, 0655);
+            log_fd = open("log.txt", SSP_O_RDWR | O_APPEND);
     }
 
     int size = strnlen(c_time_string, sizeof(c_time_string));
@@ -68,6 +70,7 @@ void log_ftp( char *info, char *stuff){
         printf("Failure to obtain the current time string.\n");
         return;
     }
+
     int bytes = write(log_fd, c_time_string, size);
     if (bytes < 0) {
         printf("Failure to write log string.\n");

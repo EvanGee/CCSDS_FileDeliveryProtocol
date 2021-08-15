@@ -15,9 +15,9 @@ Author: Evan Giese
 #include "app_control.h"
 
 static void transasction_log(char *msg, uint64_t transaction_sequence_number){
-    ssp_printf("transaction: %llu ", transaction_sequence_number);
-    ssp_printf(msg);
-    ssp_printf("\n");
+    char log_message[2000];
+    ssp_snprintf(log_message, sizeof(log_message), "%s%llu|%s\n", "transaction:", transaction_sequence_number, msg);
+    ssp_printf(log_message);
 }
 
 static void build_temperary_file(Request *req, uint32_t size) {
