@@ -49,6 +49,7 @@ int copy_id_to_packet(char *bytes, uint64_t id) {
     
     uint32_t length = 0;
     if (id < 0xFF){
+
         bytes[0] = (uint8_t) id;
         length = 1;
     } else if (id < 0xFFFF) {
@@ -94,8 +95,6 @@ uint64_t copy_id_from_packet(char *bytes, uint32_t length_of_ids) {
 
 //returns amount of bytes written or -1 on error
 int copy_id_lv_to_packet(char *bytes, uint64_t id) {
-
-
 
     int len = copy_id_to_packet(&bytes[1], id);
     if (len < 0) {
@@ -759,7 +758,8 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
                 ssp_free(m->value);
                 return -1;
             }
-            //ssp_printf("idlen %d %d\n", id_len, proxy_put->destination_id);
+            
+            ssp_printf("idlen %d id %d\n", id_len, proxy_put->destination_id);
             message_start += id_len + 1;
             
             copy_lv_from_buffer(&proxy_put->source_file_name, packet, message_start);

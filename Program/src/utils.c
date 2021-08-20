@@ -28,6 +28,7 @@ void ssp_print_hex(char *stuff, int size){
 static int log_fd = -1;
 void log_ftp(char *info, char *stuff){
 
+    #ifdef POSIX_PORT
     time_t current_time;
     char c_time_string[1000];
     current_time = time(NULL);
@@ -79,6 +80,8 @@ void log_ftp(char *info, char *stuff){
 
         close(log_fd);
     }
+    #endif
+    return;
 }
 
 void ssp_print_bits(char *stuff, int size){
