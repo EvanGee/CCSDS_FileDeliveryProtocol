@@ -82,28 +82,30 @@ if you wish to send a file to a peer:
 ### Running in C
 
 params:  
-id of destination,  
-source file name,  
-name of the file as it will arrive at destination,  
-ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
-app  
+
+    <destination_id>: id of destination,  
+    <src_file_name>: source file path, If this is not an absolute path, it will start its path from the 'src' directory.
+    <dest_file_name>: destination file path,
+    <acknowledged_mode>: ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+    <app>: The FTP app struct pointer.
 
 example:  
 
-    Request *req = put_request(<destination id>, <src_file_name>, <dest_file_name>, <acknowledged_mode>, &app);
+    Request *req = put_request(<destination_id id>, <src_file_name>, <dest_file_name>, <acknowledged_mode>, <&app>);
     start_request(req);
     
 
 if you wish to get a file from a peer, you can call get_request:
 
 params:  
-id of destination,  
-source file name,  
-name of the file as it will arrive at destination,  
-ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
-app  
 
-example:  
+    <destination_id>: id of destination,  
+    <src_file_name>: source file path, 
+    <dest_file_name>: destination file path, If this is not an absolute path, it will start its path from the 'src' directory.
+    <acknowledged_mode>: ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+    <app>: The FTP app struct pointer.
+
+example:
 
     Request *req = get_request(<destination id>, <src_file_name>, <dest_file_name>, <acknowledged_mode>, &app);
     start_request(req);
@@ -112,17 +114,19 @@ if you wish to send a file from a peer via a proxy node, we need to add a 'messa
 if we jsut want to send messages, we can set the filenames to NULL:
 
 params:  
-id of destination,  
-source file name,  
-name of the file as it will arrive at destination,  
-ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
-app  
+
+    <destination_id>: id of destination,  
+    <src_file_name>: source file path, 
+    <dest_file_name>: destination file path, If this is not an absolute path, it will start its path from the 'src' directory.
+    <acknowledged_mode>: ACKNOWLEDGED_MODE/UN_ACKNOWLEDGED_MODE (ACKNOWLEDGED_MODE will allow for acks/naks to be sent.),  
+    <app>: The FTP app struct pointer.
+    <req>: The constructed Request struct from the 'request'
 
 example:  
 
-    Request *req = put_request(<cfid of destination>, NULL, NULL, <acknowledged_mode>, &app);
+    Request *req = put_request(<cfid of destination>, NULL, NULL, <acknowledged_mode>, <&app>);
 
-    add_proxy_message_to_request(<cfid of proxy destination>, <src_file_name>, <dest_file_name>, req);
+    add_proxy_message_to_request(<cfid of proxy destination>, <src_file_name>, <dest_file_name>, <req>);
 
     start_request(req);
     
@@ -132,16 +136,27 @@ One can look at the 'test.y' file to get an idea of how it works.
 
     from Program import ftp_python
     
-    #params: 
-    #Source Path: The source path on the local computer. If this is not an absolute path, it will start its path from the 'src' directory
-    #Destination Path: The destination path on the satellite
-    #block: to block the python program or not.
-    ftp_python.put_request("pictures/log.txt", "log.c", block=True)
+params: 
 
-    #params: 
-    #Source Path: The source path on the satellite. 
-    #Destination Path: The destination path on the local computer, If this is not an absolute path, it will start its path from the 'src' directory.
-    #block: to block the python program or not.
+
+    #<src_file_name>: source file path, If this is not an absolute path, it will start its path from the 'src' directory.
+    #<dest_file_name>: destination file path,
+    #<block>: to block the python program or not.
+    
+    #ftp_python.put_request(<src_file_name>, <dest_file_name>, <block>)
+    
+    example
+    ftp_python.put_request("pictures/log.txt", "log.txt", block=True)
+
+params: 
+    
+    #<src_file_name>: source file path, 
+    #<dest_file_name>: destination file path, If this is not an absolute path, it will start its path from the 'src' directory.
+    #<block>: to block the python program or not.
+    
+    #ftp_python.get_request(<src_file_name>, <dest_file_name>, <block>)
+
+    example:
     ftp_python.get_request("log.txt", "/home/evan/SAT/CCSDS_FileDeliveryProtocol/logreceived.txt", block=True)
 
 # MIB (management information base)
