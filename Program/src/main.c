@@ -403,44 +403,47 @@ int main(int argc, char** argv) {
     
     init_csp_stuff(*conf);
 
-    FTP app;
-    memset(&app, 0, sizeof(FTP));
+    FTP *app = ssp_alloc(1, sizeof(FTP));
 
     uint32_t id = conf->my_cfdp_id;
-    void *handler = create_ftp_task(id, &app);
+    void *handler = create_ftp_task(id, app);
     if (handler == NULL) {
         return 1;
     }
 
+    while(app->my_cfdp_id != id);
+    sleep(1);
+
     uint32_t client_id = conf->client_cfdp_id;
-
     if (client_id != -1) {
-
         while(conf->file_list->count > 0) {
             File_path_pair *file_names = conf->file_list->pop(conf->file_list);
 
             if (file_names->type == REQUEST_PUT) {
                 ssp_printf("putting file %s path %s\n", file_names->src_name, file_names->dest_name);
-                start_request(put_request(client_id, file_names->src_name, file_names->dest_name, conf->unackowledged_mode, &app));
+                start_request(put_request(client_id, file_names->src_name, file_names->dest_name, conf->unackowledged_mode, app));
             }
             else if (file_names->type == REQUEST_GET) {
                 ssp_printf("getting file %s to path %s\n", file_names->src_name, file_names->dest_name);
-                start_request(get_request(client_id, file_names->src_name, file_names->dest_name, conf->unackowledged_mode, &app));
+
+                start_request(get_request(client_id, file_names->src_name, file_names->dest_name, conf->unackowledged_mode, app));
             }
             free(file_names);
         }
 
-        while (app.active_clients->count != 0) {
+        while (app->active_clients->count != 0) {
             sleep(1);
         }
 
         ssp_printf("closing app\n");
-        app.close = 1;
+        app->close = 1;
     }
     if (conf->file_list != NULL)
         conf->file_list->freeOnlyList(conf->file_list);
 
     free(conf); 
+    ssp_cleanup_ftp(app);
+
     ssp_thread_join(handler);
     
     return 0;
