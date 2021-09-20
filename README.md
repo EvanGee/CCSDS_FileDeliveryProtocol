@@ -29,6 +29,7 @@ Supported network stacks:
 If you are compiling on Linux, it should compile posix compliant by default.
 
 ### Compiling CSP:
+
 first, one needs to build the .a file for your specific cpu architecture. 
 instructions can be found here: https://github.com/libcsp/libcsp
 
@@ -72,9 +73,13 @@ if you want to join this thread, and it is a posix thread, you can run:
 ssp_thread_join(app->server_handle);
 
 if you want to exit this task for any reason set app->close = 1;
-this will run the exiting subroutines and close the task.
+this will run the exiting subroutines and close the thread. Free RTOS has
+issues exiting tasks. FreeRTOS will spin up a task for every new 
+peer one wishes to commucate with, and block/deschedule if there is no activity.
 
 if you wish to send a file to a peer:
+
+### Running in C
 
 params:  
 id of destination,  
@@ -121,6 +126,23 @@ example:
 
     start_request(req);
     
+### Running in Python
+
+One can look at the 'test.y' file to get an idea of how it works.
+
+    from Program import ftp_python
+    
+    #params: 
+    #Source Path: The source path on the local computer. If this is not an absolute path, it will start its path from the 'src' directory
+    #Destination Path: The destination path on the satellite
+    #block: to block the python program or not.
+    ftp_python.put_request("pictures/log.txt", "log.c", block=True)
+
+    #params: 
+    #Source Path: The source path on the satellite. 
+    #Destination Path: The destination path on the local computer, If this is not an absolute path, it will start its path from the 'src' directory.
+    #block: to block the python program or not.
+    ftp_python.get_request("log.txt", "/home/evan/SAT/CCSDS_FileDeliveryProtocol/logreceived.txt", block=True)
 
 # MIB (management information base)
     
@@ -187,9 +209,16 @@ Below are the meanings of the fields for the MIB
 - async_NAK_interval
     This number represents the time in miliseconds we wait to recv a packet. If it expires, we send NAKs
 
+- total_round_trip_allowance
+    This is the maximum time that a program will accept packets for (CSP stack only). This gets reset if the program receives a packet. In miliseconds.
+
+- transaction_inactivity_limit 
+    This is the maximum time in miliseconds, that a program will keep a transaction 'open' to receive packets. If connection is lost, it
+    can be regained and continue the transaction while within this timeframe. The request will also be 'saved' in which we create
+    a metadata file with the current state of the transaction. This happens every transaction_inactivity_limit / 2.  
+
 - default_transmission_mode: not implemented
 - one_way_light_time : not implemented
-- total_round_trip_allowance : not implemented 
 - async_keep_alive_interval : not implemented
 - async_report_interval : not implemented
 - immediate_nak_mode_enabled : not implemented
@@ -199,7 +228,6 @@ Below are the meanings of the fields for the MIB
 - keep_alive_discrepancy_limit : not implemented
 - positive_ack_timer_expiration_limit : not implemented
 - nak_timer_expiration_limit : not implemented
-- transaction_inactivity_limit : not implemented
 
 if you want to get in contact with me
 email me at evangiese77@gmail.com
