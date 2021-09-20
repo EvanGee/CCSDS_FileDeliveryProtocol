@@ -133,11 +133,8 @@ example:
 ### Running in Python
 
 One can look at the 'test.y' file to get an idea of how it works.
-
-    from Program import ftp_python
     
 params: 
-
 
     #<src_file_name>: source file path, If this is not an absolute path, it will start its path from the 'src' directory.
     #<dest_file_name>: destination file path,
@@ -145,7 +142,9 @@ params:
     
     #ftp_python.put_request(<src_file_name>, <dest_file_name>, <block>)
     
-    example
+example:
+
+    from Program import ftp_python
     ftp_python.put_request("pictures/log.txt", "log.txt", block=True)
 
 params: 
@@ -156,7 +155,9 @@ params:
     
     #ftp_python.get_request(<src_file_name>, <dest_file_name>, <block>)
 
-    example:
+example:
+
+    from Program import ftp_python
     ftp_python.get_request("log.txt", "/home/evan/SAT/CCSDS_FileDeliveryProtocol/logreceived.txt", block=True)
 
 # MIB (management information base)
