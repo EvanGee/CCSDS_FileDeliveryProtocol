@@ -159,6 +159,7 @@ static void make_default_data(){
 
 int init_ftp(uint32_t my_cfdp_address, FTP *app) {
     int error = 0;
+    
 
     //sanitize everything but the server_handle in case of race condition which sets the handler first.
     void *handler = app->server_handle;
@@ -206,7 +207,6 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
     }
 
     app->current_request = NULL;
-    
     ssp_printf("initializing ftp server task \n");
     app->initialized = true;
     return create_ssp_server_drivers(app);
@@ -215,8 +215,7 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
 
 static void init_ftp_task(void *app){
     FTP *ap = (FTP *) app;
-
-    int error = init_ftp(ap->my_cfdp_id, app);
+    int error = init_ftp(ap->my_cfdp_id, ap);
     if (error < 0) {
         //task failed to start destroy task/thread
     }

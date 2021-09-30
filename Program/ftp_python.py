@@ -36,6 +36,7 @@ def get_request(sat_path, file_path, block=True):
 
     if block:
         output = subprocess.run(cmd)
+        print(output)
         return 
 
     #subprocess.Popen(cmd)
@@ -48,6 +49,7 @@ def put_request(file_path, sat_path, block=True):
     
     if block:
         output = subprocess.run(cmd)
+        print(output)
         return
     
     #subprocess.Popen(cmd)

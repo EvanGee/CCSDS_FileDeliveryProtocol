@@ -203,9 +203,9 @@ static Config *configuration(int argc, char **argv)
             break;
 
         case 'h':
-            ssp_printf("\n-----------HELP MESSAGE------------\n");
-            ssp_printf("\nusage: %s [options] \n\n", basename(argv[0]));
-            ssp_printf("Options: %s%s%s%s\n",
+            printf("\n-----------HELP MESSAGE------------\n");
+            printf("\nusage: %s [options] \n\n", basename(argv[0]));
+            printf("Options: %s%s%s%s\n",
                     "-i <my cfdp id for server>\n",
                     "-c <client id>\n",
                     "-f list of file names eg, \"PUT local/path|/path/on/sat GET /path/on/sat|local/path ...\"\n",
@@ -214,16 +214,16 @@ static Config *configuration(int argc, char **argv)
                     "-b <baudrate> default is 9600"
                     "-h HelpMessage");
 
-            ssp_printf("Default port number is 1111\n");
-            ssp_printf("\n---------------END----------------\n");
+            printf("Default port number is 1111\n");
+            printf("\n---------------END----------------\n");
             break;
 
         case ':':
-            ssp_printf("missing argument\n");
+            printf("missing argument\n");
             break;
 
         default:
-            ssp_printf("\ngot something not found using default\n");
+            printf("\ngot something not found using default\n");
             break;
         }
     }
@@ -442,8 +442,6 @@ int main(int argc, char** argv) {
         conf->file_list->freeOnlyList(conf->file_list);
 
     free(conf); 
-    ssp_cleanup_ftp(app);
-
     ssp_thread_join(handler);
     
     return 0;

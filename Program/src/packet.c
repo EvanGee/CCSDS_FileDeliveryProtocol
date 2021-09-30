@@ -759,7 +759,6 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
                 return -1;
             }
             
-            ssp_printf("idlen %d id %d\n", id_len, proxy_put->destination_id);
             message_start += id_len + 1;
             
             copy_lv_from_buffer(&proxy_put->source_file_name, packet, message_start);

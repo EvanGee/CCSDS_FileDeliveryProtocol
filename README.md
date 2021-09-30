@@ -26,9 +26,38 @@ Supported network stacks:
 
 # Compilation Notes:
 
-If you are compiling on Linux, it should compile posix compliant by default.
+master branch is currently configured to be compiled on the Satellite Exalta-2. To
+compile if for linux, change the files in /Program/include/port.h to include 
+POSIX_FILESYSTEM and POSIX_PORT, and comment out FREE_RTOS_PORT and RED_FS
+what it should look like:
 
-### Compiling CSP:
+    /*------------------------------------------------------------------------------
+    This file is protected under copyright. If you want to use it,
+    please include this text, that is my only stipulation.  
+    Author: Evan Giese
+    ------------------------------------------------------------------------------*/
+    #ifndef PORT_H
+    #define PORT_H
+
+    //#define FREE_RTOS_PORT
+    //#define RED_FS
+    #define CSP_NETWORK
+
+    #define POSIX_FILESYSTEM
+    #define POSIX_PORT
+
+### Building 
+
+To build for linux, we need to first install the CSP dependecy. We can 
+do this automatically by running:
+
+    git submodule init
+
+followed by:
+
+    git submodule update     
+
+### Updating CSP:
 
 first, one needs to build the .a file for your specific cpu architecture. 
 instructions can be found here: https://github.com/libcsp/libcsp
@@ -37,18 +66,7 @@ archive file:
 Once one has the .a file by following the above instructions. simply link to it my adding the path to 
 STATIC_FILES in our makefile: STATIC_FILES += /path/to/libcsp.a
 
-.h files:
-We need to include the .h files to our include path. We can do this 
-by linking the .h files to our INCLUDES in our makefile. 
-INCLUDES += /path/to/libcsp/include
-
-The last thing you need to do to let this app integrate seamlessly with csp,
-is to make sure that CSP_NETWORK is defined in port.h and csp_server_provider.c
-is  uncommented in the makefile.
-
-run make to compile!
-
-### Compiling with FreeRTOS:
+### Compiling with FreeRTOS (using make -- not for you Exalta-2):
 The best way to compile with FreeRTOS is to do the same thing as we did 
 with libscp -- create an .a file, and link to the .h files.
 
@@ -57,9 +75,18 @@ There are examples to help you with linking in the makefile.
 Once again, make sure that FREE_RTOS_PORT is defined in port.h
 and that POSIX_PORT is not defined. 
 
-run make to compile!
-
 # Getting started:
+
+
+### Running using the linux build premade (basic) client
+
+To get a file:
+    sudo ./main -i 10 -c 1 -k "/dev/ttyUSB0 -f "GET <path_on_sat>|<path_on_ground>"
+
+To push a file:
+    sudo ./main -i 10 -c 1 -k "/dev/ttyUSB0 -f "PUT <path_on_ground>|<path_on_sat>"
+
+### Running in C
 
 init the app or task with:
 
@@ -78,8 +105,6 @@ issues exiting tasks. FreeRTOS will spin up a task for every new
 peer one wishes to commucate with, and block/deschedule if there is no activity.
 
 if you wish to send a file to a peer:
-
-### Running in C
 
 params:  
 
@@ -132,7 +157,7 @@ example:
     
 ### Running in Python
 
-One can look at the 'test.y' file to get an idea of how it works.
+One can look at the 'test.py' file to get an idea of how it works.
     
 params: 
 
