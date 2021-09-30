@@ -55,7 +55,11 @@ do this automatically by running:
 
 followed by:
 
-    git submodule update     
+    git submodule update
+
+Make sure you followed the comment steps in 'Compilation Notes' above, then change to the Program/src directory and run:
+
+    make
 
 ### Updating CSP:
 
@@ -81,10 +85,30 @@ and that POSIX_PORT is not defined.
 ### Running using the linux build premade (basic) client
 
 To get a file:
-    sudo ./main -i 10 -c 1 -k "/dev/ttyUSB0 -f "GET <path_on_sat>|<path_on_ground>"
+
+    sudo ./main -i 10 -c 1 -k "/dev/ttyUSB0" -f "GET <path_on_sat>|<path_on_ground>"
 
 To push a file:
-    sudo ./main -i 10 -c 1 -k "/dev/ttyUSB0 -f "PUT <path_on_ground>|<path_on_sat>"
+
+    sudo ./main -i 10 -c 1 -k "/dev/ttyUSB0" -f "PUT <path_on_ground>|<path_on_sat>"
+
+To get the help menu:
+    ./main -h
+
+    -----------HELP MESSAGE------------
+
+    usage: main [options] 
+
+    Options: -i <my cfdp id for server>
+    -c <client id>
+    -f list of file names eg, "PUT local/path|/path/on/sat GET /path/on/sat|local/path ..."
+    -v <verbose level> eg (1-3)
+    -k <uart-device> eg /dev/ttyUSB0
+    -b <baudrate> default is 9600 
+    -h HelpMessage
+
+    ---------------END----------------
+
 
 ### Running in C
 

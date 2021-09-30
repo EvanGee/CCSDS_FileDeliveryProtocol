@@ -17,9 +17,6 @@ Program/libcsp
 *.jpeg
 .gitignore
 
-Program/jsmn
-SAT_BUILD
 give_packet_loss.sh
-packetStates
-README.md
 Program/libcsp
+Program/__pycache__
