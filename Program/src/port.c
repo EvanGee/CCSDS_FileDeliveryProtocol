@@ -467,9 +467,9 @@ int ssp_lock_give(void *lock) {
 
     #ifdef FREE_RTOS_PORT
     SemaphoreHandle_t xSemaphore = (SemaphoreHandle_t) lock;
-    ssp_printf("waiting to give client lock\n");
+ 
     if (xSemaphoreGive( xSemaphore ) == pdTRUE) {
-        ssp_printf("gave the lock\n");
+        //ssp_printf("gave the lock\n");
         return 1;
     }
     ssp_printf("couldn't give the lock\n");
@@ -503,9 +503,9 @@ int ssp_lock_take(void *lock) {
         return 0;
     }
 
-    ssp_printf("waiting for client lock\n");
+    //ssp_printf("waiting for client lock\n");
     if (xSemaphoreTake( xSemaphore, portMAX_DELAY) == pdTRUE) {
-        ssp_printf("took the lock\n");
+        //ssp_printf("took the lock\n");
         return 1;
     } else {
         ssp_printf("couldn't take the lock\n");

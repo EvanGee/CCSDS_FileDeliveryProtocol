@@ -537,6 +537,9 @@ void *ssp_csp_connection_client_task(void *params) {
     if (lock == NULL)
         return NULL;
 
+    //start out with open lock
+    ssp_lock_give(lock);
+    
     client->lock = lock;
     #endif
     

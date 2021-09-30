@@ -311,8 +311,10 @@ Client *start_client(FTP *app, uint8_t dest_id) {
     if (client == NULL) {
         ssp_printf("Spinning up a new client thread\n");
         client = ssp_client(dest_id, app);
-        if (client == NULL)
+        if (client == NULL) {
+            ssp_printf("client is null, couln't spin up client thread");
             return NULL;
+        }
         
     } else {
         ssp_printf("adding request to existing client thread\n");
