@@ -1,0 +1,3 @@
+[submodule "Program/libcsp"]
+	path = Program/libcsp
+	url = git@github.com:EvanGee/libcsp.git
