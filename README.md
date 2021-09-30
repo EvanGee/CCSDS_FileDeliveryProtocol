@@ -109,6 +109,9 @@ To get the help menu:
 
     ---------------END----------------
 
+To track the file progress, one can tail the log file:
+
+    tail -F Program/src/log.txt
 
 ### Running in C
 
