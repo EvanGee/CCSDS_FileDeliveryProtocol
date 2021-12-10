@@ -369,7 +369,7 @@ int put_request_no_client(
     }
 
     file_size = get_file_size(source_file_name);
-    if (file_size == -1) {
+    if (file_size == (uint32_t) -1) {
         ssp_printf("ERROR: couldn't get file size\n");
         return -1;
     }

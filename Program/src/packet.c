@@ -87,7 +87,7 @@ uint64_t copy_id_from_packet(char *bytes, uint32_t length_of_ids) {
         host_byte_order = (uint8_t)bytes[0];
     } else {
         ssp_error("copying from packet id size is not supported, please user 1, 2 or 4");
-        return -1;
+        return (uint64_t) -1;
     }
 
     return host_byte_order;
@@ -109,7 +109,7 @@ int copy_id_lv_to_packet(char *bytes, uint64_t id) {
 int copy_id_lv_from_packet(char *bytes,  uint64_t *id){
 
     uint8_t len = bytes[0];
-    uint64_t error = -1;
+    uint64_t error = (uint64_t) -1;
 
     uint64_t id_recv = copy_id_from_packet(&bytes[1], len);
     if (id_recv == error) {
@@ -161,7 +161,7 @@ int get_pdu_header_from_packet(char *packet, Pdu_header *pdu_header){
     
 
     //ssp_printf("length of entities %d\n", pdu_header->length_of_entity_IDs);
-    uint64_t error = -1;
+    uint64_t error = (uint64_t) -1;
 
     int32_t source_id_location = PACKET_STATIC_HEADER_LEN;
     pdu_header->source_id = copy_id_from_packet(&packet[source_id_location], pdu_header->length_of_entity_IDs);
@@ -749,14 +749,14 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             
             m->value = ssp_alloc(1, sizeof(Message_put_proxy));
             if (m->value == NULL) {
-                return -1;
+                return (uint32_t) -1;
             }
             proxy_put = (Message_put_proxy *) m->value;
 
             id_len = copy_id_lv_from_packet(&packet[message_start], &proxy_put->destination_id);
             if (id_len < 0) {
                 ssp_free(m->value);
-                return -1;
+                return (uint32_t) -1;
             }
             
             message_start += id_len + 1;
@@ -778,21 +778,21 @@ uint32_t get_message_from_packet(char *packet, uint32_t start, Request *req) {
             id_len = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->destination_id);
             if (id_len < 0) {
                 ssp_free(m->value);
-                return -1;
+                return (uint32_t) -1;
             }
             message_start += id_len + 1;
 
             id_len = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->originator_id);
             if (id_len < 0) {
                 ssp_free(m->value);
-                return -1;
+                return (uint32_t) -1;
             }
             message_start += id_len + 1;
 
             id_len = copy_id_lv_from_packet(&packet[message_start], &proxy_cont_part->transaction_id);
             if (id_len < 0) {
                 ssp_free(m->value);
-                return -1;
+                return (uint32_t) -1;
             }
             message_start += id_len + 1;
 
