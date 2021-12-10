@@ -22,6 +22,8 @@ Author: Evan Giese
 //for print_request_state
 #include "requests.h"
 
+typedef int socklen_t;
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
 
 /*------------------------------------------------------------------------------
     
@@ -320,7 +322,8 @@ static void on_exit_server_callback (void *params) {
 
 ------------------------------------------------------------------------------*/
 
-static int get_ip_port(Remote_entity remote_entity, char *host_name, char *port){
+//static
+int get_ip_port(Remote_entity remote_entity, char *host_name, char *port){
     //convert int to char *
     int error = ssp_snprintf(port, 10, "%d", remote_entity.UT_port);
     if (error < 0) {
@@ -391,12 +394,11 @@ void *ssp_connectionless_client_task(void* params){
             on_recv_client_callback, 
             check_exit_client_callback, 
             on_exit_client_callback);
-        
-        return NULL;
     #endif
     #ifndef POSIX_PORT
         ssp_printf("can't start posix connectionless client, no drivers\n");
     #endif  
+    return NULL;
 }
 
 void *ssp_connection_server_task(void *params) {
