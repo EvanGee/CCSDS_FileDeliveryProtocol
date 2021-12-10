@@ -34,14 +34,16 @@ void csp_generic_server(
 	
         bool is_not_empty = xQueueReceive(xQueueFtpServerReceive, packet, 100);
 
-        if (!is_not_empty)
+        if (!is_not_empty) {
             onTimeOut(app);
             return;
-        
+        }
+
         if (get_exit() || checkExit(app))
             break;
-                    
-        if (onRecv(-1, packet->data, packet->length, packet, sizeof(csp_packet_t), 0, app) == -1)
+
+        uint32_t len = packet->length;
+        if (onRecv(-1, (char *) packet->data, packet->length, &len, packet, sizeof(csp_packet_t), app) == -1)
             ssp_printf("recv failed\n");
 
         csp_buffer_free(packet);
@@ -83,7 +85,7 @@ void csp_generic_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uin
         if (!is_not_empty)
             return;
 
-        if (onRecv(-1, packet_recv->data, packet_recv->length, NULL, packet_recv, sizeof(csp_packet_t), params) == -1)
+        if (onRecv(-1, (char *) packet_recv->data, packet_recv->length, NULL, packet_recv, sizeof(csp_packet_t), params) == -1)
             ssp_printf("recv failed\n");
 
         csp_buffer_free(packet_recv);
