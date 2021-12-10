@@ -24,12 +24,7 @@
 #ifndef JSMN_H
 #define JSMN_H
 
-//#include <stddef.h> removed this, added just _SIZE_T
-
-#ifndef _SIZE_T
-#define _SIZE_T
-typedef unsigned int size_t;
-#endif
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
