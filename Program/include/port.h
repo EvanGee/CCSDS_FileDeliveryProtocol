@@ -61,8 +61,6 @@ Author: Evan Giese
     #define ssp_closedir closedir
     #define ssp_lseek lseek
     #define ssp_remove remove
-
-
 #endif
 
 #ifdef RED_FS
@@ -78,7 +76,7 @@ Author: Evan Giese
     #define SSP_O_TRUNC RED_O_TRUNC
     #define SSP_EEXIST RED_EEXIST
     #define SSP_SEEK_SET RED_SEEK_SET
-    #define SSP_SEEK_END SEEK_END
+    #define SSP_SEEK_END RED_SEEK_END
     #define ssp_open red_open
     #define ssp_rename red_rename
     #define ssp_close red_close
@@ -140,7 +138,7 @@ void ssp_error(char *msg);
 void ssp_printf(char *stuff, ...);
 void *ssp_alloc(uint32_t u_memb, size_t size);
 void ssp_sendto(Response res);
-void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void *params);
+void *ssp_thread_create(int stack_size, void* (thread_func)(void *params), void *params);
 int ssp_time_count(void);
 void ssp_error(char *error);
 void ssp_free(void *pointer);

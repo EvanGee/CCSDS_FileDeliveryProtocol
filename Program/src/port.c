@@ -80,7 +80,6 @@ int ssp_mkdir(char *dir_name) {
             //ssp_printf("%s directory created\n", dir_name);
             return 1;
         }
-        return -1;
 
     #endif
     #ifdef RED_FS
@@ -97,10 +96,7 @@ int ssp_mkdir(char *dir_name) {
             ssp_printf("%s directory created\n", dir_name);
             return 1;
         }
-        return -1;
     #endif
-    return -1;
-
 }
 
 void *ssp_opendir(char *dir_name) {
@@ -125,7 +121,6 @@ void *ssp_opendir(char *dir_name) {
         return dir;
 
     #endif
-    return NULL;
 }
 
 int ssp_readdir(void *dir, char *file){
@@ -154,9 +149,6 @@ int ssp_readdir(void *dir, char *file){
 
         return 1;
     #endif    
-
-    return -1;
-    
 }
 
 #include "packet.h"
@@ -191,8 +183,8 @@ void ssp_sendto(Response res) {
         return;
         #else
         ssp_printf("FreeRtos not defined, can't use generic queues");
-        #endif
         break;
+        #endif
     case csp_connectionless:
         #ifdef CSP_NETWORK
         packet = (csp_packet_t *) res.addr;
@@ -282,13 +274,12 @@ void *ssp_alloc(uint32_t n_memb, size_t size) {
     #ifdef FREE_RTOS_PORT
         void *mem = pvPortMalloc(n_memb * size);
         memset(mem, 0, n_memb * size);
-        return mem;
     #else
         void *mem = calloc(n_memb, size);
+
+        if (mem == NULL)
+            ssp_error("Memory failed to alloc!\n");
     #endif
-    if (mem == NULL)
-        ssp_error("Memory failed to alloc!\n");    
-    
     return mem;
 }
 
@@ -351,7 +342,7 @@ int ssp_time_count() {
 /*------------------------------------------------------------------------------
     Threading and task functions
 ------------------------------------------------------------------------------*/
-void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void *params) {
+void *ssp_thread_create(int stack_size, void* (thread_func)(void *params), void *params) {
 
     #ifdef FREE_RTOS_PORT
 
@@ -360,7 +351,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
     
     // Create the task, storing the handle.
     xReturned = xTaskCreate(
-                    thread_func,       // Function that implements the task.
+                    (TaskFunction_t) thread_func, // Function that implements the task.
                     "FTP",          // Text name for the task.
                     stack_size,      // Stack size in words, not bytes.
                     params,    // Parameter passed into the task.
@@ -372,7 +363,7 @@ void *ssp_thread_create(int stack_size, void * (thread_func)(void *params), void
         return NULL;
     }
 
-    return xReturned;
+    return xHandle;
 
     #else //pthreads
     pthread_t *handler = ssp_alloc(1,  sizeof(pthread_t));
@@ -473,7 +464,6 @@ int ssp_lock_give(void *lock) {
         return 1;
     }
     ssp_printf("couldn't give the lock\n");
-    return 0;
 
     #else
     pthread_mutex_t *mutex = (pthread_mutex_t *) lock; 
