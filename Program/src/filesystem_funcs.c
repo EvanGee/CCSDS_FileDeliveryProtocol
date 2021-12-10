@@ -19,13 +19,13 @@ int get_file_size(char *source_file_name) {
         return -1;
     }
 
-    int bytes = ssp_lseek(fd, 0, 2);
+    int bytes = ssp_lseek(fd, 0, SSP_SEEK_END);
     if (bytes == -1){
         ssp_error("could not seek file for file size\n");
         return -1;
     }
 
-    ssp_lseek(fd, 0, 0);
+    ssp_lseek(fd, 0, SSP_SEEK_SET);
 
     if (ssp_close(fd) == -1){
         ssp_error("could not close file\n");
