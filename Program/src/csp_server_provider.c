@@ -289,10 +289,7 @@ void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, 
         return;
     }
 
-    Client *client = (Client*) params;
-
-	while (1) {
-        
+    while (1) {
         //lock will block, need to unlock when new request/s are started
         ssp_lock_take(lock);
 

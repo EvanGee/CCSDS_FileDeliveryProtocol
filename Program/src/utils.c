@@ -25,7 +25,6 @@ void ssp_print_hex(char *stuff, int size){
 }   
 
 
-static int log_fd = -1;
 void log_ftp(char *info, char *stuff){
 
     #ifdef POSIX_PORT

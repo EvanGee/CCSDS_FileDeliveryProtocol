@@ -100,7 +100,7 @@ static int parse_mib(char *key, char *value, void *params) {
                 remote->UT_port = ssp_atol(value);
                 break;
             case PARSE_type_of_network: 
-                remote->type_of_network = ssp_atol(value);
+                remote->type_of_network = (Network_type) ssp_atol(value);
                 break;
             case PARSE_default_transmission_mode:
                 remote->default_transmission_mode = ssp_atol(value); 

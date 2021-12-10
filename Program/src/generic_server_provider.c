@@ -27,7 +27,6 @@ void csp_generic_server(
     void (*onExit)(void *app),
     void *app)
 {
-    FTP *ftp = (FTP *)app;
     csp_packet_t *packet;
     _init_queues(10, 10);
 

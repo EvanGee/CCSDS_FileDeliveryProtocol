@@ -213,12 +213,13 @@ int init_ftp(uint32_t my_cfdp_address, FTP *app) {
 }
 
 
-static void init_ftp_task(void *app){
+static void* init_ftp_task(void *app){
     FTP *ap = (FTP *) app;
     int error = init_ftp(ap->my_cfdp_id, ap);
     if (error < 0) {
         //task failed to start destroy task/thread
     }
+    return NULL;
 }
 
 void *create_ftp_task(uint32_t cfdp_id, FTP *app){

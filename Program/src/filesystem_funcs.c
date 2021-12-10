@@ -720,7 +720,7 @@ static int parse_json_request(char *key, char *value, void *params) {
 }
 
 
-static struct json_write_callback {
+struct json_write_callback {
     int error;
     int fd;
     int bytes_written;
