@@ -20,7 +20,7 @@ Author: Evan Giese
 
 //https://www.cs.cmu.edu/afs/cs/academic/class/15213-f99/www/class26/udpclient.c
 void csp_connectionless_client(uint8_t dest_id, uint8_t dest_port, uint8_t src_port, uint32_t packet_len,
-    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *params),
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *params),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *params) ,
     int (*checkExit)(void *params),
     void (*onExit)(void *params),
@@ -273,7 +273,7 @@ void csp_connection_server(uint8_t my_port, uint32_t packet_len, uint32_t time_o
 
 
 void csp_connection_client(uint8_t dest_id, uint8_t dest_port, uint8_t my_port, uint32_t packet_len, uint32_t time_out, void*lock,
-    int (*onSend)(int sfd, void *addr, uint32_t size_of_addr, void *onSendParams),
+    int (*onSend)(int sfd, void *addr, size_t size_of_addr, void *onSendParams),
     int (*onRecv)(int sfd, char *packet, uint32_t packet_len, uint32_t *buff_size, void *addr, size_t size_of_addr, void *onRecvParams) ,
     int (*checkExit)(void *checkExitParams),
     void (*onExit)(void *params),
