@@ -85,7 +85,7 @@ static int get_file_name(char *buff, int len, char *file_name) {
 }
 
 //parses the file name paths between source and destination filenames
-int parse_file_path(char *buff, int len, char *file_name) {
+static int parse_file_path(char *buff, int len, char *file_name) {
     int i = 0;
     for (i = 0; i < len; i++) {
         if (buff[i] == '|') {
@@ -99,7 +99,7 @@ int parse_file_path(char *buff, int len, char *file_name) {
 
 
 
-List *parse_file_list(char *target){
+static List *parse_file_list(char *target){
 
     int buff_size = 5000;
     int len = strnlen(target, buff_size);
@@ -166,9 +166,7 @@ static Config *configuration(int argc, char **argv)
     conf->uart_device = NULL;
     conf->unackowledged_mode = ACKNOWLEDGED_MODE;
     
-
     uint32_t tmp;
-    char file_name[255];
 
     while ((ch = getopt(argc, argv, "f: i: c: v: k: hu")) != -1)
     {
@@ -235,7 +233,6 @@ static int init_csp_stuff(Config conf){
 
     #ifdef CSP_NETWORK
         
-        csp_debug_level_t debug_level = 0;
         // enable/disable debug levels
         /*
         for (csp_debug_level_t i = 0; i <= CSP_LOCK; ++i) {
@@ -300,7 +297,7 @@ static int init_csp_stuff(Config conf){
     return 0;
 }
 
-
+#if 0
 static int confirm(){
     char buff[100];
     memset(buff, 0, 100);
@@ -385,6 +382,7 @@ static void input_daemon(uint32_t client_id, FTP *app){
         }
     }
 }
+#endif
 
 int main(int argc, char** argv) {
 
