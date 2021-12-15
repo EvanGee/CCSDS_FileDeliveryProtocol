@@ -13,6 +13,8 @@ Author: Evan Giese
 
 #ifdef POSIX_PORT
 #include "posix_server_provider.h"
+#else
+typedef int socklen_t;
 #endif
 
 #ifdef CSP_NETWORK
@@ -22,7 +24,6 @@ Author: Evan Giese
 //for print_request_state
 #include "requests.h"
 
-typedef int socklen_t;
 const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
 
 /*------------------------------------------------------------------------------
@@ -322,7 +323,9 @@ static void on_exit_server_callback (void *params) {
 
 ------------------------------------------------------------------------------*/
 
-//static
+#ifdef POSIX_PORT
+static
+#endif
 int get_ip_port(Remote_entity remote_entity, char *host_name, char *port){
     //convert int to char *
     int error = ssp_snprintf(port, 10, "%d", remote_entity.UT_port);
