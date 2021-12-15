@@ -112,6 +112,8 @@ Author: Evan Giese
     #include "stdlib.h"
     #define ssp_atol atol
     #define ssp_atoll atoll
+
+    #define FMT64 "%lu"
 #endif
 
 #ifdef FREE_RTOS_PORT
@@ -125,6 +127,8 @@ Author: Evan Giese
     #include "stdlib.h"
     #define ssp_atol atol
     #define ssp_atoll atoll
+
+    #define FMT64 "%llu"
 #endif
 
 

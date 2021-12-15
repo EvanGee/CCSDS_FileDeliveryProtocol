@@ -437,7 +437,7 @@ static int get_file_name(char *filename, uint32_t dest_cfdp_id, uint32_t cfdp_id
     if (error < 0)
         return -1;
 
-    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s%llu%s", "incomplete_requests/CFID:", dest_cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".json");
+    ssp_snprintf(filename, MAX_PATH, "%s%u%s%u%s%u%s"FMT64"%s", "incomplete_requests/CFID:", dest_cfdp_id, "_requests/dest_id:", dest_cfdp_id,":cfdp_id:", cfdp_id, ":trans:", trans, ".json");
 
     return 1;
 }
@@ -825,7 +825,7 @@ static int add_base_req_json(int fd, Request *req){
     ssp_snprintf(buff, size, "{\n\
     \"%s\":%d,\n\
     \"%s\":%d,\n\
-    \"%s\":%llu,\n\
+    \"%s\":"FMT64",\n\
     \"%s\":%d,\n\
     \"%s\":\"%s\",\n\
     \"%s\":\"%s\",\n\
