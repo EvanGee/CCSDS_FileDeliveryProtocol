@@ -150,11 +150,11 @@ void ssp_thread_join(void *thread_handle);
 int ssp_mkdir(char *dir_name);
 void *ssp_opendir(char *dir_name);
 int ssp_readdir(void *dir, char *file);
-int get_exit();
-void set_exit();
+int get_exit(void);
+void set_exit(void);
 int ssp_lock_give(void *lock);
 int ssp_lock_take(void *lock);
-void *ssp_lock_create();
+void *ssp_lock_create(void);
 int ssp_lock_destory(void *lock);
 
 void reset_request(Request *req);
