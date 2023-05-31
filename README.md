@@ -1,4 +1,4 @@
-This is not finished! - currently working on it!
+This is not a complete version of the protocol, Just put images, and proxy put (get). 
 
 This is a FTP protocol that is partially (mostly) adheres to the CCSDS (Consultative Committee for Space Data Systems) spec for sending files into space CCSDS 727.0-B-4 (https://public.ccsds.org/pubs/727x0b4.pdf). This project is being built for a student lead space initiative at the Univerity of Alberta called ABsat. 
 
